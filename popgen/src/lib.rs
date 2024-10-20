@@ -74,10 +74,8 @@ impl AlleleCounts {
         let mut counts_this_site = Vec::with_capacity(2);
         for sample in samples {
             for allele_id in sample {
-                // TODO: missing data will panic
-
                 let allele_id_under = match allele_id {
-                    None => continue,
+                    None => continue,  // TODO: anything else to do here?
                     Some(id) => id.0,
                 };
 
