@@ -1,5 +1,5 @@
 [package]
-name = "popgen-oxide"
+name = "popgen-bin"
 version = "0.1.0"
 edition = "2021"
 

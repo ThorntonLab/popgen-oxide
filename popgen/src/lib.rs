@@ -22,14 +22,6 @@ impl From<usize> for AlleleID {
     }
 }
 
-pub struct AlleleCounts {
-    // probably don't need to track this
-    // positions: Vec<i64>,
-    counts: Vec<u32>,
-    // start indices into counts at which the counts start for a specific site
-    // counts and count_starts together produce a ragged 2d array
-    count_starts: Vec<usize>,
-}
 
 #[derive(Debug)]
 struct PopgenError {
@@ -43,12 +35,22 @@ impl Display for PopgenError {
 }
 
 impl Error for PopgenError {}
+#[derive(Debug)]
+pub struct AlleleCounts {
+    // probably don't need to track this
+    // positions: Vec<i64>,
+    counts: Vec<u32>,
+    // start indices into counts at which the counts start for a specific site
+    // counts and count_starts together produce a ragged 2d array
+    count_starts: Vec<usize>,
+}
 
 impl AlleleCounts {
-    pub fn from_tabular<Sites, Samples>(sites: Sites) -> Self
+    pub fn from_tabular<Sites, Samples, Sample>(sites: Sites) -> Self
     where
         Sites: IntoIterator<Item = Samples>,
-        Samples: Iterator<Item = Option<AlleleID>>,
+        Samples: IntoIterator<Item = Sample>,
+        Sample: IntoIterator<Item = Option<AlleleID>>,
     {
         let mut ret = Self {
             counts: vec![],
@@ -62,23 +64,26 @@ impl AlleleCounts {
         ret
     }
 
-    pub fn add_site<Samples>(&mut self, samples: Samples)
+    pub fn add_site<Samples, Sample>(&mut self, samples: Samples)
     where
-        Samples: Iterator<Item = Option<AlleleID>>,
+        Samples: IntoIterator<Item = Sample>,
+        Sample: IntoIterator<Item = Option<AlleleID>>,
     {
         // in something like VCF we wouldn't even have data if there was no variation; 2 is a reasonable lower bound
         // we're allocating `usize`s; it's totally fine to do this
         let mut counts_this_site = Vec::with_capacity(2);
-        for allele_id in samples {
-            // TODO: missing data will panic
+        for sample in samples {
+            for allele_id in sample {
+                // TODO: missing data will panic
 
-            let allele_id_under = match allele_id {
-                None => continue,
-                Some(id) => id.0,
-            };
+                let allele_id_under = match allele_id {
+                    None => continue,
+                    Some(id) => id.0,
+                };
 
-            counts_this_site.resize(max(allele_id_under + 1, counts_this_site.len()), 0);
-            counts_this_site[allele_id_under] += 1;
+                counts_this_site.resize(max(allele_id_under + 1, counts_this_site.len()), 0);
+                counts_this_site[allele_id_under] += 1;
+            }
         }
         self.counts.extend_from_slice(&*counts_this_site);
         // count backwards in case counts_this_site.is_empty() or other strange case
