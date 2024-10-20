@@ -46,11 +46,10 @@ pub struct AlleleCounts {
 }
 
 impl AlleleCounts {
-    pub fn from_tabular<Sites, Samples, Sample>(sites: Sites) -> Self
+    pub fn from_tabular<Sites, Samples>(sites: Sites) -> Self
     where
         Sites: IntoIterator<Item = Samples>,
-        Samples: IntoIterator<Item = Sample>,
-        Sample: IntoIterator<Item = Option<AlleleID>>,
+        Samples: IntoIterator<Item = Option<AlleleID>>,
     {
         let mut ret = Self {
             counts: vec![],
@@ -64,24 +63,21 @@ impl AlleleCounts {
         ret
     }
 
-    pub fn add_site<Samples, Sample>(&mut self, samples: Samples)
+    pub fn add_site<Samples>(&mut self, samples: Samples)
     where
-        Samples: IntoIterator<Item = Sample>,
-        Sample: IntoIterator<Item = Option<AlleleID>>,
+        Samples: IntoIterator<Item = Option<AlleleID>>,
     {
         // in something like VCF we wouldn't even have data if there was no variation; 2 is a reasonable lower bound
         // we're allocating `usize`s; it's totally fine to do this
         let mut counts_this_site = Vec::with_capacity(2);
-        for sample in samples {
-            for allele_id in sample {
-                let allele_id_under = match allele_id {
-                    None => continue,  // TODO: anything else to do here?
-                    Some(id) => id.0,
-                };
+        for allele_id in samples {
+            let allele_id_under = match allele_id {
+                None => continue,  // TODO: anything else to do here?
+                Some(id) => id.0,
+            };
 
-                counts_this_site.resize(max(allele_id_under + 1, counts_this_site.len()), 0);
-                counts_this_site[allele_id_under] += 1;
-            }
+            counts_this_site.resize(max(allele_id_under + 1, counts_this_site.len()), 0);
+            counts_this_site[allele_id_under] += 1;
         }
         self.counts.extend_from_slice(&*counts_this_site);
         // count backwards in case counts_this_site.is_empty() or other strange case
