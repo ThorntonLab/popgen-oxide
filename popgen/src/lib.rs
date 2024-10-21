@@ -111,7 +111,7 @@ impl AlleleCounts {
 
     fn heterozyosity_from_slice(counts: &[Count]) -> f64 {
         let num_pairs = {
-            let count = counts.iter().sum();
+            let count: u64 = counts.iter().sum();
             count * (count - 1)
         };
 
