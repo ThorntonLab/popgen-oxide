@@ -113,13 +113,13 @@ impl<'inner> Iterator for AlleleCountsSiteIter<'inner> {
         match self.inner.count_starts.get(self.next_site_ind.0) {
             None => None,
             Some(index) => {
-                let ret = self.inner.counts[*index..
+                let ret = &self.inner.counts[*index..
                     *self.inner.count_starts
                         .get(self.next_site_ind.0 + 1)
                         .unwrap_or(&(self.inner.counts.len() - 1))];
 
                 self.next_site_ind.0 += 1;
-                ret
+                Some(ret)
             }
         }
     }
@@ -140,7 +140,7 @@ impl DoubleEndedIterator for AlleleCountsSiteIter<'_> {
                         .unwrap_or(&(self.inner.counts.len() - 1))];
 
                 self.next_site_ind.1 -= 1;
-                ret
+                Some(ret)
             }
         }
     }
