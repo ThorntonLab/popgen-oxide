@@ -1,8 +1,8 @@
+use itertools::Itertools;
 use std::cmp::max;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use itertools::Itertools;
 
 mod tests;
 
@@ -102,17 +102,17 @@ pub struct AlleleCountsSiteIter<'counts> {
     next_site_ind: (usize, usize),
 }
 
-impl Iterator for AlleleCountsSiteIter {
+impl Iterator for AlleleCountsSiteIter<'counts> {
     type Item<'counts> = &'counts [Count];
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.next_site_ind.0 >= self.next_site_ind.1 {
+        if self.next_site_ind.0 > self.next_site_ind.1 {
             return None;
         }
 
         match self.inner.count_starts.get(self.next_site_ind.0) {
             None => None,
-            Some(index) => {;
+            Some(index) => {
                 let ret = self.inner.counts[index..
                     self.inner.count_starts
                         .get(self.next_site_ind.0 + 1)
@@ -125,4 +125,23 @@ impl Iterator for AlleleCountsSiteIter {
     }
 }
 
-// TODO: DoubleEndedIterator?
+impl DoubleEndedIterator for AlleleCountsSiteIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.next_site_ind.1 < self.next_site_ind.0 {
+            return None;
+        }
+
+        match self.inner.count_starts.get(self.next_site_ind.1) {
+            None => None,
+            Some(index) => {
+                let ret = self.inner.counts[index..
+                    self.inner.count_starts
+                        .get(self.next_site_ind.1 + 1)
+                        .unwrap_or(&(self.inner.counts.len() - 1))];
+
+                self.next_site_ind.1 -= 1;
+                ret
+            }
+        }
+    }
+}
