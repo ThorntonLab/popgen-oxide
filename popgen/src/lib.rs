@@ -1,5 +1,4 @@
-use iter::AlleleCountsSiteIter;
-use itertools::Itertools;
+use crate::iter::AlleleCountsSiteIter;
 use std::cmp::max;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
