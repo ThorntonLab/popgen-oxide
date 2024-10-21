@@ -1,7 +1,7 @@
 use crate::{AlleleCounts, Count};
 
-pub struct AlleleCountsSiteIter<'counts> {
-    pub(crate) inner: &'counts AlleleCounts,
+pub struct AlleleCountsSiteIter<'inner> {
+    pub(crate) inner: &'inner AlleleCounts,
     // index of next for forward iter, index of next for reverse iter
     pub(crate) next_site_ind: (usize, usize),
 }
