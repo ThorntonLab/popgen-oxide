@@ -17,10 +17,8 @@ impl<'inner> Iterator for AlleleCountsSiteIter<'inner> {
         match self.inner.count_starts.get(self.next_site_ind.0) {
             None => None,
             Some(index) => {
-                let ret = &self.inner.counts[*index..
-                    *self.inner.count_starts
-                        .get(self.next_site_ind.0 + 1)
-                        .unwrap_or(&(self.inner.counts.len() - 1))];
+                let ret = self.inner.counts_at(*index)
+                    .expect("forward iterator index out of range");
 
                 self.next_site_ind.0 += 1;
                 Some(ret)
@@ -38,12 +36,10 @@ impl DoubleEndedIterator for AlleleCountsSiteIter<'_> {
         match self.inner.count_starts.get(self.next_site_ind.1) {
             None => None,
             Some(index) => {
-                let ret = &self.inner.counts[*index..
-                    *self.inner.count_starts
-                        .get(self.next_site_ind.1 + 1)
-                        .unwrap_or(&(self.inner.counts.len() - 1))];
+                let ret = self.inner.counts_at(*index)
+                    .expect("reverse iterator index out of range");
 
-                self.next_site_ind.1 -= 1;
+                self.next_site_ind.0 += 1;
                 Some(ret)
             }
         }

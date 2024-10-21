@@ -98,5 +98,16 @@ impl AlleleCounts {
             next_site_ind: (0, self.count_starts.len() - 1),
         }
     }
+
+    /// Get the allele counts at a specific site index.
+    ///
+    /// Returns [`None`] if the site index is invalid.
+    pub fn counts_at(&self, site: usize) -> Option<&[Count]> {
+        self.count_starts.get(site).map(|count_start| &self.counts[*count_start..
+            *self.count_starts
+                .get(site + 1)
+                .unwrap_or(&(self.counts.len() - 1))])
+
+    }
 }
 
