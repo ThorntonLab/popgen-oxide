@@ -2,6 +2,7 @@ use std::cmp::max;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
+use itertools::Itertools;
 
 mod tests;
 
@@ -35,11 +36,14 @@ impl Display for PopgenError {
 }
 
 impl Error for PopgenError {}
+
+type Count = i32;
+
 #[derive(Debug)]
 pub struct AlleleCounts {
     // probably don't need to track this
     // positions: Vec<i64>,
-    counts: Vec<u32>,
+    counts: Vec<Count>,
     // start indices into counts at which the counts start for a specific site
     // counts and count_starts together produce a ragged 2d array
     count_starts: Vec<usize>,
@@ -83,4 +87,42 @@ impl AlleleCounts {
         // count backwards in case counts_this_site.is_empty() or other strange case
         self.count_starts.push(self.counts.len() - counts_this_site.len());
     }
+
+    pub fn iter(&self) -> AlleleCountsSiteIter {
+        AlleleCountsSiteIter {
+            inner: &self,
+            next_site_ind: (0, self.count_starts.len() - 1),
+        }
+    }
 }
+
+pub struct AlleleCountsSiteIter<'counts> {
+    inner: &'counts AlleleCounts,
+    // index of next for forward iter, index of next for reverse iter
+    next_site_ind: (usize, usize),
+}
+
+impl Iterator for AlleleCountsSiteIter {
+    type Item<'counts> = &'counts [Count];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.next_site_ind.0 >= self.next_site_ind.1 {
+            return None;
+        }
+
+        match self.inner.count_starts.get(self.next_site_ind.0) {
+            None => None,
+            Some(index) => {;
+                let ret = self.inner.counts[index..
+                    self.inner.count_starts
+                        .get(self.next_site_ind.0 + 1)
+                        .unwrap_or(&(self.inner.counts.len() - 1))];
+
+                self.next_site_ind.0 += 1;
+                ret
+            }
+        }
+    }
+}
+
+// TODO: DoubleEndedIterator?
