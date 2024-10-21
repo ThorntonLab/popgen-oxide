@@ -107,7 +107,34 @@ impl AlleleCounts {
             *self.count_starts
                 .get(site + 1)
                 .unwrap_or(&(self.counts.len() - 1))])
+    }
 
+    fn heterozyosity_from_slice(counts: &[Count]) -> f64 {
+        let num_pairs = {
+            let count = counts.iter().sum();
+            count * (count - 1)
+        };
+
+        // the number of pairs where the two samples are homozygous, summed over every genotype
+        let num_homozygous_pairs = counts.iter().map(|count| count * (count - 1)).sum();
+
+        1 - (num_homozygous_pairs / num_pairs)
+    }
+
+    /// The chance pi that two uniformly randomly chosen genotypes at this site are different.
+    /// Expect a value in the 1e-3 range.
+    /// The complement of this probability is the site homozygosity.
+    ///
+    ///
+    /// Returns [`None`] if the site index is invalid.
+    pub fn site_heterozygosity(&self, site: usize) -> Option<f64> {
+        self.counts_at(site).map(Self::heterozyosity_from_slice)
+    }
+
+    /// Take the sum of [`Self::site_heterozygosity`] over all sites.
+    /// This statistic is the expected number of differences between the genotypes of two uniformly chosen individuals, considering all sites.
+    pub fn global_heterozygosity(&self) -> f64 {
+        self.iter().map(Self::heterozyosity_from_slice).sum()
     }
 }
 
