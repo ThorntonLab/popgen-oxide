@@ -102,8 +102,8 @@ pub struct AlleleCountsSiteIter<'counts> {
     next_site_ind: (usize, usize),
 }
 
-impl Iterator for AlleleCountsSiteIter<'counts> {
-    type Item<'counts> = &'counts [Count];
+impl<'inner> Iterator for AlleleCountsSiteIter<'inner> {
+    type Item = &'inner [Count];
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.next_site_ind.0 > self.next_site_ind.1 {
@@ -125,7 +125,7 @@ impl Iterator for AlleleCountsSiteIter<'counts> {
     }
 }
 
-impl DoubleEndedIterator for AlleleCountsSiteIter {
+impl DoubleEndedIterator for AlleleCountsSiteIter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.next_site_ind.1 < self.next_site_ind.0 {
             return None;
