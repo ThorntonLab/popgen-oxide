@@ -6,6 +6,9 @@ use std::str::FromStr;
 
 mod tests;
 mod iter;
+pub mod adapter;
+
+pub use noodles::vcf as noodles_vcf;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AlleleID(usize);
