@@ -1,12 +1,7 @@
 use indicatif::{ProgressBar, ProgressIterator};
-use noodles::vcf::variant::record::samples::keys::key;
-use noodles::vcf::variant::record::samples::series::Value;
-use noodles::vcf::variant::record::samples::Sample as SampleTrait;
-use popgen::{AlleleCounts, AlleleID};
-use std::error::Error;
-use std::vec::IntoIter;
-use noodles::vcf::Record;
 use popgen::adapter::record_to_genotypes_adapter;
+use popgen::AlleleCounts;
+use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let make_reader = || noodles::vcf::io::reader::Builder::default()
