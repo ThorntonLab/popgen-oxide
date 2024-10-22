@@ -41,7 +41,7 @@ impl Display for PopgenError {
 
 impl Error for PopgenError {}
 
-type Count = i32;
+type Count = i64;
 
 #[derive(Debug)]
 pub struct AlleleCounts {
@@ -111,14 +111,14 @@ impl AlleleCounts {
 
     fn heterozyosity_from_slice(counts: &[Count]) -> f64 {
         let num_pairs = {
-            let count: u64 = counts.iter().sum();
+            let count: i64 = counts.iter().sum();
             count * (count - 1)
         };
 
         // the number of pairs where the two samples are homozygous, summed over every genotype
-        let num_homozygous_pairs = counts.iter().map(|count| count * (count - 1)).sum();
+        let num_homozygous_pairs: Count = counts.iter().map(|count| count * (count - 1)).sum();
 
-        1 - (num_homozygous_pairs / num_pairs)
+        1f64 - (num_homozygous_pairs as f64 / num_pairs as f64)
     }
 
     /// The chance pi that two uniformly randomly chosen genotypes at this site are different.
