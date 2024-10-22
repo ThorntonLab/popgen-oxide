@@ -92,9 +92,9 @@ impl AlleleCounts {
     }
 
     pub fn add_site_from_counts(&mut self, counts: impl AsRef<[Count]>) {
-        self.counts.extend_from_slice(&*counts);
+        self.counts.extend_from_slice(counts.as_ref());
         // count backwards in case counts_this_site.is_empty() or other strange case
-        self.count_starts.push(self.counts.len() - counts.len());
+        self.count_starts.push(self.counts.len() - counts.as_ref().len());
     }
 
     pub fn iter(&self) -> AlleleCountsSiteIter {
