@@ -111,7 +111,7 @@ impl AlleleCounts {
         self.count_starts.get(site).map(|count_start| &self.counts[*count_start..
             *self.count_starts
                 .get(site + 1)
-                .unwrap_or(&(self.counts.len() - 1))])
+                .unwrap_or(&self.counts.len())])
     }
 
     fn heterozyosity_from_slice(counts: &[Count]) -> f64 {
