@@ -14,6 +14,7 @@ mod tests {
                     .chain(repeat_n(1, 7))
                     .map(AlleleID::from)
                     .map(Option::from)
+                    .chain(repeat_n(None, 4))
                     .collect::<Vec<_>>();
                 site.shuffle(&mut rng);
                 site
@@ -24,6 +25,7 @@ mod tests {
                     .chain(repeat_n(2, 926))
                     .map(AlleleID::from)
                     .map(Option::from)
+                    .chain(repeat_n(None, 300))
                     .collect::<Vec<_>>();
                 site.shuffle(&mut rng);
                 site
