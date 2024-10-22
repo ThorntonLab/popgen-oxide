@@ -14,6 +14,7 @@ mod tests {
     use noodles::vcf::variant::record::samples::series::value::genotype::Phasing::Unphased;
     use noodles::vcf::variant::record_buf::samples::sample::value::genotype::Allele;
     use rand::seq::SliceRandom;
+    use rand::thread_rng;
     use std::iter::repeat_n;
 
     // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
@@ -51,23 +52,25 @@ mod tests {
             .set_samples(Samples::new(
                 Keys::from_iter(vec![String::from(key::GENOTYPE)]),
                 // for each genotype and its count, create that many samples accordingly
-                site_genotypes.iter().map(|(genotype, count)| vec![
-                    Some(Value::from(Genotype::from_iter(
-                        genotype.as_ref().iter()
-                            .map(|sample_variant| Allele::new(
-                                sample_variant.as_ref().map(|some| alleles_seen.iter()
-                                    .enumerate()
-                                    .find(|(_, variant)| **variant == some.as_ref())
-                                    .unwrap().0
-                                ),
-                                Unphased  // TODO: make this configurable?
-                            )),
-                    )));
-                    *count
-                ])
-                    .collect::<Vec<_>>()))
-            .build()
-        )
+                {
+                    let mut all_samples = site_genotypes.iter().map(|(genotype, count)| vec![
+                        Some(Value::from(Genotype::from_iter(
+                            genotype.as_ref().iter()
+                                .map(|sample_variant| Allele::new(
+                                    sample_variant.as_ref().map(|some| alleles_seen.iter()
+                                        .enumerate()
+                                        .find(|(_, variant)| **variant == some.as_ref())
+                                        .unwrap().0
+                                    ),
+                                    Unphased  // TODO: make this configurable?
+                                )),
+                        )));
+                        *count
+                    ]).collect::<Vec<_>>();
+                    all_samples.shuffle(&mut thread_rng());
+                    all_samples
+                }))
+            .build())
     }
 
     fn make_mock_vcf<Sites, SiteGenotypes, SiteVariant, Allele>(sites: Sites) -> Option<String>
