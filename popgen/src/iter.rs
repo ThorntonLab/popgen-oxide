@@ -39,7 +39,7 @@ impl DoubleEndedIterator for AlleleCountsSiteIter<'_> {
                 let ret = self.inner.counts_at(*index)
                     .expect("reverse iterator index out of range");
 
-                self.next_site_ind.0 += 1;
+                self.next_site_ind.1 -= 1;
                 Some(ret)
             }
         }
