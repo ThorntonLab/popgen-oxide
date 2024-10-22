@@ -43,7 +43,7 @@ impl Error for PopgenError {}
 
 type Count = i64;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct AlleleCounts {
     // probably don't need to track this
     // positions: Vec<i64>,
