@@ -11,6 +11,7 @@ mod tests {
     use noodles::vcf::variant::record_buf::samples::Keys;
     use noodles::vcf::variant::record_buf::{AlternateBases, Samples};
 
+    use crate::adapter::record_to_genotypes_adapter;
     use noodles::vcf::variant::record::samples::series::value::genotype::Phasing::Unphased;
     use noodles::vcf::variant::record_buf::samples::sample::value::genotype::Allele;
     use rand::seq::SliceRandom;
@@ -54,7 +55,8 @@ mod tests {
                 // for each genotype and its count, create that many samples accordingly
                 {
                     let mut all_samples = site_genotypes.iter().map(|(genotype, count)| vec![
-                        Some(Value::from(Genotype::from_iter(
+                        // for each sample at this site, there will only be the GT field and no other hence another layer of Vec here
+                        vec![Some(Value::from(Genotype::from_iter(
                             genotype.as_ref().iter()
                                 .map(|sample_variant| Allele::new(
                                     sample_variant.as_ref().map(|some| alleles_seen.iter()
@@ -64,9 +66,11 @@ mod tests {
                                     ),
                                     Unphased  // TODO: make this configurable?
                                 )),
-                        )));
+                        )))];
                         *count
-                    ]).collect::<Vec<_>>();
+                    ])
+                        .flatten()
+                        .collect::<Vec<_>>();
                     all_samples.shuffle(&mut thread_rng());
                     all_samples
                 }))
@@ -122,7 +126,7 @@ mod tests {
 
     #[test]
     fn load_raw() {
-        let mut rng = rand::thread_rng();
+        let mut rng = thread_rng();
 
         let sites = vec![
             {
@@ -155,13 +159,35 @@ mod tests {
 
     #[test]
     fn load_vcf() {
-        let vcf_string = make_mock_vcf(vec![
+        let vcf_buf = Vec::from(make_mock_vcf(vec![
             vec![
-                (vec![Some("A")], 1),
-                (vec![Some("T")], 24)
+                (vec![Some("A")], 11),
+                (vec![Some("C")], 5),
+            ],
+            vec![
+                (vec![Some("G")], 7),
+                (vec![Some("A")], 8),
+                (vec![None], 3)
             ]
-        ]).unwrap();
+        ]).unwrap());
 
-        dbg!(vcf_string);
+        let mut reader = noodles::vcf::io::reader::Builder::default()
+            .build_from_reader(&*vcf_buf)
+            .unwrap();
+
+        let header = reader.read_header().unwrap();
+        let num_samples = header.sample_names().iter().count();
+
+        let ploidy = 1;
+
+        let allele_counts = AlleleCounts::from_tabular(reader.records()
+            .map(Result::unwrap)
+            .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy)));
+
+        let expect_site_0 = 1f64 - (5 * 4 + 11 * 10) as f64 / (16 * 15) as f64;
+        let expect_site_1 = 1f64 - (7 * 6 + 8 * 7) as f64 / (15 * 14) as f64;
+        assert!(allele_counts.site_heterozygosity(0).unwrap() - expect_site_0 < f64::EPSILON);
+        assert!(allele_counts.site_heterozygosity(1).unwrap() - expect_site_1 < f64::EPSILON);
+        assert!(allele_counts.global_heterozygosity() - (expect_site_0 + expect_site_1) < f64::EPSILON);
     }
 }
