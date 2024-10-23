@@ -14,7 +14,6 @@ impl<'inner> Iterator for AlleleCountsSiteIter<'inner> {
             return None;
         }
 
-
         let ret = self.inner.counts_at(self.next_site_ind.0)
             .expect("forward iterator index out of range");
 
