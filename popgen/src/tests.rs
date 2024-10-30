@@ -18,6 +18,7 @@ mod tests {
     use rand::thread_rng;
     use std::iter::repeat_n;
     use crate::iter::SiteCounts;
+    use crate::stats::{GlobalPi, GlobalStatistic, Pi, SiteStatistic};
 
     // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
     // the appropriate IDs, number of samples, etc. will be calculated
@@ -169,17 +170,24 @@ mod tests {
 
     #[test]
     fn load_vcf() {
-        let vcf_buf = Vec::from(make_mock_vcf(vec![
-            vec![
-                (vec![Some("A")], 11),
-                (vec![Some("C")], 5),
-            ],
-            vec![
-                (vec![Some("G")], 7),
-                (vec![Some("A")], 8),
-                (vec![None], 3)
-            ]
-        ]).unwrap());
+        // let vcf_buf = make_mock_vcf(vec![
+        //     vec![
+        //         (vec![Some("A")], 11),
+        //         (vec![Some("C")], 5),
+        //     ],
+        //     vec![
+        //         (vec![Some("G")], 7),
+        //         (vec![Some("A")], 8),
+        //         (vec![None], 3)
+        //     ]
+        // ]).unwrap();
+
+        let vcf_buf = r#"##fileformat=VCFv4.5
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
+chr0	1	.	A	C	.	.	.	GT	/1	/0	/0	/0	/0	/1	/0	/0	/0	/0	/1	/0	/0	/1	/0	/1
+chr0	1	.	G	A	.	.	.	GT	/0	/0	/.	/.	/0	/0	/0	/0	/1	/1	/0	/1	/1	/.	/1	/1	/1	/1"#;
 
         let mut reader = noodles::vcf::io::reader::Builder::default()
             .build_from_reader(vcf_buf.as_bytes())
@@ -194,10 +202,15 @@ mod tests {
             .map(Result::unwrap)
             .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy)));
 
+        let mut iter = allele_counts.iter();
+        let counts_0 = iter.next().unwrap();
+        let counts_1 = iter.next().unwrap();
+        assert!(iter.next().is_none());
+
         let expect_site_0 = 1f64 - (5 * 4 + 11 * 10) as f64 / (16 * 15) as f64;
         let expect_site_1 = 1f64 - (7 * 6 + 8 * 7) as f64 / (15 * 14) as f64;
-        assert!(allele_counts.site_heterozygosity(0).unwrap() - expect_site_0 < f64::EPSILON);
-        assert!(allele_counts.site_heterozygosity(1).unwrap() - expect_site_1 < f64::EPSILON);
-        assert!(allele_counts.global_heterozygosity() - (expect_site_0 + expect_site_1) < f64::EPSILON);
+        assert!(Pi::from_site(counts_0).0 - expect_site_0 < f64::EPSILON);
+        assert!(Pi::from_site(counts_1).0 - expect_site_1 < f64::EPSILON);
+        assert!(GlobalPi::from_iter_sites(allele_counts.iter()).0 - (expect_site_0 + expect_site_1) < f64::EPSILON);
     }
 }
