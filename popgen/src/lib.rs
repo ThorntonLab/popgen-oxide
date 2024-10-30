@@ -51,6 +51,7 @@ pub struct AlleleCounts {
     // start indices into counts at which the counts start for a specific site
     // counts and count_starts together produce a ragged 2d array
     count_starts: Vec<usize>,
+    alleles_missing: Vec<i32>,
 }
 
 impl AlleleCounts {
@@ -72,12 +73,17 @@ impl AlleleCounts {
     where
         Samples: IntoIterator<Item = Option<AlleleID>>,
     {
+        let mut alleles_missing = 0;
+
         // in something like VCF we wouldn't even have data if there was no variation; 2 is a reasonable lower bound
         // we're allocating `usize`s; it's totally fine to do this
         let mut counts_this_site = Vec::with_capacity(2);
         for allele_id in samples {
             let allele_id_under = match allele_id {
-                None => continue,  // TODO: anything else to do here?
+                None => {
+                    alleles_missing += 1;
+                    continue;
+                },  // TODO: anything else to do here?
                 Some(id) => id.0,
             };
 
@@ -85,13 +91,14 @@ impl AlleleCounts {
             counts_this_site[allele_id_under] += 1;
         }
 
-        self.add_site_from_counts(counts_this_site);
+        self.add_site_from_counts(counts_this_site, alleles_missing);
     }
 
-    pub fn add_site_from_counts(&mut self, counts: impl AsRef<[Count]>) {
+    pub fn add_site_from_counts(&mut self, counts: impl AsRef<[Count]>, alleles_missing: i32) {
         self.counts.extend_from_slice(counts.as_ref());
         // count backwards in case counts_this_site.is_empty() or other strange case
         self.count_starts.push(self.counts.len() - counts.as_ref().len());
+        self.alleles_missing.push(alleles_missing);
     }
 
     pub fn iter(&self) -> AlleleCountsSiteIter {
@@ -111,36 +118,6 @@ impl AlleleCounts {
             *self.count_starts
                 .get(site + 1)
                 .unwrap_or(&self.counts.len())])
-    }
-
-    fn heterozyosity_from_slice(counts: &[Count]) -> f64 {
-        // technically should divide by two both here and below but it cancels out
-        let num_pairs = {
-            let count: i64 = counts.iter().sum();
-            count * (count - 1)
-        };
-
-        // the number of pairs where the two samples are homozygous, summed over every genotype
-        let num_homozygous_pairs: Count = counts.iter().map(|count| count * (count - 1)).sum();
-
-        1f64 - (num_homozygous_pairs as f64 / num_pairs as f64)
-    }
-
-    /// The chance pi that two uniformly randomly chosen genotypes at this site are different.
-    /// Expect a value in the 1e-3 range.
-    /// The complement of this probability is the site homozygosity.
-    ///
-    ///
-    /// Returns [`None`] if the site index is invalid.
-    pub fn site_heterozygosity(&self, site: usize) -> Option<f64> {
-        self.counts_at(site).map(Self::heterozyosity_from_slice)
-    }
-
-    /// Take the sum of [`Self::site_heterozygosity`] over all sites.
-    /// This statistic is the expected number of differences between the genotypes of two uniformly chosen individuals, considering all sites.
-    /// This is also called mean pairwise diversity.
-    pub fn global_heterozygosity(&self) -> f64 {
-        self.iter().map(Self::heterozyosity_from_slice).sum()
     }
 }
 
