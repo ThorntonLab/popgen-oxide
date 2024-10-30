@@ -6,7 +6,7 @@ pub struct MultiSiteCountsIter<'inner> {
     pub(crate) next_site_ind: (usize, usize),
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct SiteCounts<'inner> {
     pub(crate) counts: &'inner [Count],
     pub(crate) alleles_missing: i32,
