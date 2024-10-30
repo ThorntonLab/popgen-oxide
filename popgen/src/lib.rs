@@ -139,6 +139,7 @@ impl AlleleCounts {
 
     /// Take the sum of [`Self::site_heterozygosity`] over all sites.
     /// This statistic is the expected number of differences between the genotypes of two uniformly chosen individuals, considering all sites.
+    /// This is also called mean pairwise diversity.
     pub fn global_heterozygosity(&self) -> f64 {
         self.iter().map(Self::heterozyosity_from_slice).sum()
     }
