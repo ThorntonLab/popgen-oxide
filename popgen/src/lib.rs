@@ -105,6 +105,8 @@ impl AlleleCounts {
     ///
     /// Returns [`None`] if the site index is invalid.
     pub fn counts_at(&self, site: usize) -> Option<&[Count]> {
+        // TODO: do we even need random access?
+
         self.count_starts.get(site).map(|count_start| &self.counts[*count_start..
             *self.count_starts
                 .get(site + 1)
