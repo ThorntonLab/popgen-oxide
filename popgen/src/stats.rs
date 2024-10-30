@@ -19,7 +19,8 @@ pub trait GlobalStatistic {
 /// The complement of this probability is the site homozygosity.
 ///
 /// This is known roughly as site heterozygosity or site diversity.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
 pub struct Pi(pub f64);
 
 impl Sum for Pi {
@@ -46,7 +47,8 @@ impl SiteStatistic for Pi {
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 ///
 /// This is the sum of [`Pi`] over all sites.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
 pub struct GlobalPi(pub f64);
 
 impl GlobalStatistic for GlobalPi {
