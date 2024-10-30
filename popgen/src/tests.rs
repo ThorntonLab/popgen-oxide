@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::noodles_vcf::variant::RecordBuf;
-    use crate::{MultiSiteCounts, AlleleID};
+    use crate::{AlleleID, MultiSiteCounts};
     use noodles::vcf::header::record::value::map::{Contig, Format};
     use noodles::vcf::header::record::value::Map;
     use noodles::vcf::variant::io::Write;
@@ -10,15 +10,17 @@ mod tests {
     use noodles::vcf::variant::record_buf::samples::sample::Value;
     use noodles::vcf::variant::record_buf::samples::Keys;
     use noodles::vcf::variant::record_buf::{AlternateBases, Samples};
+    use std::convert::identity;
 
     use crate::adapter::record_to_genotypes_adapter;
+    use crate::iter::SiteCounts;
+    use crate::stats::{GlobalPi, GlobalStatistic, Pi, SiteStatistic};
     use noodles::vcf::variant::record::samples::series::value::genotype::Phasing::Unphased;
     use noodles::vcf::variant::record_buf::samples::sample::value::genotype::Allele;
     use rand::seq::SliceRandom;
     use rand::thread_rng;
     use std::iter::repeat_n;
-    use crate::iter::SiteCounts;
-    use crate::stats::{GlobalPi, GlobalStatistic, Pi, SiteStatistic};
+    use triangle_matrix::{SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut};
 
     // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
     // the appropriate IDs, number of samples, etc. will be calculated
@@ -127,6 +129,57 @@ mod tests {
         Some(String::from_utf8(buf).unwrap())
     }
 
+    struct TriVec<T>(usize, Vec<T>);
+
+    impl<T> Triangle<T> for TriVec<T> {
+        type Inner = Vec<T>;
+
+        fn n(&self) -> usize {
+            self.0
+        }
+
+        fn inner(&self) -> &Self::Inner {
+            &self.1
+        }
+    }
+
+    impl<T> TriangleMut<T> for TriVec<T> {
+        fn inner_mut(&mut self) -> &mut Self::Inner {
+            &mut self.1
+        }
+    }
+
+    /// inefficient O(n^2) computation of pairwise diversity at a site
+    ///
+    /// hidden in test module because nobody should use this; just want to verify without magic numbers that calculations are correct
+    fn pi_from_matrix(alleles: &[Option<AlleleID>]) -> Pi {
+        use SymmetricUpperTri;
+        use SymmetricUpperTriMut;
+
+        let total_alleles = alleles.len();
+        let mut mat = TriVec(total_alleles, Vec::from_iter(repeat_n(None::<i32>, total_alleles * (total_alleles + 1) / 2)));
+
+        for (ind_a, allele_a) in alleles.iter().enumerate() {
+            for (ind_b, allele_b) in alleles.iter().enumerate().skip(ind_a + 1) {
+                *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) = match *allele_a {
+                    None => None,
+                    Some(allele_id_a) => match *allele_b {
+                        None => None,
+                        Some(allele_id_b) => match allele_id_a.eq(&allele_id_b) {
+                            false => Some(1),
+                            true => Some(0),
+                        }
+                    }
+                }
+            }
+        }
+
+        let make_iter = || mat.iter_triangle_indices()
+            .map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
+            .filter_map(identity);
+        Pi(make_iter().sum::<i32>() as f64 / make_iter().count() as f64)
+    }
+
     #[test]
     fn load_raw() {
         let mut rng = thread_rng();
@@ -200,19 +253,21 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
 
         let ploidy = 1;
 
-        let allele_counts = MultiSiteCounts::from_tabular(reader.records()
+        let all_alleles = reader.records()
             .map(Result::unwrap)
-            .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy)));
+            .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy))
+            .collect::<Vec<_>>();
+        let allele_counts = MultiSiteCounts::from_tabular(all_alleles.iter().cloned());
 
         let mut iter = allele_counts.iter();
         let counts_0 = iter.next().unwrap();
         let counts_1 = iter.next().unwrap();
         assert!(iter.next().is_none());
 
-        let expect_site_0 = 1f64 - (5 * 4 + 11 * 10) as f64 / (16 * 15) as f64;
-        let expect_site_1 = 1f64 - (7 * 6 + 8 * 7) as f64 / (15 * 14) as f64;
-        assert!(Pi::from_site(counts_0).0 - expect_site_0 < f64::EPSILON);
-        assert!(Pi::from_site(counts_1).0 - expect_site_1 < f64::EPSILON);
-        assert!(GlobalPi::from_iter_sites(allele_counts.iter()).0 - (expect_site_0 + expect_site_1) < f64::EPSILON);
+        let expect_site_0 = pi_from_matrix(&*all_alleles[0]);
+        let expect_site_1 = pi_from_matrix(&*all_alleles[1]);
+        assert!(Pi::from_site(counts_0).0 - expect_site_0.0 < f64::EPSILON);
+        assert!(Pi::from_site(counts_1).0 - expect_site_1.0 < f64::EPSILON);
+        assert!(GlobalPi::from_iter_sites(allele_counts.iter()).0 - (expect_site_0.0 + expect_site_1.0) < f64::EPSILON);
     }
 }
