@@ -83,7 +83,7 @@ impl MultiSiteCounts {
                 None => {
                     alleles_missing += 1;
                     continue;
-                },  // TODO: anything else to do here?
+                },
                 Some(id) => id.0,
             };
 
