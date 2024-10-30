@@ -1,4 +1,4 @@
-use crate::iter::AlleleCountsSiteIter;
+use crate::iter::MultiSiteCountsIter;
 use std::cmp::max;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
@@ -44,7 +44,7 @@ impl Error for PopgenError {}
 type Count = i64;
 
 #[derive(Debug, Default)]
-pub struct AlleleCounts {
+pub struct MultiSiteCounts {
     // probably don't need to track this
     // positions: Vec<i64>,
     counts: Vec<Count>,
@@ -54,7 +54,7 @@ pub struct AlleleCounts {
     alleles_missing: Vec<i32>,
 }
 
-impl AlleleCounts {
+impl MultiSiteCounts {
     pub fn from_tabular<Sites, Samples>(sites: Sites) -> Self
     where
         Sites: IntoIterator<Item = Samples>,
@@ -101,8 +101,8 @@ impl AlleleCounts {
         self.alleles_missing.push(alleles_missing);
     }
 
-    pub fn iter(&self) -> AlleleCountsSiteIter {
-        AlleleCountsSiteIter {
+    pub fn iter(&self) -> MultiSiteCountsIter {
+        MultiSiteCountsIter {
             inner: &self,
             next_site_ind: (0, self.count_starts.len() - 1),
         }

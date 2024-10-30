@@ -1,6 +1,6 @@
 use indicatif::{ProgressBar, ProgressIterator};
 use popgen::adapter::record_to_genotypes_adapter;
-use popgen::AlleleCounts;
+use popgen::MultiSiteCounts;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let ploidy = 2;
 
-    let allele_counts = AlleleCounts::from_tabular(reader.records()
+    let allele_counts = MultiSiteCounts::from_tabular(reader.records()
         .progress_with(ProgressBar::new(num_records as u64))
         // drop Err records; we may want to revisit this
         .filter_map(Result::ok)

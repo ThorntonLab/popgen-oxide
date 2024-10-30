@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::noodles_vcf::variant::RecordBuf;
-    use crate::{AlleleCounts, AlleleID};
+    use crate::{MultiSiteCounts, AlleleID};
     use noodles::vcf::header::record::value::map::{Contig, Format};
     use noodles::vcf::header::record::value::Map;
     use noodles::vcf::variant::io::Write;
@@ -152,7 +152,7 @@ mod tests {
             },
         ];
 
-        let counts = AlleleCounts::from_tabular(sites);
+        let counts = MultiSiteCounts::from_tabular(sites);
         assert_eq!(counts.counts, vec![8, 7, 341, 69, 926]);
         assert_eq!(counts.count_starts, vec![0, 2]);
     }
@@ -180,7 +180,7 @@ mod tests {
 
         let ploidy = 1;
 
-        let allele_counts = AlleleCounts::from_tabular(reader.records()
+        let allele_counts = MultiSiteCounts::from_tabular(reader.records()
             .map(Result::unwrap)
             .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy)));
 
