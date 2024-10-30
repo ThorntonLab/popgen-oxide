@@ -5,7 +5,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
 mod tests;
-mod iter;
+pub mod iter;
 pub mod adapter;
 
 pub use noodles::vcf as noodles_vcf;
