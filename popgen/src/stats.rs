@@ -11,7 +11,17 @@ pub trait SiteStatistic {
 pub trait GlobalStatistic {
     fn from_iter_sites<'counts, I>(iter: I) -> Self
     where
-        I: Iterator<Item = SiteCounts<'counts>>;
+        I: Iterator<Item = SiteCounts<'counts>>,
+        Self: Default,
+    {
+        let mut ret = Self::default();
+        for site in iter {
+            ret.add_site(site)
+        }
+        ret
+    }
+
+    fn add_site(&mut self, site: SiteCounts);
 }
 
 /// The chance pi that two uniformly randomly chosen genotypes at a site are different.
@@ -47,15 +57,12 @@ impl SiteStatistic for Pi {
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 ///
 /// This is the sum of [`Pi`] over all sites.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
 pub struct GlobalPi(pub f64);
 
 impl GlobalStatistic for GlobalPi {
-    fn from_iter_sites<'counts, I>(iter: I) -> Self
-    where
-        I: Iterator<Item = SiteCounts<'counts>>,
-    {
-        Self(iter.map(Pi::from_site).sum::<Pi>().0)
+    fn add_site(&mut self, site: SiteCounts) {
+        self.0 += Pi::from_site(site).0;
     }
 }
