@@ -28,19 +28,7 @@ impl From<usize> for AlleleID {
     }
 }
 
-
-#[derive(Debug)]
-struct PopgenError {
-    msg: String,
-}
-
-impl Display for PopgenError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.msg)
-    }
-}
-
-impl Error for PopgenError {}
+// TODO: errors?
 
 type Count = i64;
 
