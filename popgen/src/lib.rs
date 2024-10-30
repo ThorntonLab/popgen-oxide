@@ -59,10 +59,7 @@ impl AlleleCounts {
         Sites: IntoIterator<Item = Samples>,
         Samples: IntoIterator<Item = Option<AlleleID>>,
     {
-        let mut ret = Self {
-            counts: vec![],
-            count_starts: vec![],
-        };
+        let mut ret = Self::default();
 
         for site in sites {
             ret.add_site(site);
