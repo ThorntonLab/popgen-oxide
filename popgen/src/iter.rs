@@ -1,4 +1,4 @@
-use crate::{MultiSiteCounts, Count};
+use crate::{Count, MultiSiteCounts};
 
 pub struct MultiSiteCountsIter<'inner> {
     pub(crate) inner: &'inner MultiSiteCounts,
@@ -20,12 +20,14 @@ impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
             return None;
         }
 
-        self.next_site_ind.0 += 1;
-        Some(SiteCounts {
+        let ret = SiteCounts {
             counts: self.inner.counts_at(self.next_site_ind.0)
                 .expect("forward iterator index out of range"),
             alleles_missing: self.inner.alleles_missing[self.next_site_ind.0],
-        })
+        };
+
+        self.next_site_ind.0 += 1;
+        Some(ret)
     }
 }
 
@@ -35,11 +37,13 @@ impl DoubleEndedIterator for MultiSiteCountsIter<'_> {
             return None;
         }
 
-        self.next_site_ind.1 -= 1;
-        Some(SiteCounts {
+        let ret = SiteCounts {
             counts: self.inner.counts_at(self.next_site_ind.1)
                 .expect("reverse iterator index out of range"),
             alleles_missing: self.inner.alleles_missing[self.next_site_ind.1],
-        })
+        };
+
+        self.next_site_ind.1 -= 1;
+        Some(ret)
     }
 }
