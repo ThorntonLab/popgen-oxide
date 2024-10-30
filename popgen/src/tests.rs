@@ -17,9 +17,11 @@ mod tests {
     use rand::seq::SliceRandom;
     use rand::thread_rng;
     use std::iter::repeat_n;
+    use crate::iter::SiteCounts;
 
     // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
     // the appropriate IDs, number of samples, etc. will be calculated
+    #[allow(dead_code)]
     fn make_record<SiteGenotypes, SiteVariant, InnerAllele>(
         seq_name: &str,
         site_genotypes: SiteGenotypes,
@@ -153,8 +155,16 @@ mod tests {
         ];
 
         let counts = MultiSiteCounts::from_tabular(sites);
-        assert_eq!(counts.counts, vec![8, 7, 341, 69, 926]);
-        assert_eq!(counts.count_starts, vec![0, 2]);
+        let mut iter = counts.iter();
+        assert_eq!(iter.next().unwrap(), SiteCounts {
+            counts: &[8, 7],
+            alleles_missing: 4,
+        });
+        assert_eq!(iter.next().unwrap(), SiteCounts {
+            counts: &[341, 69, 926],
+            alleles_missing: 0,
+        });
+        assert!(iter.next().is_none());
     }
 
     #[test]
@@ -172,7 +182,7 @@ mod tests {
         ]).unwrap());
 
         let mut reader = noodles::vcf::io::reader::Builder::default()
-            .build_from_reader(&*vcf_buf)
+            .build_from_reader(vcf_buf.as_bytes())
             .unwrap();
 
         let header = reader.read_header().unwrap();
