@@ -33,7 +33,7 @@ pub trait GlobalStatistic {
 /// This is known roughly as site heterozygosity or site diversity.
 #[derive(Debug, Copy, Clone)]
 #[repr(transparent)]
-pub struct Pi(pub f64);
+pub struct Pi(f64);
 
 impl Sum for Pi {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
@@ -54,6 +54,10 @@ impl SiteStatistic for Pi {
 
         Self(1f64 - (num_homozygous_pairs as f64 / num_pairs as f64))
     }
+
+    fn as_raw(&self) -> f64 {
+        self.0
+    }
 }
 
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
@@ -61,7 +65,7 @@ impl SiteStatistic for Pi {
 /// This is the sum of [`Pi`] over all sites.
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
-pub struct GlobalPi(pub f64);
+pub struct GlobalPi(f64);
 
 impl GlobalStatistic for GlobalPi {
     fn add_site(&mut self, site: SiteCounts) {
