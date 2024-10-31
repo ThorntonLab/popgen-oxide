@@ -1,6 +1,5 @@
 use crate::iter::SiteCounts;
 use crate::Count;
-use std::iter::Sum;
 
 /// A statistic calculable from and applicable to one site/locus.
 pub trait SiteStatistic {
@@ -45,6 +44,30 @@ impl GlobalStatistic for GlobalPi {
         let num_homozygous_pairs: Count = site.counts.iter().map(|count| count * (count - 1)).sum();
 
         self.0 += 1f64 - (num_homozygous_pairs as f64 / num_pairs as f64)
+    }
+
+    fn as_raw(&self) -> f64 {
+        self.0
+    }
+}
+
+#[derive(Debug, Copy, Clone, Default)]
+#[repr(transparent)]
+pub struct WattersonsTheta(f64);
+
+impl GlobalStatistic for WattersonsTheta {
+    fn add_site(&mut self, site: SiteCounts) {
+        // TODO: can we be smarter and iterate only once? check asm!
+        let num_sites_found = site.counts.iter().filter(|c| **c > 0).count();
+        // n is the number of non-missing samples
+        let n = site.counts.iter().sum();
+
+        if num_sites_found > 1 {
+            // TODO: does this harmonic go to n-1 or n?
+            self.0 += (num_sites_found - 1) / (1..n).map(|i| 1 / i).sum()
+        } else {
+            // then this site isn't actually polymorphic; meh
+        }
     }
 
     fn as_raw(&self) -> f64 {
