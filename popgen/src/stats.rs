@@ -35,7 +35,16 @@ pub struct GlobalPi(f64);
 
 impl GlobalStatistic for GlobalPi {
     fn add_site(&mut self, site: SiteCounts) {
-        self.0 += Pi::from_site(site).0;
+        // technically should divide both by two here and below but it cancels out
+        let num_pairs = {
+            let count: i64 = site.counts.iter().sum();
+            count * (count - 1)
+        };
+
+        // the number of pairs where the two samples are homozygous, summed over every genotype
+        let num_homozygous_pairs: Count = site.counts.iter().map(|count| count * (count - 1)).sum();
+
+        self.0 += 1f64 - (num_homozygous_pairs as f64 / num_pairs as f64)
     }
 
     fn as_raw(&self) -> f64 {

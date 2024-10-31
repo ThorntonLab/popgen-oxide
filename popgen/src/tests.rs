@@ -14,12 +14,12 @@ mod tests {
 
     use crate::adapter::record_to_genotypes_adapter;
     use crate::iter::SiteCounts;
-    use crate::stats::{GlobalPi, GlobalStatistic, Pi, SiteStatistic};
+    use crate::stats::{GlobalPi, GlobalStatistic, };
     use noodles::vcf::variant::record::samples::series::value::genotype::Phasing::Unphased;
     use noodles::vcf::variant::record_buf::samples::sample::value::genotype::Allele;
     use rand::seq::SliceRandom;
     use rand::thread_rng;
-    use std::iter::repeat_n;
+    use std::iter::{once, repeat_n};
     use triangle_matrix::{SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut};
 
     // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
@@ -152,7 +152,7 @@ mod tests {
     /// inefficient O(n^2) computation of pairwise diversity at a site
     ///
     /// hidden in test module because nobody should use this; just want to verify without magic numbers that calculations are correct
-    fn pi_from_matrix(alleles: &[Option<AlleleID>]) -> Pi {
+    fn pi_from_matrix(alleles: &[Option<AlleleID>]) -> f64 {
         use SymmetricUpperTri;
         use SymmetricUpperTriMut;
 
@@ -177,7 +177,7 @@ mod tests {
         let make_iter = || mat.iter_triangle_indices()
             .map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
             .filter_map(identity);
-        Pi(make_iter().sum::<i32>() as f64 / make_iter().count() as f64)
+        make_iter().sum::<i32>() as f64 / make_iter().count() as f64
     }
 
     #[test]
@@ -266,8 +266,8 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
 
         let expect_site_0 = pi_from_matrix(&*all_alleles[0]);
         let expect_site_1 = pi_from_matrix(&*all_alleles[1]);
-        assert!(Pi::from_site(counts_0).0 - expect_site_0.0 < f64::EPSILON);
-        assert!(Pi::from_site(counts_1).0 - expect_site_1.0 < f64::EPSILON);
-        assert!(GlobalPi::from_iter_sites(allele_counts.iter()).0 - (expect_site_0.0 + expect_site_1.0) < f64::EPSILON);
+        assert!(GlobalPi::from_iter_sites(once(counts_0)).as_raw() - expect_site_0 < f64::EPSILON);
+        assert!(GlobalPi::from_iter_sites(once(counts_1)).as_raw() - expect_site_1 < f64::EPSILON);
+        assert!(GlobalPi::from_iter_sites(allele_counts.iter()).as_raw() - (expect_site_0 + expect_site_1) < f64::EPSILON);
     }
 }
