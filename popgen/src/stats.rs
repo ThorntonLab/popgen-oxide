@@ -5,6 +5,7 @@ use std::iter::Sum;
 /// A statistic calculable from and applicable to one site/locus.
 pub trait SiteStatistic {
     fn from_site(site: SiteCounts) -> Self;
+    fn as_raw(&self) -> f64;
 }
 
 /// A statistic calculable from and applicable to a collection of sites/loci.
@@ -22,6 +23,7 @@ pub trait GlobalStatistic {
     }
 
     fn add_site(&mut self, site: SiteCounts);
+    fn as_raw(&self) -> f64;
 }
 
 /// The chance pi that two uniformly randomly chosen genotypes at a site are different.
@@ -64,5 +66,9 @@ pub struct GlobalPi(pub f64);
 impl GlobalStatistic for GlobalPi {
     fn add_site(&mut self, site: SiteCounts) {
         self.0 += Pi::from_site(site).0;
+    }
+
+    fn as_raw(&self) -> f64 {
+        self.0
     }
 }
