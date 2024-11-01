@@ -266,8 +266,8 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
 
         let expect_site_0 = pi_from_matrix(&*all_alleles[0]);
         let expect_site_1 = pi_from_matrix(&*all_alleles[1]);
-        assert!(GlobalPi::from_iter_sites(once(counts_0)).as_raw() - expect_site_0 < f64::EPSILON);
-        assert!(GlobalPi::from_iter_sites(once(counts_1)).as_raw() - expect_site_1 < f64::EPSILON);
-        assert!(GlobalPi::from_iter_sites(allele_counts.iter()).as_raw() - (expect_site_0 + expect_site_1) < f64::EPSILON);
+        assert!((GlobalPi::from_iter_sites(once(counts_0)).as_raw() - expect_site_0).abs() < f64::EPSILON);
+        assert!((GlobalPi::from_iter_sites(once(counts_1)).as_raw() - expect_site_1).abs() < f64::EPSILON);
+        assert!((GlobalPi::from_iter_sites(allele_counts.iter()).as_raw() - (expect_site_0 + expect_site_1)).abs() < f64::EPSILON);
     }
 }
