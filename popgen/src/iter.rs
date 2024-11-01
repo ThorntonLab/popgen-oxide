@@ -9,7 +9,7 @@ pub struct MultiSiteCountsIter<'inner> {
 #[derive(PartialEq, Debug, Clone)]
 pub struct SiteCounts<'inner> {
     pub(crate) counts: &'inner [Count],
-    pub(crate) alleles_missing: i32,
+    pub(crate) total_alleles: i32,
 }
 
 impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
@@ -23,7 +23,7 @@ impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
         let ret = SiteCounts {
             counts: self.inner.counts_at(self.next_site_ind.0)
                 .expect("forward iterator index out of range"),
-            alleles_missing: self.inner.alleles_missing[self.next_site_ind.0],
+            total_alleles: self.inner.total_alleles[self.next_site_ind.0],
         };
 
         self.next_site_ind.0 += 1;
@@ -40,7 +40,7 @@ impl DoubleEndedIterator for MultiSiteCountsIter<'_> {
         let ret = SiteCounts {
             counts: self.inner.counts_at(self.next_site_ind.1)
                 .expect("reverse iterator index out of range"),
-            alleles_missing: self.inner.alleles_missing[self.next_site_ind.1],
+            total_alleles: self.inner.total_alleles[self.next_site_ind.1],
         };
 
         self.next_site_ind.1 -= 1;

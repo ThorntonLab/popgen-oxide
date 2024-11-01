@@ -212,11 +212,11 @@ mod tests {
         let mut iter = counts.iter();
         assert_eq!(iter.next().unwrap(), SiteCounts {
             counts: &[8, 7],
-            alleles_missing: 4,
+            total_alleles: 8 + 7 + 4,
         });
         assert_eq!(iter.next().unwrap(), SiteCounts {
             counts: &[341, 69, 926],
-            alleles_missing: 0,
+            total_alleles: 341 + 69 + 926 + 0,
         });
         assert!(iter.next().is_none());
     }

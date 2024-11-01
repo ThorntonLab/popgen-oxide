@@ -1,7 +1,7 @@
 use crate::iter::MultiSiteCountsIter;
 use std::cmp::max;
 use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
 mod tests;
@@ -40,7 +40,7 @@ pub struct MultiSiteCounts {
     // start indices into counts at which the counts start for a specific site
     // counts and count_starts together produce a ragged 2d array
     count_starts: Vec<usize>,
-    alleles_missing: Vec<i32>,
+    total_alleles: Vec<i32>,
 }
 
 impl MultiSiteCounts {
@@ -62,17 +62,15 @@ impl MultiSiteCounts {
     where
         Samples: IntoIterator<Item = Option<AlleleID>>,
     {
-        let mut alleles_missing = 0;
+        let mut total_alleles = 0;
 
         // in something like VCF we wouldn't even have data if there was no variation; 2 is a reasonable lower bound
         // we're allocating `usize`s; it's totally fine to do this
         let mut counts_this_site = Vec::with_capacity(2);
         for allele_id in samples {
+            total_alleles += 1;
             let allele_id_under = match allele_id {
-                None => {
-                    alleles_missing += 1;
-                    continue;
-                },
+                None => continue,
                 Some(id) => id.0,
             };
 
@@ -80,14 +78,14 @@ impl MultiSiteCounts {
             counts_this_site[allele_id_under] += 1;
         }
 
-        self.add_site_from_counts(counts_this_site, alleles_missing);
+        self.add_site_from_counts(counts_this_site, total_alleles);
     }
 
-    pub fn add_site_from_counts(&mut self, counts: impl AsRef<[Count]>, alleles_missing: i32) {
+    pub fn add_site_from_counts(&mut self, counts: impl AsRef<[Count]>, total_alleles: i32) {
         self.counts.extend_from_slice(counts.as_ref());
         // count backwards in case counts_this_site.is_empty() or other strange case
         self.count_starts.push(self.counts.len() - counts.as_ref().len());
-        self.alleles_missing.push(alleles_missing);
+        self.total_alleles.push(total_alleles);
     }
 
     pub fn iter(&self) -> MultiSiteCountsIter {
