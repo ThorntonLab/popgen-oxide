@@ -20,11 +20,8 @@ impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
             return None;
         }
 
-        let ret = SiteCounts {
-            counts: self.inner.counts_at(self.next_site_ind.0)
-                .expect("forward iterator index out of range"),
-            total_alleles: self.inner.total_alleles[self.next_site_ind.0],
-        };
+        let ret = self.inner.counts_at(self.next_site_ind.0)
+            .expect("forward iterator index out of range");
 
         self.next_site_ind.0 += 1;
         Some(ret)
@@ -37,11 +34,8 @@ impl DoubleEndedIterator for MultiSiteCountsIter<'_> {
             return None;
         }
 
-        let ret = SiteCounts {
-            counts: self.inner.counts_at(self.next_site_ind.1)
-                .expect("reverse iterator index out of range"),
-            total_alleles: self.inner.total_alleles[self.next_site_ind.1],
-        };
+        let ret = self.inner.counts_at(self.next_site_ind.1)
+            .expect("reverse iterator index out of range");
 
         self.next_site_ind.1 -= 1;
         Some(ret)

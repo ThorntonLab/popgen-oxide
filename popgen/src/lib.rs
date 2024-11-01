@@ -1,4 +1,4 @@
-use crate::iter::MultiSiteCountsIter;
+use crate::iter::{MultiSiteCountsIter, SiteCounts};
 use std::cmp::max;
 use std::error::Error;
 use std::fmt::{Debug, Display};
@@ -95,16 +95,26 @@ impl MultiSiteCounts {
         }
     }
 
-    /// Get the allele counts at a specific site index.
-    ///
-    /// Returns [`None`] if the site index is invalid.
-    pub fn counts_at(&self, site: usize) -> Option<&[Count]> {
+    fn counts_slice_at(&self, site: usize) -> Option<&[Count]> {
         // TODO: do we even need random access?
 
         self.count_starts.get(site).map(|count_start| &self.counts[*count_start..
             *self.count_starts
                 .get(site + 1)
                 .unwrap_or(&self.counts.len())])
+    }
+
+    /// Get the allele counts at a specific site index.
+    ///
+    /// Returns [`None`] if the site index is invalid.
+    pub fn counts_at(&self, site: usize) -> Option<SiteCounts> {
+        Some(SiteCounts {
+            counts: match self.counts_slice_at(site) {
+                None => return None,
+                Some(counts) => counts,
+            },
+            total_alleles: self.total_alleles[site],
+        })
     }
 }
 
