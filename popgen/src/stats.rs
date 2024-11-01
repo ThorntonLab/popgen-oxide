@@ -63,7 +63,6 @@ impl GlobalStatistic for WattersonsTheta {
         let n = site.counts.iter().sum();
 
         if num_sites_found > 1 {
-            // TODO: does this harmonic go to n-1 or n?
             self.0 += (num_sites_found - 1) / (1..n).map(|i| 1 / i).sum()
         } else {
             // then this site isn't actually polymorphic; meh
