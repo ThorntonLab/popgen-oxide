@@ -1,7 +1,6 @@
 use crate::iter::{MultiSiteCountsIter, SiteCounts};
 use std::cmp::max;
-use std::error::Error;
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use std::str::FromStr;
 
 mod tests;
