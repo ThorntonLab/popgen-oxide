@@ -14,7 +14,7 @@ mod tests {
 
     use crate::adapter::record_to_genotypes_adapter;
     use crate::iter::SiteCounts;
-    use crate::stats::{GlobalPi, GlobalStatistic, };
+    use crate::stats::{GlobalPi, GlobalStatistic, WattersonsTheta};
     use noodles::vcf::variant::record::samples::series::value::genotype::Phasing::Unphased;
     use noodles::vcf::variant::record_buf::samples::sample::value::genotype::Allele;
     use rand::seq::SliceRandom;
@@ -269,5 +269,24 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
         assert!((GlobalPi::from_iter_sites(once(counts_0)).as_raw() - expect_site_0).abs() < f64::EPSILON);
         assert!((GlobalPi::from_iter_sites(once(counts_1)).as_raw() - expect_site_1).abs() < f64::EPSILON);
         assert!((GlobalPi::from_iter_sites(allele_counts.iter()).as_raw() - (expect_site_0 + expect_site_1)).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn wattersons_theta() {
+        let sites = vec![
+            vec![Some(0), Some(0), Some(1), Some(1), Some(1), Some(2)],
+            vec![Some(0), Some(1), Some(1), Some(1), Some(2), None]
+        ].into_iter()
+            .map(|site| site.into_iter()
+                .map(|sam| sam.map(AlleleID::from))
+                .collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+
+        let allele_counts = MultiSiteCounts::from_tabular(sites);
+
+        let mut theta = WattersonsTheta::default();
+        theta.add_site(allele_counts.counts_at(0).unwrap());
+        // TODO: preferably not a magic number
+        assert!((theta.as_raw() - 0.8759124087591241).abs() < f64::EPSILON);
     }
 }
