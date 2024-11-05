@@ -58,13 +58,11 @@ pub struct WattersonsTheta(f64);
 
 impl GlobalStatistic for WattersonsTheta {
     fn add_site(&mut self, site: SiteCounts) {
-        // TODO: can we be smarter and iterate only once? check asm!
-        let num_sites_found = site.counts.iter().filter(|c| **c > 0).count();
-        // n is the number of non-missing samples
-        let n = site.counts.iter().sum();
+        let (num_sites, total_samples) = site.counts.iter()
+            .fold((0, 0), |(count, sum), c| (count + 1, sum + c));
 
-        if num_sites_found > 1 {
-            self.0 += (num_sites_found - 1) as f64 / ((1..n).map(|i| 1f64 / i as f64).sum::<f64>());
+        if num_sites > 1 {
+            self.0 += (num_sites - 1) as f64 / ((1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>());
         } else {
             // then this site isn't actually polymorphic; meh
         }
