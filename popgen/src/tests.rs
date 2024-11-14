@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::noodles_vcf::variant::RecordBuf;
-    use crate::{AlleleID, MultiSiteCounts};
+    use crate::{AlleleID, Count, MultiSiteCounts};
     use noodles::vcf::header::record::value::map::{Contig, Format};
     use noodles::vcf::header::record::value::Map;
     use noodles::vcf::variant::io::Write;
@@ -20,7 +20,9 @@ mod tests {
     use rand::seq::SliceRandom;
     use rand::thread_rng;
     use std::iter::{once, repeat_n};
-    use triangle_matrix::{SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut};
+    use triangle_matrix::{
+        SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut,
+    };
 
     // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
     // the appropriate IDs, number of samples, etc. will be calculated
@@ -41,25 +43,41 @@ mod tests {
 
         let mut alleles_seen = Vec::new();
         for (genotype, _) in site_genotypes {
-            for gt_str in genotype.as_ref().iter()
+            for gt_str in genotype
+                .as_ref()
+                .iter()
                 .filter_map(|gt_str| gt_str.as_ref())
-                .map(|gt_str| gt_str.as_ref()) {
-                if alleles_seen.iter().find(|allele| gt_str.eq(**allele)).is_none() {
+                .map(|gt_str| gt_str.as_ref())
+            {
+                if alleles_seen
+                    .iter()
+                    .find(|allele| gt_str.eq(**allele))
+                    .is_none()
+                {
                     alleles_seen.push(&*gt_str);
                 }
             }
         }
 
-        Some(RecordBuf::builder()
-            .set_reference_sequence_name(seq_name)
-            .set_variant_start(noodles_core::Position::MIN)
-            .set_reference_bases(alleles_seen[0])
-            .set_alternate_bases(AlternateBases::from(alleles_seen[1..].iter().map(|s| String::from(*s)).collect::<Vec<_>>()))
-            .set_samples(Samples::new(
-                Keys::from_iter(vec![String::from(key::GENOTYPE)]),
-                // for each genotype and its count, create that many samples accordingly
-                {
-                    let mut all_samples = site_genotypes.iter().map(|(genotype, count)| vec![
+        Some(
+            RecordBuf::builder()
+                .set_reference_sequence_name(seq_name)
+                .set_variant_start(noodles_core::Position::MIN)
+                .set_reference_bases(alleles_seen[0])
+                .set_alternate_bases(AlternateBases::from(
+                    alleles_seen[1..]
+                        .iter()
+                        .map(|s| String::from(*s))
+                        .collect::<Vec<_>>(),
+                ))
+                .set_samples(Samples::new(
+                    Keys::from_iter(vec![String::from(key::GENOTYPE)]),
+                    // for each genotype and its count, create that many samples accordingly
+                    {
+                        let mut all_samples = site_genotypes
+                            .iter()
+                            .map(|(genotype, count)| {
+                                vec![
                         // for each sample at this site, there will only be the GT field and no other hence another layer of Vec here
                         vec![Some(Value::from(Genotype::from_iter(
                             genotype.as_ref().iter()
@@ -73,13 +91,16 @@ mod tests {
                                 )),
                         )))];
                         *count
-                    ])
-                        .flatten()
-                        .collect::<Vec<_>>();
-                    all_samples.shuffle(&mut thread_rng());
-                    all_samples
-                }))
-            .build())
+                    ]
+                            })
+                            .flatten()
+                            .collect::<Vec<_>>();
+                        all_samples.shuffle(&mut thread_rng());
+                        all_samples
+                    },
+                ))
+                .build(),
+        )
     }
 
     fn make_mock_vcf<Sites, SiteGenotypes, SiteVariant, Allele>(sites: Sites) -> Option<String>
@@ -90,16 +111,15 @@ mod tests {
         Allele: AsRef<str>,
     {
         let mut buf = Vec::new();
-        let mut writer = noodles::vcf::io::writer::Builder::default()
-            .build_from_writer(&mut buf);
+        let mut writer = noodles::vcf::io::writer::Builder::default().build_from_writer(&mut buf);
 
         let seq_name = "chr0";
         // how many samples are needed to contain the genotypes of the sample with the most genotypes?
-        let num_samples = sites.as_ref().iter()
-            .map(|site_alleles| site_alleles.as_ref().iter()
-                .map(|(_, count)| *count)
-                .sum()
-            ).max()?;
+        let num_samples = sites
+            .as_ref()
+            .iter()
+            .map(|site_alleles| site_alleles.as_ref().iter().map(|(_, count)| *count).sum())
+            .max()?;
 
         let header = {
             let id = key::GENOTYPE;
@@ -157,7 +177,13 @@ mod tests {
         use SymmetricUpperTriMut;
 
         let total_alleles = alleles.len();
-        let mut mat = TriVec(total_alleles, Vec::from_iter(repeat_n(None::<i32>, total_alleles * (total_alleles + 1) / 2)));
+        let mut mat = TriVec(
+            total_alleles,
+            Vec::from_iter(repeat_n(
+                None::<i32>,
+                total_alleles * (total_alleles + 1) / 2,
+            )),
+        );
 
         for (ind_a, allele_a) in alleles.iter().enumerate() {
             for (ind_b, allele_b) in alleles.iter().enumerate().skip(ind_a + 1) {
@@ -168,15 +194,17 @@ mod tests {
                         Some(allele_id_b) => match allele_id_a.eq(&allele_id_b) {
                             false => Some(1),
                             true => Some(0),
-                        }
-                    }
+                        },
+                    },
                 }
             }
         }
 
-        let make_iter = || mat.iter_triangle_indices()
-            .map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
-            .filter_map(identity);
+        let make_iter = || {
+            mat.iter_triangle_indices()
+                .map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
+                .filter_map(identity)
+        };
         make_iter().sum::<i32>() as f64 / make_iter().count() as f64
     }
 
@@ -210,14 +238,20 @@ mod tests {
 
         let counts = MultiSiteCounts::from_tabular(sites);
         let mut iter = counts.iter();
-        assert_eq!(iter.next().unwrap(), SiteCounts {
-            counts: &[8, 7],
-            total_alleles: 8 + 7 + 4,
-        });
-        assert_eq!(iter.next().unwrap(), SiteCounts {
-            counts: &[341, 69, 926],
-            total_alleles: 341 + 69 + 926 + 0,
-        });
+        assert_eq!(
+            iter.next().unwrap(),
+            SiteCounts {
+                counts: &[8, 7],
+                total_alleles: 8 + 7 + 4,
+            }
+        );
+        assert_eq!(
+            iter.next().unwrap(),
+            SiteCounts {
+                counts: &[341, 69, 926],
+                total_alleles: 341 + 69 + 926 + 0,
+            }
+        );
         assert!(iter.next().is_none());
     }
 
@@ -253,7 +287,8 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
 
         let ploidy = 1;
 
-        let all_alleles = reader.records()
+        let all_alleles = reader
+            .records()
             .map(Result::unwrap)
             .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy))
             .collect::<Vec<_>>();
@@ -266,27 +301,51 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
 
         let expect_site_0 = pi_from_matrix(&*all_alleles[0]);
         let expect_site_1 = pi_from_matrix(&*all_alleles[1]);
-        assert!((GlobalPi::from_iter_sites(once(counts_0)).as_raw() - expect_site_0).abs() < f64::EPSILON);
-        assert!((GlobalPi::from_iter_sites(once(counts_1)).as_raw() - expect_site_1).abs() < f64::EPSILON);
-        assert!((GlobalPi::from_iter_sites(allele_counts.iter()).as_raw() - (expect_site_0 + expect_site_1)).abs() < f64::EPSILON);
+        assert!(
+            (GlobalPi::from_iter_sites(once(counts_0)).as_raw() - expect_site_0).abs()
+                < f64::EPSILON
+        );
+        assert!(
+            (GlobalPi::from_iter_sites(once(counts_1)).as_raw() - expect_site_1).abs()
+                < f64::EPSILON
+        );
+        assert!(
+            (GlobalPi::from_iter_sites(allele_counts.iter()).as_raw()
+                - (expect_site_0 + expect_site_1))
+                .abs()
+                < f64::EPSILON
+        );
     }
 
     #[test]
     fn wattersons_theta() {
         let sites = vec![
             vec![Some(0), Some(0), Some(1), Some(1), Some(1), Some(2)],
-            vec![Some(0), Some(1), Some(1), Some(1), Some(2), None]
-        ].into_iter()
-            .map(|site| site.into_iter()
+            vec![Some(0), Some(1), Some(1), Some(1), Some(2), None],
+        ]
+        .into_iter()
+        .map(|site| {
+            site.into_iter()
                 .map(|sam| sam.map(AlleleID::from))
-                .collect::<Vec<_>>())
-            .collect::<Vec<_>>();
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
 
         let allele_counts = MultiSiteCounts::from_tabular(sites);
+        let theta = WattersonsTheta::from_iter_sites(allele_counts.iter());
 
-        let mut theta = WattersonsTheta::default();
-        theta.add_site(allele_counts.counts_at(0).unwrap());
-        // TODO: preferably not a magic number
-        assert!((theta.as_raw() - 0.8759124087591241).abs() < f64::EPSILON);
+        let mut expected = 0f64;
+        for site in allele_counts.iter() {
+            let num_sites = site.counts.iter().filter(|c| **c > 0).count();
+            let total_samples = site.counts.iter().filter(|c| **c > 0).sum::<Count>();
+
+            if num_sites > 1 {
+                let numerator = (num_sites - 1) as f64;
+                let denominator = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
+                expected += numerator / denominator;
+            }
+        }
+
+        assert!((theta.as_raw() - expected).abs() < f64::EPSILON);
     }
 }
