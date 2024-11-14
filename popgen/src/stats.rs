@@ -78,7 +78,8 @@ impl GlobalStatistic for WattersonsTheta {
         });
 
         if num_sites > 1 {
-            self.0 += (num_sites - 1) as f64 / ((1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>());
+            let harmonic = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
+            self.0 += (num_sites - 1) as f64 / harmonic;
         } else {
             // then this site isn't actually polymorphic; meh
         }

@@ -3,10 +3,10 @@ use std::cmp::max;
 use std::fmt::Debug;
 use std::str::FromStr;
 
-mod tests;
-pub mod iter;
 pub mod adapter;
+pub mod iter;
 pub mod stats;
+mod tests;
 
 pub use noodles::vcf as noodles_vcf;
 
@@ -83,7 +83,8 @@ impl MultiSiteCounts {
     pub fn add_site_from_counts(&mut self, counts: impl AsRef<[Count]>, total_alleles: i32) {
         self.counts.extend_from_slice(counts.as_ref());
         // count backwards in case counts_this_site.is_empty() or other strange case
-        self.count_starts.push(self.counts.len() - counts.as_ref().len());
+        self.count_starts
+            .push(self.counts.len() - counts.as_ref().len());
         self.total_alleles.push(total_alleles);
     }
 
@@ -97,10 +98,13 @@ impl MultiSiteCounts {
     fn counts_slice_at(&self, site: usize) -> Option<&[Count]> {
         // TODO: do we even need random access?
 
-        self.count_starts.get(site).map(|count_start| &self.counts[*count_start..
-            *self.count_starts
-                .get(site + 1)
-                .unwrap_or(&self.counts.len())])
+        self.count_starts.get(site).map(|count_start| {
+            &self.counts[*count_start
+                ..*self
+                    .count_starts
+                    .get(site + 1)
+                    .unwrap_or(&self.counts.len())]
+        })
     }
 
     /// Get the allele counts at a specific site index.
@@ -116,4 +120,3 @@ impl MultiSiteCounts {
         })
     }
 }
-

@@ -4,14 +4,22 @@ use noodles::vcf::variant::record::samples::series::Value;
 use noodles::vcf::variant::record::samples::Sample;
 use noodles::vcf::{Header, Record};
 
-pub fn record_to_genotypes_adapter(header: &Header, record: Record, num_samples: usize, ploidy: usize) -> Vec<Option<AlleleID>> {
+pub fn record_to_genotypes_adapter(
+    header: &Header,
+    record: Record,
+    num_samples: usize,
+    ploidy: usize,
+) -> Vec<Option<AlleleID>> {
     let mut genotypes = Vec::with_capacity(ploidy * num_samples);
     record.samples().iter().for_each(|sample| {
         let fetched_field = match sample
             // get the GT field
-            .get(&header, key::GENOTYPE).transpose().ok()
+            .get(&header, key::GENOTYPE)
+            .transpose()
+            .ok()
             // bail if underlying IO fails
-            .expect("couldn't read GT") {
+            .expect("couldn't read GT")
+        {
             // return nothing if field missing
             None => {
                 for _ in 0..ploidy {
@@ -28,8 +36,8 @@ pub fn record_to_genotypes_adapter(header: &Header, record: Record, num_samples:
                     return;
                 }
                 // if everything checks out, proceed to the next match statement
-                Some(value) => value
-            }
+                Some(value) => value,
+            },
         };
 
         match fetched_field {
