@@ -318,7 +318,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
     }
 
     #[test]
-    fn wattersons_theta() {
+    fn watterson_theta() {
         let sites = vec![
             vec![Some(0), Some(0), Some(1), Some(1), Some(1), Some(2)],
             vec![Some(0), Some(1), Some(1), Some(1), Some(2), None],
