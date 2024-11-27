@@ -14,7 +14,7 @@ mod tests {
 
     use crate::adapter::record_to_genotypes_adapter;
     use crate::iter::SiteCounts;
-    use crate::stats::{GlobalPi, GlobalStatistic, WattersonsTheta};
+    use crate::stats::{GlobalPi, GlobalStatistic, WattersonTheta};
     use noodles::vcf::variant::record::samples::series::value::genotype::Phasing::Unphased;
     use noodles::vcf::variant::record_buf::samples::sample::value::genotype::Allele;
     use rand::seq::SliceRandom;
@@ -332,7 +332,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
         .collect::<Vec<_>>();
 
         let allele_counts = MultiSiteCounts::from_tabular(sites);
-        let theta = WattersonsTheta::from_iter_sites(allele_counts.iter());
+        let theta = WattersonTheta::from_iter_sites(allele_counts.iter());
 
         let mut expected = 0f64;
         for site in allele_counts.iter() {

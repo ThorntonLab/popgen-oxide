@@ -1,6 +1,6 @@
 use indicatif::{ProgressBar, ProgressIterator};
 use popgen::adapter::record_to_genotypes_adapter;
-use popgen::stats::{GlobalStatistic, WattersonsTheta};
+use popgen::stats::{GlobalStatistic, WattersonTheta};
 use popgen::MultiSiteCounts;
 use std::error::Error;
 
@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .filter_map(Result::ok)
         .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy)));
 
-    dbg!(WattersonsTheta::from_iter_sites(allele_counts.iter()));
+    dbg!(WattersonTheta::from_iter_sites(allele_counts.iter()));
     // dbg!(allele_counts);
 
     Ok(())

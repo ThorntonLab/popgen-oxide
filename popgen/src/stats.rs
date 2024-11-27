@@ -54,9 +54,9 @@ impl GlobalStatistic for GlobalPi {
 /// Watterson's theta: see [Watterson's article](https://doi.org/10.1016%2F0040-5809%2875%2990020-9) and [Wikipedia](https://en.wikipedia.org/wiki/Watterson_estimator)
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
-pub struct WattersonsTheta(f64);
+pub struct WattersonTheta(f64);
 
-impl GlobalStatistic for WattersonsTheta {
+impl GlobalStatistic for WattersonTheta {
     fn add_site(&mut self, site: SiteCounts) {
         // trying our very hardest to encourage optimization and SIMD here
         // also optimizing with the typical two-element slice in mind
