@@ -350,4 +350,39 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
 
         assert!((theta.as_raw() - expected).abs() < f64::EPSILON);
     }
+
+    #[test]
+    fn tajima_d() {
+        // let vcf_buf = make_mock_vcf(vec![
+        //     // common mutation
+        //     vec![
+        //         (vec![Some("A")], 11),
+        //         (vec![Some("C")], 7),
+        //     ],
+        //     // rare mutation
+        //     vec![
+        //         (vec![Some("G")], 16),
+        //         (vec![Some("A")], 2),
+        //     ],
+        //     // rare mutation
+        //     vec![
+        //         (vec![Some("C")], 1),
+        //         (vec![Some("G")], 17),
+        //     ],
+        // ]).unwrap();
+        //
+        // println!("{}", &vcf_buf);
+
+        let vcf_buf = r#"##fileformat=VCFv4.5
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
+chr0	1	.	A	C	.	.	.	GT	/0	/1	/0	/0	/1	/0	/0	/1	/0	/1	/0	/1	/0	/0	/1	/1	/0	/0
+chr0	1	.	G	A	.	.	.	GT	/0	/0	/0	/0	/0	/0	/0	/0	/0	/0	/1	/0	/1	/0	/0	/0	/0	/0
+chr0	1	.	C	G	.	.	.	GT	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/0	/1	/1"#;
+
+        let (_, allele_counts) = counts_from_vcf(vcf_buf, 1);
+        let tajima = TajimaD::from_iter_sites(allele_counts.iter());
+        assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
+    }
 }

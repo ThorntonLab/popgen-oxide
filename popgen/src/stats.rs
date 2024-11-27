@@ -1,3 +1,4 @@
+use std::cmp::max;
 use crate::iter::SiteCounts;
 use crate::Count;
 
@@ -87,5 +88,65 @@ impl GlobalStatistic for WattersonTheta {
 
     fn as_raw(&self) -> f64 {
         self.0
+    }
+}
+
+/// Tajima's D, as proposed in [Tajima 1989](https://academic.oup.com/genetics/article/123/3/585/5998755?login=false).
+/// See also [Wikipedia](https://en.wikipedia.org/wiki/Tajima%27s_D#Mathematical_details) for the equations restated.
+#[derive(Debug, Copy, Clone, Default)]
+pub struct TajimaD {
+    k_hat: GlobalPi,
+    theta: WattersonTheta,
+    num_samples: usize,
+    num_sites: usize,
+}
+
+impl GlobalStatistic for TajimaD {
+    fn add_site(&mut self, site: SiteCounts) {
+        self.k_hat.add_site(site.clone());
+        self.theta.add_site(site.clone());
+
+        self.num_sites += 1;
+        // this is not perfect but that's fine
+        self.num_samples = max(self.num_samples, site.total_alleles as usize);
+    }
+
+    fn as_raw(&self) -> f64 {
+        // we are going to stick as closely as feasible to the exact nomenclature of the paper
+
+        let n = self.num_samples;
+
+        // eqn 3
+        let a_1 = (1..n).map(|i| 1f64 / (i as f64)).sum::<f64>();
+        // eqn 4
+        let a_2 = (1..n).map(|i| 1f64 / ((i * i) as f64)).sum::<f64>();
+
+        let n = n as f64;
+
+        // eqn 8
+        let b_1 = (n + 1.) / (3. * (n - 1.));
+        // eqn 9
+        let b_2 = (2. * (n * n + n + 3.)) / (9. * n * (n - 1.));
+
+        // eqn 28
+        let d = self.k_hat.as_raw() - self.theta.as_raw();
+
+        // eqn 31
+        let c_1 = b_1 - 1. / a_1;
+        // eqn 32
+        let c_2 = b_2 - (n + 2.) / (a_1 * n) + (a_2 / (a_1 * a_1));
+
+        // eqn 36
+        let e_1 = c_1 / a_1;
+        // eqn 37
+        let e_2 = c_2 / (a_1 * a_1 + a_2);
+
+        #[allow(non_snake_case)]
+        let S = self.num_sites as f64;
+
+        // eqn 38
+        #[allow(non_snake_case)]
+        let D = d / (e_1 * S + e_2 * S * (S - 1.)).sqrt();
+        D
     }
 }
