@@ -14,7 +14,7 @@ mod tests {
 
     use crate::adapter::record_to_genotypes_adapter;
     use crate::iter::SiteCounts;
-    use crate::stats::{GlobalPi, GlobalStatistic, WattersonTheta};
+    use crate::stats::{GlobalPi, GlobalStatistic, TajimaD, WattersonTheta};
     use noodles::vcf::variant::record::samples::series::value::genotype::Phasing::Unphased;
     use noodles::vcf::variant::record_buf::samples::sample::value::genotype::Allele;
     use rand::seq::SliceRandom;
@@ -149,6 +149,23 @@ mod tests {
         Some(String::from_utf8(buf).unwrap())
     }
 
+    fn counts_from_vcf(vcf_buf: &str, ploidy: usize) -> (Vec<Vec<Option<AlleleID>>>, MultiSiteCounts) {
+        let mut reader = noodles::vcf::io::reader::Builder::default()
+            .build_from_reader(vcf_buf.as_bytes())
+            .unwrap();
+
+        let header = reader.read_header().unwrap();
+        let num_samples = header.sample_names().iter().count();
+
+        let all_alleles = reader
+            .records()
+            .map(Result::unwrap)
+            .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy))
+            .collect::<Vec<_>>();
+        let counts = MultiSiteCounts::from_tabular(all_alleles.iter().cloned());
+        (all_alleles, counts)
+    }
+
     struct TriVec<T>(usize, Vec<T>);
 
     impl<T> Triangle<T> for TriVec<T> {
@@ -278,22 +295,7 @@ mod tests {
 chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0	/0	/1	/0	/1	/1	/0
 chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
 
-        let mut reader = noodles::vcf::io::reader::Builder::default()
-            .build_from_reader(vcf_buf.as_bytes())
-            .unwrap();
-
-        let header = reader.read_header().unwrap();
-        let num_samples = header.sample_names().iter().count();
-
-        let ploidy = 1;
-
-        let all_alleles = reader
-            .records()
-            .map(Result::unwrap)
-            .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy))
-            .collect::<Vec<_>>();
-        let allele_counts = MultiSiteCounts::from_tabular(all_alleles.iter().cloned());
-
+        let (all_alleles, allele_counts) = counts_from_vcf(vcf_buf, 1);
         let mut iter = allele_counts.iter();
         let counts_0 = iter.next().unwrap();
         let counts_1 = iter.next().unwrap();
