@@ -61,25 +61,25 @@ impl GlobalStatistic for WattersonsTheta {
         // trying our very hardest to encourage optimization and SIMD here
         // also optimizing with the typical two-element slice in mind
         let mut iter = site.counts.chunks_exact(2);
-        let mut num_sites = 0;
+        let mut num_variants = 0;
         let mut total_samples = 0;
         while let Some(w) = iter.next() {
             // big idea: with chunks_exact this cast is infallible and zero-cost
             // this cast also enables use of 128-bit and SIMD instructions
             let w: &[i64; 2] = w.try_into().expect("slice with incorrect length");
             w.iter().filter(|&&c| c > 0).for_each(|&c| {
-                num_sites += 1;
+                num_variants += 1;
                 total_samples += c;
             })
         }
         iter.remainder().iter().filter(|&&c| c > 0).for_each(|&c| {
-            num_sites += 1;
+            num_variants += 1;
             total_samples += c;
         });
 
-        if num_sites > 1 {
+        if num_variants > 1 {
             let harmonic = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
-            self.0 += (num_sites - 1) as f64 / harmonic;
+            self.0 += (num_variants - 1) as f64 / harmonic;
         } else {
             // then this site isn't actually polymorphic; meh
         }

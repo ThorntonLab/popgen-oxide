@@ -336,11 +336,11 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
 
         let mut expected = 0f64;
         for site in allele_counts.iter() {
-            let num_sites = site.counts.iter().filter(|c| **c > 0).count();
+            let num_variants = site.counts.iter().filter(|c| **c > 0).count();
             let total_samples = site.counts.iter().filter(|c| **c > 0).sum::<Count>();
 
-            if num_sites > 1 {
-                let numerator = (num_sites - 1) as f64;
+            if num_variants > 1 {
+                let numerator = (num_variants - 1) as f64;
                 let denominator = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
                 expected += numerator / denominator;
             }
