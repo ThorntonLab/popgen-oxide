@@ -7,6 +7,7 @@ pub mod adapter;
 pub mod iter;
 pub mod stats;
 mod tests;
+pub(crate) mod util;
 
 pub use noodles::vcf as noodles_vcf;
 

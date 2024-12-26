@@ -1,6 +1,8 @@
-use std::cmp::max;
 use crate::iter::SiteCounts;
-use crate::Count;
+use crate::util::UnorderedPair;
+use crate::{Count, MultiSiteCounts};
+use std::cmp::max;
+use std::collections::HashMap;
 
 /// A statistic calculable from and applicable to one site/locus.
 pub trait SiteStatistic {
@@ -49,6 +51,12 @@ impl GlobalStatistic for GlobalPi {
 
     fn as_raw(&self) -> f64 {
         self.0
+    }
+}
+
+impl From<&MultiSiteCounts> for GlobalPi {
+    fn from(value: &MultiSiteCounts) -> Self {
+        Self::from_iter_sites(value.iter())
     }
 }
 
@@ -148,5 +156,101 @@ impl GlobalStatistic for TajimaD {
         #[allow(non_snake_case)]
         let D = d / (e_1 * S + e_2 * S * (S - 1.)).sqrt();
         D
+    }
+}
+
+#[allow(non_camel_case_types)]
+#[allow(non_snake_case)]
+pub struct F_ST {
+    /// population, weight
+    populations: Vec<(MultiSiteCounts, f64)>,
+    // total pi_T derivable from other terms
+    /// for pi_S
+    within: Vec<GlobalPi>,
+    /// for pi_B
+    between: HashMap<UnorderedPair<usize>, f64>,
+}
+
+// pi_T, pi_S, pi_B are not cached
+// may want to revisit this
+
+impl F_ST {
+    pub fn add_population(&mut self, site: MultiSiteCounts, weight: f64) {
+        self.within.push(GlobalPi::from(&site));
+        // there are more possible pairs of populations now
+        for (i, (existing_site, _)) in self.populations.iter().enumerate() {
+            self.between
+                .insert(UnorderedPair::new(i, self.populations.len()), {
+                    existing_site
+                        .iter()
+                        .zip(site.iter())
+                        .map(|(s1, s2)| {
+                            1. -
+                                // do complement of diversity, i.e. expected homozygosity
+                                // for each variant...
+                                (0..max(s1.counts.len(), s2.counts.len()))
+                                    .map(|variant_num| {
+                                        // how many homozygous pairs?
+                                        s1.counts.get(variant_num).unwrap_or(&0)
+                                            * s2.counts.get(variant_num).unwrap_or(&0)
+                                    })
+                                    .sum::<i64>() as f64
+                                    // how many possible pairs?
+                                    / ((s1.total_alleles * s2.total_alleles) as f64)
+                        })
+                        .sum()
+                });
+        }
+        self.populations.push((site, weight));
+    }
+
+    #[allow(non_snake_case)]
+    pub fn pi_T(&self) -> f64 {
+        // eqn 2
+        self.pi_S_not_normalized() + 2. * self.pi_B_not_normalized()
+    }
+
+    #[allow(non_snake_case)]
+    fn pi_S_not_normalized(&self) -> f64 {
+        // eqn 1a
+        self.populations
+            .iter()
+            .map(|(_, weight)| weight)
+            .zip(self.within.iter())
+            .map(|(weight, pi)| weight * weight * pi.as_raw())
+            .sum()
+    }
+
+    #[allow(non_snake_case)]
+    pub fn pi_S(&self) -> f64 {
+        // eqn 1b
+        self.pi_S_not_normalized()
+            / self
+                .populations
+                .iter()
+                .map(|(_, weight)| weight * weight)
+                .sum::<f64>()
+    }
+
+    #[allow(non_snake_case)]
+    fn pi_B_not_normalized(&self) -> f64 {
+        // eqn 1c
+        self.between
+            .iter()
+            .map(|(UnorderedPair(i, j), pi)|
+                // w_i * w_j * pi_(ij)
+                self.populations[*i].1 * self.populations[*j].1 * pi)
+            .sum::<f64>()
+    }
+
+    #[allow(non_snake_case)]
+    pub fn pi_B(&self) -> f64 {
+        // eqn 1c
+        self.pi_B_not_normalized()
+            / self
+                .between
+                .keys()
+                .map(|UnorderedPair(i, j)| self.populations[*i].1 * self.populations[*j].1)
+                .sum::<f64>()
     }
 }
