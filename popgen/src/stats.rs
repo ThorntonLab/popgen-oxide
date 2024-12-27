@@ -159,10 +159,11 @@ impl GlobalStatistic for TajimaD {
     }
 }
 
+/// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953).
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 pub struct F_ST {
-    /// population, weight
+    /// (population, weight) pairs
     populations: Vec<(MultiSiteCounts, f64)>,
     // total pi_T derivable from other terms
     /// for pi_S
@@ -175,6 +176,8 @@ pub struct F_ST {
 // may want to revisit this
 
 impl F_ST {
+    /// Add a population and its weight for this statistic.
+    /// It is assumed that the inputted weight(s) sum to 1.
     pub fn add_population(&mut self, site: MultiSiteCounts, weight: f64) {
         self.within.push(GlobalPi::from(&site).as_raw());
         // there are more possible pairs of populations now
@@ -204,9 +207,9 @@ impl F_ST {
         self.populations.push((site, weight));
     }
 
+    /// The total diversity of these populations as defined by equations 1a and 2.
     #[allow(non_snake_case)]
     pub fn pi_T(&self) -> f64 {
-        // eqn 2
         self.pi_S_not_normalized() + 2. * self.pi_B_not_normalized()
     }
 
@@ -217,13 +220,13 @@ impl F_ST {
             .iter()
             .map(|(_, weight)| weight)
             .zip(self.within.iter())
-            .map(|(weight, pi)| weight * weight * pi.as_raw())
+            .map(|(weight, pi)| weight * weight * pi)
             .sum()
     }
 
+    /// The diversity of each population against itself as defined by equation 1b.
     #[allow(non_snake_case)]
     pub fn pi_S(&self) -> f64 {
-        // eqn 1b
         self.pi_S_not_normalized()
             / self
                 .populations
@@ -243,6 +246,7 @@ impl F_ST {
             .sum::<f64>()
     }
 
+    /// The diversity between distinct populations as defined by equation 1c.
     #[allow(non_snake_case)]
     pub fn pi_B(&self) -> f64 {
         // eqn 1c
