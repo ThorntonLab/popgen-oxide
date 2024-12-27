@@ -166,44 +166,56 @@ impl GlobalStatistic for TajimaD {
 pub struct F_ST {
     /// (population, weight) pairs
     populations: Vec<(MultiSiteCounts, f64)>,
-    // total pi_T derivable from other terms
+    // total pi_T derivable from other terms, no need to store anything new
     /// for pi_S
-    within: Vec<f64>,
+    diversity_within: Vec<f64>,
+    // keep numerator and denominator apart for incremental update
+    pi_S: (f64, f64),
     /// for pi_B
-    between: HashMap<UnorderedPair<usize>, f64>,
+    diversity_between: HashMap<UnorderedPair<usize>, f64>,
+    pi_B: (f64, f64),
 }
 
-// pi_T, pi_S, pi_B are not cached
-// may want to revisit this
-
 impl F_ST {
+    /// Construct a new instance of this statistic, ready to accept populations via [`Self::add_population`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
     pub fn add_population(&mut self, site: MultiSiteCounts, weight: f64) {
-        self.within.push(GlobalPi::from(&site).as_raw());
+        let pi_new_site = GlobalPi::from(&site).as_raw();
+        self.diversity_within.push(pi_new_site);
+
+        self.pi_S.0 += weight * weight * pi_new_site;
+        self.pi_S.1 += weight * weight;
+
         // there are more possible pairs of populations now
-        for (i, (existing_site, _)) in self.populations.iter().enumerate() {
-            self.between
-                .insert(UnorderedPair::new(i, self.populations.len()), {
-                    existing_site
-                        .iter()
-                        .zip(site.iter())
-                        .map(|(s1, s2)| {
-                            1. -
-                                // do complement of diversity, i.e. expected homozygosity
-                                // for each variant...
-                                (0..max(s1.counts.len(), s2.counts.len()))
-                                    .map(|variant_num| {
-                                        // how many homozygous pairs?
-                                        s1.counts.get(variant_num).unwrap_or(&0)
-                                            * s2.counts.get(variant_num).unwrap_or(&0)
-                                    })
-                                    .sum::<i64>() as f64
-                                    // how many possible pairs?
-                                    / ((s1.total_alleles * s2.total_alleles) as f64)
-                        })
-                        .sum()
-                });
+        for (i, (existing_site, existing_site_weight)) in self.populations.iter().enumerate() {
+            let pi_ij = existing_site
+                .iter()
+                .zip(site.iter())
+                .map(|(s1, s2)| {
+                    1. -
+                        // do complement of diversity, i.e. expected homozygosity
+                        // for each variant...
+                        (0..max(s1.counts.len(), s2.counts.len()))
+                            .map(|variant_num| {
+                                // how many homozygous pairs?
+                                s1.counts.get(variant_num).unwrap_or(&0)
+                                    * s2.counts.get(variant_num).unwrap_or(&0)
+                            })
+                            .sum::<i64>() as f64
+                            // how many possible pairs?
+                            / ((s1.total_alleles * s2.total_alleles) as f64)
+                })
+                .sum();
+            self.diversity_between
+                .insert(UnorderedPair::new(i, self.populations.len()), pi_ij);
+
+            self.pi_B.0 += weight * existing_site_weight * pi_ij;
+            self.pi_B.1 += weight * existing_site_weight;
         }
         self.populations.push((site, weight));
     }
@@ -211,51 +223,26 @@ impl F_ST {
     /// The total diversity of these populations as defined by equations 1a and 2.
     #[allow(non_snake_case)]
     pub fn pi_T(&self) -> f64 {
-        self.pi_S_not_normalized() + 2. * self.pi_B_not_normalized()
-    }
-
-    #[allow(non_snake_case)]
-    fn pi_S_not_normalized(&self) -> f64 {
-        // eqn 1a
-        self.populations
-            .iter()
-            .map(|(_, weight)| weight)
-            .zip(self.within.iter())
-            .map(|(weight, pi)| weight * weight * pi)
-            .sum()
+        self.pi_S.0 + 2. * self.pi_B.0
     }
 
     /// The diversity of each population against itself as defined by equation 1b.
+    /// [`None`] if no populations have been added so this fraction is undefined.
     #[allow(non_snake_case)]
-    pub fn pi_S(&self) -> f64 {
-        self.pi_S_not_normalized()
-            / self
-                .populations
-                .iter()
-                .map(|(_, weight)| weight * weight)
-                .sum::<f64>()
-    }
-
-    #[allow(non_snake_case)]
-    fn pi_B_not_normalized(&self) -> f64 {
-        // eqn 1c
-        self.between
-            .iter()
-            .map(|(UnorderedPair(i, j), pi)|
-                // w_i * w_j * pi_(ij)
-                self.populations[*i].1 * self.populations[*j].1 * pi)
-            .sum::<f64>()
+    pub fn pi_S(&self) -> Option<f64> {
+        match self.pi_S.1 {
+            0. => None,
+            denom => Some(self.pi_S.0 / denom),
+        }
     }
 
     /// The diversity between distinct populations as defined by equation 1c.
+    /// [`None`] if no populations have been added so this fraction is undefined.
     #[allow(non_snake_case)]
-    pub fn pi_B(&self) -> f64 {
-        // eqn 1c
-        self.pi_B_not_normalized()
-            / self
-                .between
-                .keys()
-                .map(|UnorderedPair(i, j)| self.populations[*i].1 * self.populations[*j].1)
-                .sum::<f64>()
+    pub fn pi_B(&self) -> Option<f64> {
+        match self.pi_B.1 {
+            0. => None,
+            denom => Some(self.pi_B.0 / denom),
+        }
     }
 }
