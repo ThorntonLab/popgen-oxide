@@ -245,4 +245,35 @@ impl F_ST {
             denom => Some(self.pi_B.0 / denom),
         }
     }
+
+    /// As defined before equation 2.
+    /// Calculated as pi_B - pi_S, from Charlesworth's pi_S + pi_D = pi_B.
+    /// [`None`] if any of the required terms is undefined.
+    #[allow(non_snake_case)]
+    pub fn pi_D(&self) -> Option<f64> {
+        self.pi_B().zip(self.pi_S()).map(|(b, s)| b - s)
+    }
+
+    // pi_(T-S) is done fastest as pi_T - pi_S instead of with pi_D as in eqn 2b
+
+    /// F_ST as defined by [Wier and Cockerham (1984)](https://doi.org/10.1111/j.1558-5646.1984.tb05657.x).
+    /// [`None`] if any of the required terms is undefined.
+    #[allow(non_snake_case)]
+    pub fn wier_cockerham(&self) -> Option<f64> {
+        // eqn 3a
+        self.pi_D().zip(self.pi_S()).map(|(d, s)| d / (s + d))
+    }
+
+    /// F_ST as defined by [Slatkin (1993)](https://doi.org/10.1111/j.1558-5646.1993.tb01215.x).
+    /// [`None`] if any of the required terms is undefined.
+    pub fn slatkin(&self) -> Option<f64> {
+        // eqn 3b
+        self.pi_D().zip(self.pi_S()).map(|(d, s)| d / (2. * s + d))
+    }
+
+    /// F_ST as defined by [Hudson, Boos, and Kaplan (1992)](https://doi.org/10.1093/oxfordjournals.molbev.a040703).
+    /// [`None`] if any of the required terms is undefined.
+    pub fn hudson_boos_kaplan(&self) -> Option<f64> {
+        Some(self.pi_T()).zip(self.pi_S()).map(|(t, s)| (t - s) / t)
+    }
 }
