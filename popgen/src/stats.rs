@@ -166,7 +166,7 @@ pub struct F_ST {
     populations: Vec<(MultiSiteCounts, f64)>,
     // total pi_T derivable from other terms
     /// for pi_S
-    within: Vec<GlobalPi>,
+    within: Vec<f64>,
     /// for pi_B
     between: HashMap<UnorderedPair<usize>, f64>,
 }
@@ -176,7 +176,7 @@ pub struct F_ST {
 
 impl F_ST {
     pub fn add_population(&mut self, site: MultiSiteCounts, weight: f64) {
-        self.within.push(GlobalPi::from(&site));
+        self.within.push(GlobalPi::from(&site).as_raw());
         // there are more possible pairs of populations now
         for (i, (existing_site, _)) in self.populations.iter().enumerate() {
             self.between
