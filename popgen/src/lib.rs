@@ -32,7 +32,7 @@ impl From<usize> for AlleleID {
 
 type Count = i64;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct MultiSiteCounts {
     // probably don't need to track this
     // positions: Vec<i64>,

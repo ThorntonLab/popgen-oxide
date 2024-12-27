@@ -162,6 +162,7 @@ impl GlobalStatistic for TajimaD {
 /// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953).
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
+#[derive(Clone, Default, Debug)]
 pub struct F_ST {
     /// (population, weight) pairs
     populations: Vec<(MultiSiteCounts, f64)>,
