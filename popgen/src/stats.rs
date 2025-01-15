@@ -258,7 +258,6 @@ impl F_ST {
 
     /// F_ST as defined by [Wier and Cockerham (1984)](https://doi.org/10.1111/j.1558-5646.1984.tb05657.x).
     /// [`None`] if any of the required terms is undefined.
-    #[allow(non_snake_case)]
     pub fn wier_cockerham(&self) -> Option<f64> {
         // eqn 3a
         self.pi_D().zip(self.pi_S()).map(|(d, s)| d / (s + d))
