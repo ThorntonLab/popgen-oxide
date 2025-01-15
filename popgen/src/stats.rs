@@ -184,8 +184,8 @@ impl F_ST {
 
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
-    pub fn add_population(&mut self, site: MultiSiteCounts, weight: f64) {
-        let pi_new_site = GlobalPi::from(&site).as_raw();
+    pub fn add_population(&mut self, population: MultiSiteCounts, weight: f64) {
+        let pi_new_site = GlobalPi::from(&population).as_raw();
         self.diversity_within.push(pi_new_site);
 
         self.pi_S.0 += weight * weight * pi_new_site;
@@ -195,7 +195,7 @@ impl F_ST {
         for (i, (existing_site, existing_site_weight)) in self.populations.iter().enumerate() {
             let pi_ij = existing_site
                 .iter()
-                .zip(site.iter())
+                .zip(population.iter())
                 .map(|(s1, s2)| {
                     1. -
                         // do complement of diversity, i.e. expected homozygosity
@@ -217,7 +217,7 @@ impl F_ST {
             self.pi_B.0 += weight * existing_site_weight * pi_ij;
             self.pi_B.1 += weight * existing_site_weight;
         }
-        self.populations.push((site, weight));
+        self.populations.push((population, weight));
     }
 
     /// The total diversity of these populations as defined by equations 1a and 2.
