@@ -343,6 +343,8 @@ impl FStatisticParts for F_ST {
     }
 }
 
+/// A view into an underlying [`F_ST`] with a subset of populations from which to compute F-statistics.
+/// Constructed via [`F_ST::only_populations`].
 #[allow(non_camel_case_types, non_snake_case)]
 #[derive(Clone, Debug)]
 pub struct F_STView<'a> {
