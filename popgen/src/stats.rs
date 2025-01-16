@@ -222,30 +222,42 @@ impl F_ST {
         }
         self.populations.push((population, weight));
     }
+}
+
+pub(crate) trait FStatisticParts {
+    #[allow(non_snake_case)]
+    fn pi_S_parts(&self) -> (f64, f64);
+
+    #[allow(non_snake_case)]
+    fn pi_B_parts(&self) -> (f64, f64);
 
     /// The total diversity of these populations as defined by equations 1a and 2.
     #[allow(non_snake_case)]
-    pub fn pi_T(&self) -> f64 {
-        self.pi_S.0 + 2. * self.pi_B.0
+    fn pi_T(&self) -> f64 {
+        let (pi_S_unweighted, _) = self.pi_S_parts();
+        let (pi_B_unweighted, _) = self.pi_B_parts();
+        pi_S_unweighted + 2. * pi_B_unweighted
     }
 
     /// The diversity of each population against itself as defined by equation 1b.
     /// [`None`] if no populations have been added so this fraction is undefined.
     #[allow(non_snake_case)]
-    pub fn pi_S(&self) -> Option<f64> {
-        match self.pi_S.1 {
+    fn pi_S(&self) -> Option<f64> {
+        let pi_S = self.pi_S_parts();
+        match pi_S.1 {
             0. => None,
-            denom => Some(self.pi_S.0 / denom),
+            denom => Some(pi_S.0 / denom),
         }
     }
 
     /// The diversity between distinct populations as defined by equation 1c.
     /// [`None`] if no populations have been added so this fraction is undefined.
     #[allow(non_snake_case)]
-    pub fn pi_B(&self) -> Option<f64> {
-        match self.pi_B.1 {
+    fn pi_B(&self) -> Option<f64> {
+        let pi_B = self.pi_B_parts();
+        match pi_B.1 {
             0. => None,
-            denom => Some(self.pi_B.0 / denom),
+            denom => Some(pi_B.0 / denom),
         }
     }
 
@@ -253,29 +265,43 @@ impl F_ST {
     /// Calculated as pi_B - pi_S, from Charlesworth's pi_S + pi_D = pi_B.
     /// [`None`] if any of the required terms is undefined.
     #[allow(non_snake_case)]
-    pub fn pi_D(&self) -> Option<f64> {
+    fn pi_D(&self) -> Option<f64> {
         self.pi_B().zip(self.pi_S()).map(|(b, s)| b - s)
     }
 
     // pi_(T-S) is done fastest as pi_T - pi_S instead of with pi_D as in eqn 2b
+}
 
+pub trait FStatistics: FStatisticParts {
     /// F_ST as defined by [Weir and Cockerham (1984)](https://doi.org/10.1111/j.1558-5646.1984.tb05657.x).
     /// [`None`] if any of the required terms is undefined.
-    pub fn weir_cockerham(&self) -> Option<f64> {
+    fn weir_cockerham(&self) -> Option<f64> {
         // eqn 3a
         self.pi_D().zip(self.pi_S()).map(|(d, s)| d / (s + d))
     }
 
     /// F_ST as defined by [Slatkin (1993)](https://doi.org/10.1111/j.1558-5646.1993.tb01215.x).
     /// [`None`] if any of the required terms is undefined.
-    pub fn slatkin(&self) -> Option<f64> {
+    fn slatkin(&self) -> Option<f64> {
         // eqn 3b
         self.pi_D().zip(self.pi_S()).map(|(d, s)| d / (2. * s + d))
     }
 
     /// F_ST as defined by [Hudson, Boos, and Kaplan (1992)](https://doi.org/10.1093/oxfordjournals.molbev.a040703).
     /// [`None`] if any of the required terms is undefined.
-    pub fn hudson_boos_kaplan(&self) -> Option<f64> {
+    fn hudson_boos_kaplan(&self) -> Option<f64> {
         Some(self.pi_T()).zip(self.pi_S()).map(|(t, s)| (t - s) / t)
+    }
+}
+
+impl FStatisticParts for F_ST {
+    #[allow(non_snake_case)]
+    fn pi_S_parts(&self) -> (f64, f64) {
+        self.pi_S
+    }
+
+    #[allow(non_snake_case)]
+    fn pi_B_parts(&self) -> (f64, f64) {
+        self.pi_B
     }
 }
