@@ -1,8 +1,9 @@
 use crate::iter::SiteCounts;
 use crate::util::UnorderedPair;
 use crate::{Count, MultiSiteCounts};
+use itertools::Itertools;
 use std::cmp::max;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// A statistic calculable from and applicable to one site/locus.
 pub trait SiteStatistic {
@@ -222,9 +223,44 @@ impl F_ST {
         }
         self.populations.push((population, weight));
     }
+
+    pub fn only_populations(&self, population_ids: impl Iterator<Item = usize>) -> F_STView {
+        let selected_populations: HashSet<_> = population_ids.collect();
+
+        #[allow(non_snake_case)]
+        let mut pi_S = (0., 0.);
+        #[allow(non_snake_case)]
+        let mut pi_B = (0., 0.);
+
+        for index in selected_populations.iter() {
+            let (_, weight) = self.populations.get(*index).unwrap();
+            pi_S.0 += weight * weight * self.diversity_within[index];
+            pi_S.1 += weight * weight;
+        }
+
+        for pair in selected_populations
+            .iter()
+            .tuple_combinations()
+            .map(|(&i, &j)| UnorderedPair::new(i, j))
+            .unique()
+        {
+            let UnorderedPair(i, j) = pair;
+            pi_B.0 += self.populations[i].1
+                * self.populations[j].1
+                * self.diversity_between.get(&pair).unwrap();
+            pi_B.1 += self.populations[i].1 * self.populations[j].1;
+        }
+
+        F_STView {
+            inner: &self,
+            selected_populations,
+            pi_S,
+            pi_B,
+        }
+    }
 }
 
-pub(crate) trait FStatisticParts {
+pub trait FStatisticParts {
     #[allow(non_snake_case)]
     fn pi_S_parts(&self) -> (f64, f64);
 
@@ -304,4 +340,13 @@ impl FStatisticParts for F_ST {
     fn pi_B_parts(&self) -> (f64, f64) {
         self.pi_B
     }
+}
+
+#[allow(non_camel_case_types, non_snake_case)]
+#[derive(Clone, Debug)]
+pub struct F_STView<'a> {
+    inner: &'a F_ST,
+    selected_populations: HashSet<usize>,
+    pi_S: (f64, f64),
+    pi_B: (f64, f64),
 }
