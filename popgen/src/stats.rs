@@ -224,9 +224,7 @@ impl F_ST {
         self.populations.push((population, weight));
     }
 
-    pub fn only_populations(&self, population_ids: impl Iterator<Item = usize>) -> F_STView {
-        let selected_populations: HashSet<_> = population_ids.collect();
-
+    pub fn only_populations(&self, selected_populations: HashSet<usize>) -> F_STView {
         #[allow(non_snake_case)]
         let mut pi_S = (0., 0.);
         #[allow(non_snake_case)]
