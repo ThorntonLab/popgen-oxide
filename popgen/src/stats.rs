@@ -350,3 +350,15 @@ pub struct F_STView<'a> {
     pi_S: (f64, f64),
     pi_B: (f64, f64),
 }
+
+impl FStatisticParts for F_STView<'_> {
+    #[allow(non_snake_case)]
+    fn pi_S_parts(&self) -> (f64, f64) {
+        self.pi_S
+    }
+
+    #[allow(non_snake_case)]
+    fn pi_B_parts(&self) -> (f64, f64) {
+        self.pi_B
+    }
+}
