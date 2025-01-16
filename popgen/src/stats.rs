@@ -212,6 +212,8 @@ impl F_ST {
                             / ((s1.total_alleles * s2.total_alleles) as f64)
                 })
                 .sum();
+
+            // TODO: just use a linear vector?
             self.diversity_between
                 .insert(UnorderedPair::new(i, self.populations.len()), pi_ij);
 
