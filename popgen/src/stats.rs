@@ -235,7 +235,7 @@ impl F_ST {
 
         for index in selected_populations.iter() {
             let (_, weight) = self.populations.get(*index).unwrap();
-            pi_S.0 += weight * weight * self.diversity_within[index];
+            pi_S.0 += weight * weight * self.diversity_within[*index];
             pi_S.1 += weight * weight;
         }
 
