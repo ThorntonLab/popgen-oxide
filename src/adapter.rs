@@ -26,17 +26,15 @@ pub fn record_to_genotypes_adapter(
                 }
                 return;
             }
-            Some(fetched) => match fetched {
-                // return nothing if value missing
-                None => {
-                    for _ in 0..ploidy {
-                        genotypes.push(None);
-                    }
-                    return;
+            // return nothing if value missing
+            Some(None) => {
+                for _ in 0..ploidy {
+                    genotypes.push(None);
                 }
-                // if everything checks out, proceed to the next match statement
-                Some(value) => value,
-            },
+                return;
+            }
+            // if everything checks out, proceed to the next match statement
+            Some(Some(value)) => value,
         };
 
         match fetched_field {
