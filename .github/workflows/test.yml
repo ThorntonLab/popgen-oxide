@@ -1,6 +1,6 @@
 on:
   push:
-    branches: "*"
+    branches: ["*"]
   pull_request:
 
 name: Test and Clippy (64 bit)
