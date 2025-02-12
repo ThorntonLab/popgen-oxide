@@ -14,7 +14,7 @@ pub fn record_to_genotypes_adapter(
     record.samples().iter().for_each(|sample| {
         let fetched_field = match sample
             // get the GT field
-            .get(&header, key::GENOTYPE)
+            .get(header, key::GENOTYPE)
             .transpose()
             .ok()
             // bail if underlying IO fails

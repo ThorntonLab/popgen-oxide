@@ -73,7 +73,7 @@ impl GlobalStatistic for WattersonTheta {
         let mut iter = site.counts.chunks_exact(2);
         let mut num_variants = 0;
         let mut total_samples = 0;
-        while let Some(w) = iter.next() {
+        for w in iter.by_ref() {
             // big idea: with chunks_exact this cast is infallible and zero-cost
             // this cast also enables use of 128-bit and SIMD instructions
             let w: &[i64; 2] = w.try_into().expect("slice with incorrect length");
@@ -253,7 +253,7 @@ impl F_ST {
         }
 
         F_STView {
-            inner: &self,
+            inner: self,
             selected_populations,
             pi_S,
             pi_B,
