@@ -16,7 +16,6 @@ pub fn record_to_genotypes_adapter(
             // get the GT field
             .get(header, key::GENOTYPE)
             .transpose()
-            .ok()
             // bail if underlying IO fails
             .expect("couldn't read GT")
         {
