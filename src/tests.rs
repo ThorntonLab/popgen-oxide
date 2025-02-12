@@ -269,7 +269,7 @@ mod tests {
             iter.next().unwrap(),
             SiteCounts {
                 counts: &[341, 69, 926],
-                total_alleles: 341 + 69 + 926 + 0,
+                total_alleles: 341 + 69 + 926 + 300,
             }
         );
         assert!(iter.next().is_none());
