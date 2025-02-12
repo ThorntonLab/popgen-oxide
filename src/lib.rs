@@ -6,7 +6,7 @@ use std::str::FromStr;
 pub mod adapter;
 pub mod iter;
 pub mod stats;
-mod tests;
+mod test;
 pub(crate) mod util;
 
 pub use noodles::vcf as noodles_vcf;

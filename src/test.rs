@@ -10,7 +10,6 @@ mod tests {
     use noodles::vcf::variant::record_buf::samples::sample::Value;
     use noodles::vcf::variant::record_buf::samples::Keys;
     use noodles::vcf::variant::record_buf::{AlternateBases, Samples};
-    use std::convert::identity;
 
     use crate::adapter::record_to_genotypes_adapter;
     use crate::iter::SiteCounts;
@@ -223,7 +222,7 @@ mod tests {
         let make_iter = || {
             mat.iter_triangle_indices()
                 .map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
-                .filter_map(identity)
+                .flatten()
         };
         make_iter().sum::<i32>() as f64 / make_iter().count() as f64
     }
@@ -304,8 +303,8 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
         let counts_1 = iter.next().unwrap();
         assert!(iter.next().is_none());
 
-        let expect_site_0 = pi_from_matrix(&*all_alleles[0]);
-        let expect_site_1 = pi_from_matrix(&*all_alleles[1]);
+        let expect_site_0 = pi_from_matrix(&all_alleles[0]);
+        let expect_site_1 = pi_from_matrix(&all_alleles[1]);
         assert!(
             (GlobalPi::from_iter_sites(once(counts_0)).as_raw() - expect_site_0).abs()
                 < f64::EPSILON
