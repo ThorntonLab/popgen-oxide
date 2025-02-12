@@ -1,0 +1,93 @@
+on:
+  push:
+    branches: "*"
+  pull_request:
+
+name: Test and Clippy (64 bit)
+
+jobs:
+  test-64bit:
+    name: Run tests
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+        rust:
+          - stable
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/checkout@v4.2.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2.7.5
+      - uses: taiki-e/install-action@cargo-hack
+      - run: sudo apt-get update -y
+        if: matrix.os == 'ubuntu-24.04'
+      - name: cargo check (powerset)
+        run: cargo hack check --feature-powerset --no-dev-deps
+      - name: cargo check examples (powerset)
+        run: cargo hack check --examples --feature-powerset
+      - name: run tests (powerset)
+        run: |
+          cargo hack test --all-targets --feature-powerset
+      - name: run doc tests (powerset)
+        run: |
+          cargo hack test --doc --feature-powerset
+
+  fmt:
+    name: rust fmt
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt
+      - run: |
+          /bin/bash -c "find src -type f | grep -v auto_bindings | grep -v lib | xargs rustfmt --check"
+
+  clippy:
+    name: clippy!!
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy
+      - uses: Swatinem/rust-cache@v2.7.5
+      - uses: taiki-e/install-action@cargo-hack
+      - name: clippy (all targets, feature powerset)
+        run: cargo hack clippy --all-targets --feature-powerset -- -D warnings
+
+#  msrv:
+#    name: Verify MSRV
+#    runs-on: ubuntu-24.04
+#    strategy:
+#      matrix:
+#        rust:
+#          - 1.71.0
+#    steps:
+#      - uses: actions/checkout@v4.2.2
+#      - uses: dtolnay/rust-toolchain@v1
+#        with:
+#          toolchain: ${{ matrix.rust }}
+#      - uses: taiki-e/install-action@cargo-hack
+#      - name: cargo check msrv
+#        run: cargo hack check --feature-powerset
