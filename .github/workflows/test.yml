@@ -3,7 +3,7 @@ on:
     branches: ["*"]
   pull_request:
 
-name: Test and Clippy (64 bit)
+name: Test, rustfmt, and Clippy (64 bit)
 
 jobs:
   test-64bit:
@@ -18,7 +18,7 @@ jobs:
         rust:
           - stable
     steps:
-      - name: Cancel Previous Runs
+      - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@0.12.1
         with:
           access_token: ${{ secrets.GITHUB_TOKEN }}
@@ -46,7 +46,7 @@ jobs:
           cargo hack test --doc --feature-powerset
 
   fmt:
-    name: rust fmt
+    name: rustfmt
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4.2.2
@@ -61,7 +61,7 @@ jobs:
           /bin/bash -c "find src -type f | xargs rustfmt --check"
 
   clippy:
-    name: clippy!!
+    name: cargo clippy
     runs-on: ubuntu-24.04
     strategy:
       matrix:
