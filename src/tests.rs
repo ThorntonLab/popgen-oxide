@@ -149,7 +149,10 @@ mod tests {
         Some(String::from_utf8(buf).unwrap())
     }
 
-    fn counts_from_vcf(vcf_buf: &str, ploidy: usize) -> (Vec<Vec<Option<AlleleID>>>, MultiSiteCounts) {
+    fn counts_from_vcf(
+        vcf_buf: &str,
+        ploidy: usize,
+    ) -> (Vec<Vec<Option<AlleleID>>>, MultiSiteCounts) {
         let mut reader = noodles::vcf::io::reader::Builder::default()
             .build_from_reader(vcf_buf.as_bytes())
             .unwrap();
