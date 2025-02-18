@@ -92,7 +92,14 @@ impl MultiSiteCounts {
     pub fn iter(&self) -> MultiSiteCountsIter {
         MultiSiteCountsIter {
             inner: self,
-            next_site_ind: (0, self.count_starts.len() - 1),
+            next_site_ind: (
+                0,
+                if !self.count_starts.is_empty() {
+                    self.count_starts.len() - 1
+                } else {
+                    0
+                },
+            ),
         }
     }
 
