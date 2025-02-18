@@ -16,14 +16,7 @@ impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
     type Item = SiteCounts<'inner>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.next_site_ind.0 > self.next_site_ind.1 {
-            return None;
-        }
-
-        let ret = self
-            .inner
-            .counts_at(self.next_site_ind.0)
-            .expect("forward iterator index out of range");
+        let ret = self.inner.counts_at(self.next_site_ind.0)?;
 
         self.next_site_ind.0 += 1;
         Some(ret)
@@ -32,16 +25,21 @@ impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
 
 impl DoubleEndedIterator for MultiSiteCountsIter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        if self.next_site_ind.1 < self.next_site_ind.0 {
-            return None;
-        }
-
-        let ret = self
-            .inner
-            .counts_at(self.next_site_ind.1)
-            .expect("reverse iterator index out of range");
+        let ret = self.inner.counts_at(self.next_site_ind.1)?;
 
         self.next_site_ind.1 -= 1;
         Some(ret)
     }
+}
+
+#[test]
+fn test_iteration_over_empty() {
+    let counts = crate::MultiSiteCounts::default();
+    assert_eq!(counts.iter().count(), 0)
+}
+
+#[test]
+fn test_reverse_iteration_over_empty() {
+    let counts = crate::MultiSiteCounts::default();
+    assert_eq!(counts.iter().rev().count(), 0)
 }
