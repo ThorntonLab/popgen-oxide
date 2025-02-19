@@ -48,12 +48,10 @@ mod tests {
                 .filter_map(|gt_str| gt_str.as_ref())
                 .map(|gt_str| gt_str.as_ref())
             {
-                if alleles_seen
-                    .iter()
-                    .find(|allele| gt_str.eq(**allele))
-                    .is_none()
+                if !alleles_seen
+                    .iter().any(|allele| gt_str.eq(*allele))
                 {
-                    alleles_seen.push(&*gt_str);
+                    alleles_seen.push(gt_str);
                 }
             }
         }
@@ -75,7 +73,7 @@ mod tests {
                     {
                         let mut all_samples = site_genotypes
                             .iter()
-                            .map(|(genotype, count)| {
+                            .flat_map(|(genotype, count)| {
                                 vec![
                         // for each sample at this site, there will only be the GT field and no other hence another layer of Vec here
                         vec![Some(Value::from(Genotype::from_iter(
@@ -92,7 +90,6 @@ mod tests {
                         *count
                     ]
                             })
-                            .flatten()
                             .collect::<Vec<_>>();
                         all_samples.shuffle(&mut thread_rng());
                         all_samples
@@ -221,8 +218,7 @@ mod tests {
 
         let make_iter = || {
             mat.iter_triangle_indices()
-                .map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
-                .flatten()
+                .filter_map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
         };
         make_iter().sum::<i32>() as f64 / make_iter().count() as f64
     }
