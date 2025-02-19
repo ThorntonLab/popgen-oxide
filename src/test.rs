@@ -48,9 +48,7 @@ mod tests {
                 .filter_map(|gt_str| gt_str.as_ref())
                 .map(|gt_str| gt_str.as_ref())
             {
-                if !alleles_seen
-                    .iter().any(|allele| gt_str.eq(*allele))
-                {
+                if !alleles_seen.iter().any(|allele| gt_str.eq(*allele)) {
                     alleles_seen.push(gt_str);
                 }
             }

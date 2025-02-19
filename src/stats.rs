@@ -358,7 +358,7 @@ impl<'a> F_STView<'a> {
     pub fn inner(&self) -> &'a F_ST {
         self.inner
     }
-    
+
     pub fn selected_populations(&self) -> &HashSet<usize> {
         &self.selected_populations
     }
