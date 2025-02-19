@@ -168,15 +168,6 @@ dependencies = [
 
 [[package]]
 name = "noodles-core"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5a8c6b020d1205abef2b0fab4463a6c5ecc3c8f4d561ca8b0d1a42323376200"
-dependencies = [
- "bstr",
-]
-
-[[package]]
-name = "noodles-core"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "962b13b79312f773a12ffcb0cdaccab6327f8343b6f440a888eff10c749d52b0"
@@ -195,7 +186,7 @@ dependencies = [
  "byteorder",
  "indexmap",
  "noodles-bgzf",
- "noodles-core 0.16.0",
+ "noodles-core",
 ]
 
 [[package]]
@@ -207,7 +198,7 @@ dependencies = [
  "byteorder",
  "indexmap",
  "noodles-bgzf",
- "noodles-core 0.16.0",
+ "noodles-core",
  "noodles-csi",
 ]
 
@@ -220,7 +211,7 @@ dependencies = [
  "indexmap",
  "memchr",
  "noodles-bgzf",
- "noodles-core 0.16.0",
+ "noodles-core",
  "noodles-csi",
  "noodles-tabix",
  "percent-encoding",
@@ -238,7 +229,7 @@ version = "0.1.0"
 dependencies = [
  "itertools",
  "noodles",
- "noodles-core 0.15.0",
+ "noodles-core",
  "rand",
  "triangle_matrix",
 ]
