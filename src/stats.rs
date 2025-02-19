@@ -354,6 +354,16 @@ pub struct F_STView<'a> {
     pi_B: (f64, f64),
 }
 
+impl<'a> F_STView<'a> {
+    pub fn inner(&self) -> &'a F_ST {
+        self.inner
+    }
+    
+    pub fn selected_populations(&self) -> &HashSet<usize> {
+        &self.selected_populations
+    }
+}
+
 impl FStatisticParts for F_STView<'_> {
     #[allow(non_snake_case)]
     fn pi_S_parts(&self) -> (f64, f64) {
