@@ -16,8 +16,8 @@ mod tests {
     use crate::stats::{GlobalPi, GlobalStatistic, TajimaD, WattersonTheta};
     use noodles::vcf::variant::record::samples::series::value::genotype::Phasing::Unphased;
     use noodles::vcf::variant::record_buf::samples::sample::value::genotype::Allele;
-    use rand::seq::SliceRandom;
     use rand::rng;
+    use rand::seq::SliceRandom;
     use std::iter::{once, repeat_n};
     use triangle_matrix::{
         SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut,
