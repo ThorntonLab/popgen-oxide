@@ -17,7 +17,7 @@ mod tests {
     use noodles::vcf::variant::record::samples::series::value::genotype::Phasing::Unphased;
     use noodles::vcf::variant::record_buf::samples::sample::value::genotype::Allele;
     use rand::seq::SliceRandom;
-    use rand::thread_rng;
+    use rand::rng;
     use std::iter::{once, repeat_n};
     use triangle_matrix::{
         SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut,
@@ -89,7 +89,7 @@ mod tests {
                     ]
                             })
                             .collect::<Vec<_>>();
-                        all_samples.shuffle(&mut thread_rng());
+                        all_samples.shuffle(&mut rng());
                         all_samples
                     },
                 ))
@@ -223,7 +223,7 @@ mod tests {
 
     #[test]
     fn load_raw() {
-        let mut rng = thread_rng();
+        let mut rng = rng();
 
         let sites = vec![
             {

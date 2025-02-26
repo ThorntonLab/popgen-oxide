@@ -8,6 +8,6 @@ itertools = "0.14.0"
 noodles = { version = "0.92.0", features = ["vcf"] }
 
 [dev-dependencies]
-rand = "0.9.0-alpha.2"
+rand = "0.9.0"
 noodles-core = "0.16.0"
 triangle_matrix = "0.4.0"
