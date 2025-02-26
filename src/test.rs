@@ -97,6 +97,7 @@ mod tests {
         )
     }
 
+    #[allow(dead_code)]
     fn make_mock_vcf<Sites, SiteGenotypes, SiteVariant, Allele>(sites: Sites) -> Option<String>
     where
         Sites: AsRef<[SiteGenotypes]>,
