@@ -124,4 +124,9 @@ impl MultiSiteCounts {
             total_alleles: self.total_alleles[site],
         })
     }
+
+    /// Alias to [`Self::counts_at`]
+    pub fn get(&self, site: usize) -> Option<SiteCounts> {
+        self.counts_at(site)
+    }
 }
