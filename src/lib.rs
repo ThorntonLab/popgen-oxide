@@ -134,8 +134,4 @@ impl MultiSiteCounts {
             total_alleles: self.total_alleles[site],
         })
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.count_starts.is_empty()
-    }
 }
