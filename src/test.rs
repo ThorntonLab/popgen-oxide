@@ -251,6 +251,10 @@ mod tests {
         ];
 
         let counts = MultiSiteCounts::from_tabular(sites);
+
+        assert_eq!(counts.len(), 2);
+        assert!(!counts.is_empty());
+
         let mut iter = counts.iter();
         assert_eq!(
             iter.next().unwrap(),
@@ -267,6 +271,14 @@ mod tests {
             }
         );
         assert!(iter.next().is_none());
+    }
+
+    #[test]
+    fn empty_counts() {
+        let counts = MultiSiteCounts::default();
+
+        assert!(counts.is_empty());
+        assert_eq!(counts.len(), 0);
     }
 
     #[test]

@@ -89,6 +89,16 @@ impl MultiSiteCounts {
         self.total_alleles.push(total_alleles);
     }
 
+    /// The number of sites added to this [`Self`] so far.
+    pub fn len(&self) -> usize {
+        self.total_alleles.len()
+    }
+
+    /// `true` if and only if there are no sites in this [`Self`]; equivalent to `self.len() == 0`.
+    pub fn is_empty(&self) -> bool {
+        self.total_alleles.is_empty()
+    }
+
     pub fn iter(&self) -> MultiSiteCountsIter {
         MultiSiteCountsIter {
             inner: self,
