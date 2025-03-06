@@ -97,8 +97,7 @@ fn make_nonempty_counts() -> crate::MultiSiteCounts {
 #[test]
 fn test_iter_count() {
     let counts = make_nonempty_counts();
-    // WARNING: we do not have a pub API to get the length
-    assert_eq!(counts.iter().count(), 4);
+    assert_eq!(counts.iter().count(), counts.len());
     assert_eq!(counts.iter().filter(|c| c.counts[1] == 5).count(), 1);
 
     let mut iter = counts.iter();
