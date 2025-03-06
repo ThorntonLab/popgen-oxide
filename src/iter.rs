@@ -99,6 +99,9 @@ fn test_nth() {
     let counts = make_nonempty_counts();
     let mut iter = counts.iter();
     assert_eq!(iter.nth(2), counts.get(2));
+    let mut iter = counts.iter();
+    let _ = iter.next().unwrap();
+    assert_eq!(iter.nth(1), counts.get(2));
 }
 
 #[test]
