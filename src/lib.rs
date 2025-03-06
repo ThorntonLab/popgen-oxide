@@ -117,7 +117,7 @@ impl MultiSiteCounts {
 
     /// Get the allele counts at a specific site index.
     ///
-    /// Returns [`None`] if the site index is invalid. 
+    /// Returns [`None`] if the site index is invalid.
     pub fn get(&self, site: usize) -> Option<SiteCounts> {
         Some(SiteCounts {
             counts: self.counts_slice_at(site)?,
