@@ -16,7 +16,7 @@ impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
     type Item = SiteCounts<'inner>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ret = self.inner.counts_at(self.next_site_ind.0)?;
+        let ret = self.inner.get(self.next_site_ind.0)?;
 
         self.next_site_ind.0 += 1;
         Some(ret)
@@ -25,7 +25,7 @@ impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
 
 impl DoubleEndedIterator for MultiSiteCountsIter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        let ret = self.inner.counts_at(self.next_site_ind.1)?;
+        let ret = self.inner.get(self.next_site_ind.1)?;
 
         self.next_site_ind.1 -= 1;
         Some(ret)
