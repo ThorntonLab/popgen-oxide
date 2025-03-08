@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 itertools = "0.14.0"
 noodles = { version = "0.92.0", features = ["vcf"] }
+tskit = { version = "0.15.0-alpha.2", optional = true, features=["bindings"] }
 
 [dev-dependencies]
 rand = "0.9.0"

@@ -4,6 +4,8 @@ use std::fmt::Debug;
 use std::str::FromStr;
 
 pub mod adapter;
+#[cfg(feature = "tskit")]
+mod from_tree_sequence;
 pub mod iter;
 pub mod stats;
 mod test;
