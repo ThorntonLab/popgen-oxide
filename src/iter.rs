@@ -12,6 +12,16 @@ pub struct SiteCounts<'inner> {
     pub(crate) total_alleles: i32,
 }
 
+impl SiteCounts<'_> {
+    pub fn counts(&self) -> &[Count] {
+        self.counts
+    }
+
+    pub fn total_alleles(&self) -> i32 {
+        self.total_alleles
+    }
+}
+
 impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
     type Item = SiteCounts<'inner>;
 
@@ -132,4 +142,13 @@ fn test_exhaust_back() {
     _ = iter.nth_back(1);
     assert!(iter.next_back().is_some());
     assert!(iter.next_back().is_none());
+}
+
+#[test]
+fn test_single_site_getters() {
+    let mut counts = crate::MultiSiteCounts::default();
+    counts.add_site_from_counts([9, 8, 7], 35);
+    let site = counts.get(0).unwrap();
+    assert_eq!(site.counts(), &[9, 8, 7]);
+    assert_eq!(site.total_alleles(), 35);
 }
