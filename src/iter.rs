@@ -152,4 +152,3 @@ fn test_single_site_getters() {
     assert_eq!(site.counts(), &[9, 8, 7]);
     assert_eq!(site.total_alleles(), 35);
 }
-
