@@ -16,7 +16,7 @@ mod tests {
     #[cfg(feature = "noodles")]
     mod vcf {
         use crate::adapter::vcf::record_to_genotypes_adapter;
-        use crate::{AlleleID, MultiSiteCounts};
+        use crate::{AlleleID, MultiSiteCounts, PopgenResult};
         use noodles::vcf::header::record::value::map::{Contig, Format};
         use noodles::vcf::header::record::value::Map;
         use noodles::vcf::variant::io::Write;
@@ -167,8 +167,9 @@ mod tests {
             let all_alleles = reader
                 .records()
                 .map(Result::unwrap)
-                .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy).unwrap())
-                .collect::<Vec<_>>();
+                .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy))
+                .collect::<PopgenResult<Vec<_>>>()
+                .unwrap();
             let counts = MultiSiteCounts::from_tabular(all_alleles.iter().cloned());
             (all_alleles, counts)
         }
