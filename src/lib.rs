@@ -11,6 +11,19 @@ pub mod stats;
 mod test;
 pub(crate) mod util;
 
+pub type PopgenResult<T> = Result<T, PopgenError>;
+
+#[non_exhaustive]
+#[derive(Debug, thiserror::Error)]
+pub enum PopgenError {
+    #[cfg(feature = "noodles")]
+    #[error("couldn't handle VCF: {0}")]
+    NoodlesVCF(#[from] std::io::Error),
+    #[cfg(feature = "tskit")]
+    #[error("tskit error: {0}")]
+    TreeSequence(#[from] from_tree_sequence::TreeSequenceLogicError),
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AlleleID(usize);
 
@@ -27,8 +40,6 @@ impl From<usize> for AlleleID {
         Self(value)
     }
 }
-
-// TODO: errors?
 
 type Count = i64;
 

@@ -167,7 +167,7 @@ mod tests {
             let all_alleles = reader
                 .records()
                 .map(Result::unwrap)
-                .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy))
+                .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy).unwrap())
                 .collect::<Vec<_>>();
             let counts = MultiSiteCounts::from_tabular(all_alleles.iter().cloned());
             (all_alleles, counts)

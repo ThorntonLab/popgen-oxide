@@ -1,4 +1,5 @@
-use crate::MultiSiteCounts;
+use crate::{MultiSiteCounts, PopgenResult};
+use tskit::{MutationId, SiteId};
 
 // NOTES:
 // 1. tskit could use Add for all id types!
@@ -37,18 +38,35 @@ fn update_right(
     }
 }
 
+#[non_exhaustive]
+#[derive(Debug, thiserror::Error)]
+pub enum TreeSequenceLogicError {
+    #[error("tskit tree sequence not indexed!")]
+    TreeSequenceNotIndexed,
+    #[error("ancestral state missing at site {site:?}; cannot deduplicate states")]
+    AncestralStateMissing { site: SiteId },
+    #[error("derived state missing at mutation {mutation:?}; cannot deduplicate states")]
+    DerivedStateMissing { mutation: MutationId },
+    #[error("tskit error: {0}")]
+    TskitError(#[from] tskit::TskitError),
+}
+
 fn try_from_tree_sequence(
     ts: &tskit::TreeSequence,
     _parameters: Option<FromTreeSequenceOptions>,
-) -> Result<MultiSiteCounts, tskit::TskitError> {
+) -> PopgenResult<MultiSiteCounts> {
     let mut counts = MultiSiteCounts::default();
     let mut left = 0.0;
     let mut right = f64::from(ts.tables().sequence_length());
     // NOTE: we need TreeSequence to be able to provide these
     // indexes w/o going thru the Option b/c you CANNOT make a
     // ts from unindexed tables!!
-    let edges_in = ts.tables().edge_insertion_order().unwrap();
-    let edges_out = ts.tables().edge_removal_order().unwrap();
+    let Some(edges_in) = ts.tables().edge_insertion_order() else {
+        return Err(TreeSequenceLogicError::TreeSequenceNotIndexed.into());
+    };
+    let Some(edges_out) = ts.tables().edge_removal_order() else {
+        return Err(TreeSequenceLogicError::TreeSequenceNotIndexed.into());
+    };
     let edges_left = ts.tables().edges().left_slice();
     let edges_right = ts.tables().edges().right_slice();
     let edges_parent = ts.tables().edges().parent_slice();
@@ -90,10 +108,15 @@ fn try_from_tree_sequence(
         {
             alleles_at_site.clear();
             alleles_at_site.push(
-                ts.sites()
-                    .ancestral_state(current_site_index as i32)
-                    // Hard error intentional -- these calcs cannot be done w/o state data
-                    .unwrap(),
+                match ts.sites().ancestral_state(current_site_index as i32) {
+                    Some(ancestral_state) => ancestral_state,
+                    None => {
+                        return Err(TreeSequenceLogicError::AncestralStateMissing {
+                            site: SiteId::from(current_site_index as i32),
+                        }
+                            .into())
+                    }
+                },
             );
             let mut allele_counts = vec![0_i64];
             while current_mutation_index < ts.mutations().num_rows()
@@ -123,11 +146,16 @@ fn try_from_tree_sequence(
                             .unwrap();
                         assert!(nd >= 0, "nd = {nd} at {current_mut_node:?}");
                         if nd > 0 {
-                            let derived_state = ts
+                            let Some(derived_state) = ts
                                 .mutations()
                                 .derived_state(mutation_index as i32)
-                                // Hard error intentional -- these calcs cannot be done w/o state data
-                                .unwrap();
+                            else {
+                                return Err(TreeSequenceLogicError::DerivedStateMissing {
+                                    mutation: MutationId::from(mutation_index as i32),
+                                }
+                                    .into())
+                            };
+
                             if let Some(index) =
                                 alleles_at_site.iter().position(|&x| x == derived_state)
                             {
@@ -499,7 +527,7 @@ where
                 .add_mutation(
                     site,
                     m.node,
-                    tskit::MutationId::NULL,
+                    MutationId::NULL,
                     m.time,
                     Some(&m.derived_state),
                 )
@@ -738,7 +766,7 @@ fn test_10_anc_state_missing() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
-    let _ = try_from_tree_sequence(&ts, None);
+    let _ = try_from_tree_sequence(&ts, None).unwrap();
 }
 
 #[test]
@@ -753,7 +781,7 @@ fn test_10_der_state_missing() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
-    let _ = try_from_tree_sequence(&ts, None);
+    let _ = try_from_tree_sequence(&ts, None).unwrap();
 }
 
 #[test]
