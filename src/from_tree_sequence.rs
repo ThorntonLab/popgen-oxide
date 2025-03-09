@@ -48,19 +48,10 @@ fn try_from_tree_sequence(
     // NOTE: we need TreeSequence to be able to provide these
     // indexes w/o going thru the Option b/c you CANNOT make a
     // ts from unindexed tables!!
-    // the absence of indexes unwrapped below is a data model error
-    let Some(edges_in) = ts.tables().edge_insertion_order() else {
-        return Err(tskit::TskitError::ErrorCode {
-            code: tskit::bindings::TSK_ERR_TABLES_NOT_INDEXED,
-        }
-        .into());
-    };
-    let Some(edges_out) = ts.tables().edge_removal_order() else {
-        return Err(tskit::TskitError::ErrorCode {
-            code: tskit::bindings::TSK_ERR_TABLES_NOT_INDEXED,
-        }
-        .into());
-    };
+    // the absence of edge orderings unwrapped below (because the tables aren't indexed)
+    // is a data model error
+    let edges_in = ts.tables().edge_insertion_order().unwrap();
+    let edges_out = ts.tables().edge_removal_order().unwrap();
     let edges_left = ts.tables().edges().left_slice();
     let edges_right = ts.tables().edges().right_slice();
     let edges_parent = ts.tables().edges().parent_slice();
