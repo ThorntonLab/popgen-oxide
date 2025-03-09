@@ -55,4 +55,3 @@ pub mod vcf {
         genotypes
     }
 }
-
