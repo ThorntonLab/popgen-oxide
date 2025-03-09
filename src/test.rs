@@ -3,7 +3,7 @@ mod tests {
     use crate::{AlleleID, Count, MultiSiteCounts};
 
     use crate::iter::SiteCounts;
-    use crate::stats::{GlobalStatistic, TajimaD, WattersonTheta};
+    use crate::stats::{GlobalPi, GlobalStatistic, TajimaD, WattersonTheta};
     use itertools::Itertools;
     use rand::rng;
     use rand::rngs::ThreadRng;
@@ -16,8 +16,6 @@ mod tests {
     #[cfg(feature = "noodles")]
     mod vcf {
         use crate::adapter::vcf::record_to_genotypes_adapter;
-        use crate::stats::{GlobalPi, GlobalStatistic};
-        use crate::test::tests::pi_from_matrix;
         use crate::{AlleleID, MultiSiteCounts};
         use noodles::vcf::header::record::value::map::{Contig, Format};
         use noodles::vcf::header::record::value::Map;
@@ -32,7 +30,6 @@ mod tests {
         use noodles::vcf::variant::RecordBuf;
         use rand::prelude::SliceRandom;
         use rand::rng;
-        use std::iter::once;
 
         // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
         // the appropriate IDs, number of samples, etc. will be calculated
@@ -66,46 +63,46 @@ mod tests {
             }
 
             Some(
-            RecordBuf::builder()
-                .set_reference_sequence_name(seq_name)
-                .set_variant_start(noodles_core::Position::MIN)
-                .set_reference_bases(alleles_seen[0])
-                .set_alternate_bases(AlternateBases::from(
-                    alleles_seen[1..]
-                        .iter()
-                        .map(|s| String::from(*s))
-                        .collect::<Vec<_>>(),
-                ))
-                .set_samples(Samples::new(
-                    Keys::from_iter(vec![String::from(key::GENOTYPE)]),
-                    // for each genotype and its count, create that many samples accordingly
-                    {
-                        let mut all_samples = site_genotypes
+                RecordBuf::builder()
+                    .set_reference_sequence_name(seq_name)
+                    .set_variant_start(noodles_core::Position::MIN)
+                    .set_reference_bases(alleles_seen[0])
+                    .set_alternate_bases(AlternateBases::from(
+                        alleles_seen[1..]
                             .iter()
-                            .flat_map(|(genotype, count)| {
-                                vec![
-                                    // for each sample at this site, there will only be the GT field and no other hence another layer of Vec here
-                                    vec![Some(Value::from(Genotype::from_iter(
-                                        genotype.as_ref().iter()
-                                            .map(|sample_variant| Allele::new(
-                                                sample_variant.as_ref().map(|some| alleles_seen.iter()
-                                                    .enumerate()
-                                                    .find(|(_, variant)| **variant == some.as_ref())
-                                                    .unwrap().0
-                                                ),
-                                                Unphased  // TODO: make this configurable?
-                                            )),
-                                    )))];
-                                    *count
-                                ]
-                            })
-                            .collect::<Vec<_>>();
-                        all_samples.shuffle(&mut rng());
-                        all_samples
-                    },
-                ))
-                .build(),
-        )
+                            .map(|s| String::from(*s))
+                            .collect::<Vec<_>>(),
+                    ))
+                    .set_samples(Samples::new(
+                        Keys::from_iter(vec![String::from(key::GENOTYPE)]),
+                        // for each genotype and its count, create that many samples accordingly
+                        {
+                            let mut all_samples = site_genotypes
+                                .iter()
+                                .flat_map(|(genotype, count)| {
+                                    vec![
+                                        // for each sample at this site, there will only be the GT field and no other hence another layer of Vec here
+                                        vec![Some(Value::from(Genotype::from_iter(
+                                            genotype.as_ref().iter()
+                                                .map(|sample_variant| Allele::new(
+                                                    sample_variant.as_ref().map(|some| alleles_seen.iter()
+                                                        .enumerate()
+                                                        .find(|(_, variant)| **variant == some.as_ref())
+                                                        .unwrap().0
+                                                    ),
+                                                    Unphased  // TODO: make this configurable?
+                                                )),
+                                        )))];
+                                        *count
+                                    ]
+                                })
+                                .collect::<Vec<_>>();
+                            all_samples.shuffle(&mut rng());
+                            all_samples
+                        },
+                    ))
+                    .build(),
+            )
         }
 
         #[allow(dead_code)]
@@ -176,8 +173,7 @@ mod tests {
             (all_alleles, counts)
         }
 
-        #[test]
-        fn load_vcf() {
+        fn make_vcf() -> &'static str {
             // let vcf_buf = make_mock_vcf(vec![
             //     vec![
             //         (vec![Some("A")], 11),
@@ -192,37 +188,29 @@ mod tests {
             //
             // println!("{}", &vcf_buf);
 
-            let vcf_buf = r#"##fileformat=VCFv4.5
+            r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##contig=<ID=chr0>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
 chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0	/0	/1	/0	/1	/1	/0
-chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
+chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
+        }
 
-            let (all_alleles, allele_counts) = counts_from_vcf(vcf_buf, 1);
+        #[test]
+        fn load_vcf() {
+            let (all_alleles, allele_counts) = counts_from_vcf(make_vcf(), 1);
             let mut iter = allele_counts.iter();
             let counts_0 = iter.next().unwrap();
             let counts_1 = iter.next().unwrap();
             assert!(iter.next().is_none());
 
-            let expect_site_0 = pi_from_matrix(&all_alleles[0]);
-            let expect_site_1 = pi_from_matrix(&all_alleles[1]);
-            assert!(
-                (GlobalPi::from_iter_sites(once(counts_0)).as_raw() - expect_site_0).abs()
-                    < f64::EPSILON
-            );
-            assert!(
-                (GlobalPi::from_iter_sites(once(counts_1)).as_raw() - expect_site_1).abs()
-                    < f64::EPSILON
-            );
-            assert!(
-                (GlobalPi::from_iter_sites(allele_counts.iter()).as_raw()
-                    - (expect_site_0 + expect_site_1))
-                    .abs()
-                    < f64::EPSILON
-            );
+            assert_eq!(counts_0.counts(), &[11, 7]);
+            assert_eq!(counts_0.total_alleles(), 18);
+            assert_eq!(counts_1.counts(), &[7, 8]);
+            assert_eq!(counts_1.total_alleles(), 18);
         }
     }
+
     struct TriVec<T>(usize, Vec<T>);
 
     impl<T> Triangle<T> for TriVec<T> {
@@ -344,6 +332,54 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
 
         assert!(counts.is_empty());
         assert_eq!(counts.len(), 0);
+    }
+
+    #[test]
+    fn global_pi() {
+        let mut rng = rng();
+        let sites = vec![
+            shuffled_site(
+                vec![
+                    (Some(AlleleID::from(0)), 35),
+                    (Some(AlleleID::from(1)), 6),
+                    (None, 3),
+                ]
+                .into_iter(),
+                &mut rng,
+            ),
+            shuffled_site(
+                vec![
+                    (Some(AlleleID::from(0)), 2),
+                    (Some(AlleleID::from(1)), 14),
+                    (Some(AlleleID::from(2)), 155),
+                ]
+                .into_iter(),
+                &mut rng,
+            ),
+        ];
+
+        let expect_site_0 = pi_from_matrix(&sites[0]);
+        let expect_site_1 = pi_from_matrix(&sites[1]);
+
+        let allele_counts = MultiSiteCounts::from_tabular(sites);
+
+        assert!(
+            (GlobalPi::from_iter_sites(allele_counts.iter().take(1)).as_raw() - expect_site_0)
+                .abs()
+                < f64::EPSILON
+        );
+        assert!(
+            (GlobalPi::from_iter_sites(allele_counts.iter().skip(1).take(1)).as_raw()
+                - expect_site_1)
+                .abs()
+                < f64::EPSILON
+        );
+        assert!(
+            (GlobalPi::from_iter_sites(allele_counts.iter()).as_raw()
+                - (expect_site_0 + expect_site_1))
+                .abs()
+                < f64::EPSILON
+        );
     }
 
     #[test]
