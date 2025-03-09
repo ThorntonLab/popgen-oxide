@@ -76,26 +76,26 @@ impl ExactSizeIterator for MultiSiteCountsIter<'_> {
 
 #[test]
 fn test_iteration_over_empty() {
-    let counts = crate::MultiSiteCounts::default();
+    let counts = MultiSiteCounts::default();
     assert_eq!(counts.iter().count(), 0)
 }
 
 #[test]
 fn test_reverse_iteration_over_empty() {
-    let counts = crate::MultiSiteCounts::default();
+    let counts = MultiSiteCounts::default();
     assert_eq!(counts.iter().rev().count(), 0)
 }
 
 #[test]
 fn test_count() {
-    let mut counts = crate::MultiSiteCounts::default();
+    let mut counts = MultiSiteCounts::default();
     counts.add_site_from_counts([1, 2, 3], 6);
     assert_eq!(counts.iter().count(), 1);
 }
 
 #[cfg(test)]
-fn make_nonempty_counts() -> crate::MultiSiteCounts {
-    let mut counts = crate::MultiSiteCounts::default();
+fn make_nonempty_counts() -> MultiSiteCounts {
+    let mut counts = MultiSiteCounts::default();
     counts.add_site_from_counts([1, 2, 3], 6);
     counts.add_site_from_counts([1, 1, 1], 3);
     counts.add_site_from_counts([1, 5, 1], 7);
@@ -146,7 +146,7 @@ fn test_exhaust_back() {
 
 #[test]
 fn test_single_site_getters() {
-    let mut counts = crate::MultiSiteCounts::default();
+    let mut counts = MultiSiteCounts::default();
     counts.add_site_from_counts([9, 8, 7], 35);
     let site = counts.get(0).unwrap();
     assert_eq!(site.counts(), &[9, 8, 7]);
