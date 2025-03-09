@@ -32,12 +32,6 @@ impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
         Some(ret)
     }
 
-    // recall that skip uses this internally
-    fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.next_site_ind.0 += n;
-        self.next()
-    }
-
     fn count(self) -> usize {
         self.len()
     }
@@ -46,6 +40,12 @@ impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
         let mut s = self;
         s.next_site_ind.0 = s.next_site_ind.1;
         s.next()
+    }
+
+    // recall that skip uses this internally
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.next_site_ind.0 += n;
+        self.next()
     }
 }
 
