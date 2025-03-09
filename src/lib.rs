@@ -20,7 +20,7 @@ pub enum PopgenError {
     #[error("couldn't handle VCF: {0}")]
     NoodlesVCF(#[from] std::io::Error),
     #[cfg(feature = "tskit")]
-    #[error("tskit error: {0}")]
+    #[error("tree sequence error: {0}")]
     TreeSequence(#[from] from_tree_sequence::TreeSequenceLogicError),
 }
 
