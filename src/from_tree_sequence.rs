@@ -38,13 +38,6 @@ fn update_right(
     }
 }
 
-#[non_exhaustive]
-#[derive(Debug, thiserror::Error)]
-pub enum TreeSequenceLogicError {
-    #[error("tskit error: {0}")]
-    FromTskit(#[from] tskit::TskitError),
-}
-
 fn try_from_tree_sequence(
     ts: &tskit::TreeSequence,
     _parameters: Option<FromTreeSequenceOptions>,
