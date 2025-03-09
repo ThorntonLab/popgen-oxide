@@ -3,8 +3,10 @@ mod tests {
     use crate::{AlleleID, Count, MultiSiteCounts};
 
     use crate::iter::SiteCounts;
-    use crate::stats::{GlobalStatistic, WattersonTheta};
+    use crate::stats::{GlobalStatistic, TajimaD, WattersonTheta};
+    use itertools::Itertools;
     use rand::rng;
+    use rand::rngs::ThreadRng;
     use rand::seq::SliceRandom;
     use std::iter::repeat_n;
     use triangle_matrix::{
@@ -13,25 +15,24 @@ mod tests {
 
     #[cfg(feature = "noodles")]
     mod vcf {
+        use crate::adapter::vcf::record_to_genotypes_adapter;
+        use crate::stats::{GlobalPi, GlobalStatistic};
+        use crate::test::tests::pi_from_matrix;
+        use crate::{AlleleID, MultiSiteCounts};
         use noodles::vcf::header::record::value::map::{Contig, Format};
         use noodles::vcf::header::record::value::Map;
         use noodles::vcf::variant::io::Write;
         use noodles::vcf::variant::record::samples::keys::key;
         use noodles::vcf::variant::record::samples::series::value::genotype::Phasing::Unphased;
         use noodles::vcf::variant::record_buf::samples::sample::value::genotype::Allele;
-        use noodles::vcf::variant::record_buf::samples::sample::Value;
-        use noodles::vcf::variant::RecordBuf;
-        use rand::prelude::SliceRandom;
-        use std::iter::once;
-
-        use crate::adapter::vcf::record_to_genotypes_adapter;
-        use crate::stats::{GlobalPi, GlobalStatistic, TajimaD};
-        use crate::test::tests::pi_from_matrix;
-        use crate::{AlleleID, MultiSiteCounts};
         use noodles::vcf::variant::record_buf::samples::sample::value::Genotype;
+        use noodles::vcf::variant::record_buf::samples::sample::Value;
         use noodles::vcf::variant::record_buf::samples::Keys;
         use noodles::vcf::variant::record_buf::{AlternateBases, Samples};
+        use noodles::vcf::variant::RecordBuf;
+        use rand::prelude::SliceRandom;
         use rand::rng;
+        use std::iter::once;
 
         // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
         // the appropriate IDs, number of samples, etc. will be calculated
@@ -221,43 +222,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#;
                     < f64::EPSILON
             );
         }
-
-        #[test]
-        fn tajima_d() {
-            // let vcf_buf = make_mock_vcf(vec![
-            //     // common mutation
-            //     vec![
-            //         (vec![Some("A")], 11),
-            //         (vec![Some("C")], 7),
-            //     ],
-            //     // rare mutation
-            //     vec![
-            //         (vec![Some("G")], 16),
-            //         (vec![Some("A")], 2),
-            //     ],
-            //     // rare mutation
-            //     vec![
-            //         (vec![Some("C")], 1),
-            //         (vec![Some("G")], 17),
-            //     ],
-            // ]).unwrap();
-            //
-            // println!("{}", &vcf_buf);
-
-            let vcf_buf = r#"##fileformat=VCFv4.5
-##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-##contig=<ID=chr0>
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
-chr0	1	.	A	C	.	.	.	GT	/0	/1	/0	/0	/1	/0	/0	/1	/0	/1	/0	/1	/0	/0	/1	/1	/0	/0
-chr0	1	.	G	A	.	.	.	GT	/0	/0	/0	/0	/0	/0	/0	/0	/0	/0	/1	/0	/1	/0	/0	/0	/0	/0
-chr0	1	.	C	G	.	.	.	GT	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/0	/1	/1"#;
-
-            let (_, allele_counts) = counts_from_vcf(vcf_buf, 1);
-            let tajima = TajimaD::from_iter_sites(allele_counts.iter());
-            assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
-        }
     }
-
     struct TriVec<T>(usize, Vec<T>);
 
     impl<T> Triangle<T> for TriVec<T> {
@@ -276,6 +241,19 @@ chr0	1	.	C	G	.	.	.	GT	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/0	/1	/1"#;
         fn inner_mut(&mut self) -> &mut Self::Inner {
             &mut self.1
         }
+    }
+
+    fn shuffled_site(
+        ids: impl Iterator<Item = (Option<AlleleID>, usize)>,
+        rng: &mut ThreadRng,
+    ) -> Vec<Option<AlleleID>> {
+        let mut site = vec![];
+        ids.for_each(|(id, count)| {
+            site.extend(repeat_n(id, count));
+        });
+
+        site.shuffle(rng);
+        site
     }
 
     /// inefficient O(n^2) computation of pairwise diversity at a site
@@ -321,27 +299,20 @@ chr0	1	.	C	G	.	.	.	GT	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/0	/1	/1"#;
         let mut rng = rng();
 
         let sites = vec![
-            {
-                let mut site = repeat_n(0, 8)
-                    .chain(repeat_n(1, 7))
-                    .map(AlleleID::from)
-                    .map(Option::from)
-                    .chain(repeat_n(None, 4))
-                    .collect::<Vec<_>>();
-                site.shuffle(&mut rng);
-                site
-            },
-            {
-                let mut site = repeat_n(0, 341)
-                    .chain(repeat_n(1, 69))
-                    .chain(repeat_n(2, 926))
-                    .map(AlleleID::from)
-                    .map(Option::from)
-                    .chain(repeat_n(None, 300))
-                    .collect::<Vec<_>>();
-                site.shuffle(&mut rng);
-                site
-            },
+            shuffled_site(
+                vec![(Some(AlleleID(0)), 8), (Some(AlleleID(1)), 7), (None, 4)].into_iter(),
+                &mut rng,
+            ),
+            shuffled_site(
+                vec![
+                    (Some(AlleleID(0)), 341),
+                    (Some(AlleleID::from(1)), 69),
+                    (Some(AlleleID::from(2)), 926),
+                    (None, 300),
+                ]
+                .into_iter(),
+                &mut rng,
+            ),
         ];
 
         let counts = MultiSiteCounts::from_tabular(sites);
@@ -405,5 +376,27 @@ chr0	1	.	C	G	.	.	.	GT	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/1	/0	/1	/1"#;
         }
 
         assert!((theta.as_raw() - expected).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn tajima_d() {
+        let mut rng = rng();
+
+        let sites = vec![
+            // common mutation
+            vec![(Some(AlleleID::from(0)), 11), (Some(AlleleID::from(1)), 7)],
+            // rare mutation
+            vec![(Some(AlleleID::from(0)), 16), (Some(AlleleID::from(1)), 2)],
+            // rare mutation
+            vec![(Some(AlleleID::from(0)), 1), (Some(AlleleID::from(1)), 17)],
+        ]
+        .into_iter()
+        .map(|site| shuffled_site(site.into_iter(), &mut rng))
+        .collect_vec();
+
+        let allele_counts = MultiSiteCounts::from_tabular(sites);
+
+        let tajima = TajimaD::from_iter_sites(allele_counts.iter());
+        assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
     }
 }
