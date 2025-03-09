@@ -11,8 +11,6 @@ pub mod stats;
 mod test;
 pub(crate) mod util;
 
-pub use noodles::vcf as noodles_vcf;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AlleleID(usize);
 
