@@ -6,6 +6,8 @@ pub mod vcf {
     use noodles::vcf::variant::record::samples::Sample;
     use noodles::vcf::{Header, Record};
 
+    pub use noodles::vcf as noodles_vcf;
+
     pub fn record_to_genotypes_adapter(
         header: &Header,
         record: Record,
