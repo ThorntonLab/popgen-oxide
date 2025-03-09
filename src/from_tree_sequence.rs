@@ -114,7 +114,7 @@ fn try_from_tree_sequence(
                         return Err(TreeSequenceLogicError::AncestralStateMissing {
                             site: SiteId::from(current_site_index as i32),
                         }
-                            .into())
+                        .into())
                     }
                 },
             );
@@ -146,14 +146,13 @@ fn try_from_tree_sequence(
                             .unwrap();
                         assert!(nd >= 0, "nd = {nd} at {current_mut_node:?}");
                         if nd > 0 {
-                            let Some(derived_state) = ts
-                                .mutations()
-                                .derived_state(mutation_index as i32)
+                            let Some(derived_state) =
+                                ts.mutations().derived_state(mutation_index as i32)
                             else {
                                 return Err(TreeSequenceLogicError::DerivedStateMissing {
                                     mutation: MutationId::from(mutation_index as i32),
                                 }
-                                    .into())
+                                .into());
                             };
 
                             if let Some(index) =
