@@ -13,3 +13,7 @@ tskit = { version = "0.15.0-alpha.2", optional = true, features=["bindings"] }
 rand = "0.9.0"
 noodles-core = "0.16.0"
 triangle_matrix = "0.4.0"
+
+[[test]]
+name = "test_try_from_tree_sequence"
+required-features = ["tskit"]
