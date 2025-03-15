@@ -13,6 +13,12 @@ pub(crate) mod util;
 
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
+#[cfg(feature = "tskit")]
+pub use tskit;
+
+#[cfg(feature = "tskit")]
+pub use from_tree_sequence::FromTreeSequenceOptions;
+
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
 pub enum PopgenError {
@@ -67,6 +73,30 @@ impl MultiSiteCounts {
         }
 
         ret
+    }
+
+    /// Obtain site counts from a [`tskit::TreeSequence`].
+    ///
+    /// # Parameters
+    ///
+    /// * `ts`: [`tskit::TreeSequence`]
+    /// * `options`: modify the behavior using  [`FromTreeSequenceOptions`]
+    ///
+    /// # Errors
+    ///
+    /// Any errors from [`tskit`] will be propagated.
+    ///
+    /// # Panics
+    ///
+    /// Sites with empty ancestral states and mutations with empty
+    /// derived states are currently rejected as a hard error resulting
+    /// in a panic.
+    #[cfg(feature = "tskit")]
+    pub fn try_from_tree_sequence(
+        ts: &tskit::TreeSequence,
+        options: Option<FromTreeSequenceOptions>,
+    ) -> Result<Self, PopgenError> {
+        from_tree_sequence::try_from_tree_sequence(ts, options)
     }
 
     pub fn add_site<Samples>(&mut self, samples: Samples)
