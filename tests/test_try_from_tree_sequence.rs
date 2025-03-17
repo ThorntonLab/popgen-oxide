@@ -85,22 +85,70 @@ fn validate_site_counts(counts: &popgen::iter::SiteCounts, expected: SiteCountCo
 mod naive_details {
     use super::SiteCountContents;
 
-    pub fn set_up_sample_node_states(
+    pub fn process_site(
+        ts: &tskit::TreeSequence,
+        tree: &tskit::Tree,
+        current_site: u64,
+        current_mutation: u64,
+        expected: &mut Vec<SiteCountContents>,
+    ) -> u64 {
+        let (ancestral_state, mut sample_node_state) =
+            set_up_sample_node_states(ts, current_site as i32);
+        let current_mutation = update_sample_node_states(
+            ts,
+            tree,
+            current_mutation,
+            current_site,
+            &mut sample_node_state,
+        );
+        update_return_value(&ancestral_state, &sample_node_state, expected);
+        current_mutation
+    }
+
+    struct SampleNodeStates {
+        sample_node_state: Vec<Vec<u8>>,
+        sample_map: Vec<Option<usize>>,
+    }
+
+    impl std::ops::Index<usize> for SampleNodeStates {
+        type Output = Vec<u8>;
+        fn index(&self, index: usize) -> &Self::Output {
+            &self.sample_node_state[self.sample_map[index].unwrap()]
+        }
+    }
+
+    impl std::ops::IndexMut<usize> for SampleNodeStates {
+        fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+            &mut self.sample_node_state[self.sample_map[index].unwrap()]
+        }
+    }
+
+    fn set_up_sample_node_states(
         ts: &tskit::TreeSequence,
         site: i32,
-    ) -> (Vec<u8>, Vec<Vec<u8>>) {
+    ) -> (Vec<u8>, SampleNodeStates) {
         let ancestral_state = ts.sites().ancestral_state(site).unwrap().to_owned();
         let sample_node_state =
             vec![ancestral_state.clone(); usize::try_from(ts.num_samples()).unwrap()];
-        (ancestral_state, sample_node_state)
+        let mut sample_map = vec![None; ts.nodes().num_rows().try_into().unwrap()];
+        for (next_sample, &sample) in ts.sample_nodes().iter().enumerate() {
+            sample_map[usize::try_from(sample).unwrap()] = Some(next_sample);
+        }
+        (
+            ancestral_state,
+            SampleNodeStates {
+                sample_node_state,
+                sample_map,
+            },
+        )
     }
 
-    pub fn update_sample_node_states(
+    fn update_sample_node_states(
         ts: &tskit::TreeSequence,
         tree: &tskit::Tree,
         current_mutation: u64,
         current_site: u64,
-        sample_node_state: &mut [Vec<u8>],
+        sample_node_state: &mut SampleNodeStates,
     ) -> u64 {
         let mut current_mutation = current_mutation;
         while current_mutation < ts.mutations().num_rows()
@@ -119,8 +167,8 @@ mod naive_details {
         current_mutation
     }
 
-    fn get_unique_alleles(sample_node_state: &[Vec<u8>]) -> Vec<Vec<u8>> {
-        let mut rv = sample_node_state.to_owned();
+    fn get_unique_alleles(sample_node_state: &SampleNodeStates) -> Vec<Vec<u8>> {
+        let mut rv = sample_node_state.sample_node_state.clone();
         rv.sort_unstable();
         rv.dedup();
         rv
@@ -129,10 +177,14 @@ mod naive_details {
     fn count_ancestral_state(
         ancestral_state: &[u8],
         unique_allele_states: &[Vec<u8>],
-        sample_node_state: &[Vec<u8>],
+        sample_node_state: &SampleNodeStates,
     ) -> usize {
         if let Some(a) = unique_allele_states.iter().find(|&u| u == ancestral_state) {
-            sample_node_state.iter().filter(|&u| u == a).count()
+            sample_node_state
+                .sample_node_state
+                .iter()
+                .filter(|&u| u == a)
+                .count()
         } else {
             0
         }
@@ -141,22 +193,28 @@ mod naive_details {
     fn count_derived_alleles(
         ancestral_state: &[u8],
         unique_allele_states: &[Vec<u8>],
-        sample_node_state: &[Vec<u8>],
+        sample_node_state: &SampleNodeStates,
     ) -> Vec<usize> {
         // any allele can be present [0, num_samples] times,
         // giving num_samples - 0 + 1 possible values.
-        let mut num_derived_counts = vec![0; sample_node_state.len() + 1];
+        let mut num_derived_counts = vec![0; sample_node_state.sample_node_state.len() + 1];
         unique_allele_states
             .iter()
             .filter(|&u| u != ancestral_state)
-            .map(|d| sample_node_state.iter().filter(|&u| u == d).count())
+            .map(|d| {
+                sample_node_state
+                    .sample_node_state
+                    .iter()
+                    .filter(|&u| u == d)
+                    .count()
+            })
             .for_each(|c| num_derived_counts[c] += 1);
         num_derived_counts
     }
 
-    pub fn update_return_value(
+    fn update_return_value(
         ancestral_state: &[u8],
-        sample_node_state: &[Vec<u8>],
+        sample_node_state: &SampleNodeStates,
         expected: &mut Vec<SiteCountContents>,
     ) {
         let unique_allele_states = get_unique_alleles(sample_node_state);
@@ -213,16 +271,13 @@ fn generate_expected_site_counts_naive(
             {
                 current_mutation += 1;
             }
-            let (ancestral_state, mut sample_node_state) =
-                naive_details::set_up_sample_node_states(ts, current_site as i32);
-            current_mutation = naive_details::update_sample_node_states(
+            current_mutation = naive_details::process_site(
                 ts,
                 tree,
-                current_mutation,
                 current_site,
-                &mut sample_node_state,
+                current_mutation,
+                &mut expected,
             );
-            naive_details::update_return_value(&ancestral_state, &sample_node_state, &mut expected);
             current_site += 1;
         }
     }
@@ -326,6 +381,42 @@ fn make_four_sample_tree_with_one_ancient_sample() -> tskit::TableCollection {
     tables
         .add_edge(0., tables.sequence_length(), 6, ancient_sample)
         .unwrap();
+
+    tables
+}
+
+//   --6-- <- time 30
+//   |   |
+//  -5-- | <- time 20
+//  |  | |
+// -4- | 7 <- time 10, 7 is a sample
+// | | | |
+// 0 1 2 3 <- time 0
+#[cfg(test)]
+fn make_four_sample_tree_with_one_inline_ancient_sample() -> tskit::TableCollection {
+    let mut tables = make_four_sample_tree();
+
+    let ancient_sample = tables
+        .add_node(tskit::NodeFlags::new_sample(), 10.0, -1, -1)
+        .unwrap();
+    let mut edges = tskit::EdgeTable::default();
+
+    // copied from make_four_sample_tree
+    edges.add_row(0., 100., 4, 0).unwrap();
+    edges.add_row(0., 100., 4, 1).unwrap();
+    edges.add_row(0., 100., 5, 4).unwrap();
+    edges.add_row(0., 100., 5, 2).unwrap();
+    edges.add_row(0., 100., 6, 5).unwrap();
+
+    // differences from make_four_sample_tree
+    tables
+        .add_edge(0., tables.sequence_length(), 6, ancient_sample)
+        .unwrap();
+    edges
+        .add_row(0., tables.sequence_length(), ancient_sample, 3)
+        .unwrap();
+
+    tables.set_edges(&edges).unwrap();
 
     tables
 }
@@ -811,8 +902,7 @@ mod with_ancient_samples {
                 ],
             )],
         );
-        let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-        assert_eq!(counts.get(0).unwrap().counts(), [3, 1, 1])
+        generate_counts_and_validate(&ts, None);
     }
 
     #[test]
@@ -830,8 +920,7 @@ mod with_ancient_samples {
                 ],
             )],
         );
-        let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-        assert_eq!(counts.get(0).unwrap().counts(), [2, 2, 1])
+        generate_counts_and_validate(&ts, None);
     }
 
     #[test]
@@ -849,7 +938,24 @@ mod with_ancient_samples {
                 ],
             )],
         );
-        let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-        assert_eq!(counts.get(0).unwrap().counts(), [2, 1, 2])
+        generate_counts_and_validate(&ts, None);
+    }
+
+    #[test]
+    fn test3() {
+        let ts = super::make_test_data(
+            make_four_sample_tree_with_one_inline_ancient_sample,
+            vec![SiteData::new(
+                5.,
+                "G",
+                vec![
+                    MutationData::new(5, 21.0, "A"),
+                    MutationData::new(4, 10.1, "G"),
+                    MutationData::new(7, 10.1, "A"),
+                    MutationData::new(1, 0.1, "C"),
+                ],
+            )],
+        );
+        generate_counts_and_validate(&ts, None);
     }
 }
