@@ -127,6 +127,27 @@ fn make_four_sample_tree() -> tskit::TableCollection {
     tables
 }
 
+//   --6-- <- time 30
+//   |   |
+//  -5-- | <- time 20
+//  |  | |\
+// -4- | | 7 <- time 10
+// | | | |
+// 0 1 2 3 <- time 0
+#[cfg(test)]
+fn make_four_sample_tree_with_one_ancient_sample() -> tskit::TableCollection {
+    let mut tables = make_four_sample_tree();
+
+    let ancient_sample = tables
+        .add_node(tskit::NodeFlags::new_sample(), 10.0, -1, -1)
+        .unwrap();
+    tables
+        .add_edge(0., tables.sequence_length(), 6, ancient_sample)
+        .unwrap();
+
+    tables
+}
+
 //   This tree is repeated 2x.
 //   Once on [0, 50)
 //   Again on [50, 100)
@@ -618,4 +639,65 @@ fn test_12() {
     counts
         .iter()
         .for_each(|c| assert_eq!(c.counts(), &[1, 1, 1, 1, 1, 1]));
+}
+
+#[cfg(test)]
+mod with_ancient_samples {
+    use super::*;
+
+    #[test]
+    fn test0() {
+        let ts = super::make_test_data(
+            make_four_sample_tree_with_one_ancient_sample,
+            vec![SiteData::new(
+                5.,
+                "G",
+                vec![
+                    MutationData::new(5, 21.0, "A"),
+                    MutationData::new(4, 10.1, "G"),
+                    MutationData::new(1, 0.1, "C"),
+                ],
+            )],
+        );
+        let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
+        assert_eq!(counts.get(0).unwrap().counts(), [3, 1, 1])
+    }
+
+    #[test]
+    fn test1() {
+        let ts = super::make_test_data(
+            make_four_sample_tree_with_one_ancient_sample,
+            vec![SiteData::new(
+                5.,
+                "G",
+                vec![
+                    MutationData::new(5, 21.0, "A"),
+                    MutationData::new(4, 10.1, "G"),
+                    MutationData::new(7, 10.1, "C"),
+                    MutationData::new(1, 0.1, "C"),
+                ],
+            )],
+        );
+        let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
+        assert_eq!(counts.get(0).unwrap().counts(), [2, 2, 1])
+    }
+
+    #[test]
+    fn test2() {
+        let ts = super::make_test_data(
+            make_four_sample_tree_with_one_ancient_sample,
+            vec![SiteData::new(
+                5.,
+                "G",
+                vec![
+                    MutationData::new(5, 21.0, "A"),
+                    MutationData::new(4, 10.1, "G"),
+                    MutationData::new(7, 10.1, "A"),
+                    MutationData::new(1, 0.1, "C"),
+                ],
+            )],
+        );
+        let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
+        assert_eq!(counts.get(0).unwrap().counts(), [2, 1, 2])
+    }
 }
