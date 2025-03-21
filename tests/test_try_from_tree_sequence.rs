@@ -2,6 +2,7 @@
 // with the tskit feature
 
 use popgen::tskit;
+use popgen::tskit::prelude::StreamingIterator;
 
 #[cfg(test)]
 struct MutationData {
@@ -45,6 +46,187 @@ impl SiteData {
             mutations: mutations.into_iter().collect::<Vec<_>>(),
         }
     }
+}
+
+#[cfg(test)]
+#[derive(Debug)]
+struct DerivedCounts {
+    count: i64,
+    number_of_sites: usize,
+}
+
+#[cfg(test)]
+#[derive(Debug)]
+struct SiteCountContents {
+    num_ancestral: i64,
+    derived: Vec<DerivedCounts>,
+}
+
+#[cfg(test)]
+fn validate_site_counts(counts: &popgen::iter::SiteCounts, expected: SiteCountContents) {
+    let num_alleles = expected
+        .derived
+        .iter()
+        .map(|s| s.number_of_sites)
+        .sum::<usize>()
+        + 1;
+    let c = counts.counts();
+    assert_eq!(c[0], expected.num_ancestral);
+    expected.derived.iter().for_each(|d| {
+        assert_eq!(
+            c.iter().skip(1).filter(|&&i| i == d.count).count(),
+            d.number_of_sites
+        )
+    });
+    assert_eq!(c.len(), num_alleles);
+}
+
+#[cfg(test)]
+mod naive_details {
+    use super::SiteCountContents;
+
+    pub fn set_up_sample_node_states(
+        ts: &tskit::TreeSequence,
+        site: i32,
+    ) -> (Vec<u8>, Vec<Vec<u8>>) {
+        let ancestral_state = ts.sites().ancestral_state(site).unwrap().to_owned();
+        let sample_node_state =
+            vec![ancestral_state.clone(); usize::try_from(ts.num_samples()).unwrap()];
+        (ancestral_state, sample_node_state)
+    }
+
+    pub fn update_sample_node_states(
+        ts: &tskit::TreeSequence,
+        tree: &tskit::Tree,
+        current_mutation: u64,
+        current_site: u64,
+        sample_node_state: &mut [Vec<u8>],
+    ) -> u64 {
+        let mut current_mutation = current_mutation;
+        while current_mutation < ts.mutations().num_rows()
+            && ts.mutations().site(current_mutation as i32).unwrap() == (current_site as i32)
+        {
+            let node = ts.mutations().node(current_mutation as i32).unwrap();
+            for sample in tree.samples(node).unwrap() {
+                sample_node_state[usize::try_from(sample).unwrap()] = ts
+                    .mutations()
+                    .derived_state(current_mutation as i32)
+                    .unwrap()
+                    .to_owned();
+            }
+            current_mutation += 1;
+        }
+        current_mutation
+    }
+
+    fn get_unique_alleles(sample_node_state: &[Vec<u8>]) -> Vec<Vec<u8>> {
+        let mut rv = sample_node_state.to_owned();
+        rv.sort_unstable();
+        rv.dedup();
+        rv
+    }
+
+    fn count_ancestral_state(
+        ancestral_state: &[u8],
+        unique_allele_states: &[Vec<u8>],
+        sample_node_state: &[Vec<u8>],
+    ) -> usize {
+        if let Some(a) = unique_allele_states.iter().find(|&u| u == ancestral_state) {
+            sample_node_state.iter().filter(|&u| u == a).count()
+        } else {
+            0
+        }
+    }
+
+    fn count_derived_alleles(
+        ancestral_state: &[u8],
+        unique_allele_states: &[Vec<u8>],
+        sample_node_state: &[Vec<u8>],
+    ) -> Vec<usize> {
+        // any allele can be present [0, num_samples] times,
+        // giving num_samples - 0 + 1 possible values.
+        let mut num_derived_counts = vec![0; sample_node_state.len() + 1];
+        unique_allele_states
+            .iter()
+            .filter(|&u| u != ancestral_state)
+            .map(|d| sample_node_state.iter().filter(|&u| u == d).count())
+            .for_each(|c| num_derived_counts[c] += 1);
+        num_derived_counts
+    }
+
+    pub fn update_return_value(
+        ancestral_state: &[u8],
+        sample_node_state: &[Vec<u8>],
+        expected: &mut Vec<SiteCountContents>,
+    ) {
+        let unique_allele_states = get_unique_alleles(sample_node_state);
+        if unique_allele_states.len() > 1 {
+            let mut current_site_count_data = vec![];
+            let num_ancestral_allele =
+                count_ancestral_state(ancestral_state, &unique_allele_states, sample_node_state);
+            let derived_allele_counts =
+                count_derived_alleles(ancestral_state, &unique_allele_states, sample_node_state);
+            for (i, j) in derived_allele_counts
+                .iter()
+                .cloned()
+                .enumerate()
+                .filter(|(_, num_sites)| num_sites > &0)
+            {
+                current_site_count_data.push(super::DerivedCounts {
+                    count: i as i64,
+                    number_of_sites: j,
+                })
+            }
+            expected.push(SiteCountContents {
+                num_ancestral: num_ancestral_allele as i64,
+                derived: current_site_count_data,
+            });
+        }
+    }
+}
+
+#[cfg(test)]
+fn generate_expected_site_counts_naive(
+    ts: &tskit::TreeSequence,
+    options: Option<popgen::FromTreeSequenceOptions>,
+) -> Vec<SiteCountContents> {
+    let mut expected = vec![];
+    // We have no code depending on options yet
+    assert!(options.is_none());
+    let mut current_site = 0_u64;
+    let mut current_mutation = 0_u64;
+    // We use the EXPENSIVE option of tracking what sample
+    // nodes are descendants of each node in each tree.
+    let mut tree_iterator = ts.tree_iterator(tskit::TreeFlags::SAMPLE_LISTS).unwrap();
+    while let Some(tree) = tree_iterator.next() {
+        let (left, right) = tree.interval();
+        while current_site < ts.sites().num_rows()
+            && ts.sites().position(current_site as i32).unwrap() < left
+        {
+            current_site += 1;
+        }
+        while current_site < ts.sites().num_rows()
+            && ts.sites().position(current_site as i32).unwrap() < right
+        {
+            while current_mutation < ts.mutations().num_rows()
+                && ts.mutations().site(current_mutation as i32).unwrap() != (current_site as i32)
+            {
+                current_mutation += 1;
+            }
+            let (ancestral_state, mut sample_node_state) =
+                naive_details::set_up_sample_node_states(ts, current_site as i32);
+            current_mutation = naive_details::update_sample_node_states(
+                ts,
+                tree,
+                current_mutation,
+                current_site,
+                &mut sample_node_state,
+            );
+            naive_details::update_return_value(&ancestral_state, &sample_node_state, &mut expected);
+            current_site += 1;
+        }
+    }
+    expected
 }
 
 //   2  <- time is 10
@@ -369,11 +551,23 @@ where
         .unwrap()
 }
 
+#[cfg(test)]
+fn generate_counts_and_validate(
+    ts: &tskit::TreeSequence,
+    options: Option<popgen::FromTreeSequenceOptions>,
+) {
+    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(ts, None).unwrap();
+    let expected = generate_expected_site_counts_naive(ts, options);
+    assert_eq!(counts.len(), expected.len());
+    for (obs, exp) in counts.iter().zip(expected.into_iter()) {
+        validate_site_counts(&obs, exp);
+    }
+}
+
 #[test]
 fn test_0() {
     let ts = make_test_data(make_two_sample_tree, vec![]);
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 0)
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -386,12 +580,7 @@ fn test_1() {
             vec![MutationData::new(1, 1.0, "G")],
         )],
     );
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 1);
-    counts
-        .iter()
-        .take(1)
-        .for_each(|c| assert_eq!(c.counts(), &[1, 1]));
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -410,19 +599,7 @@ fn test_2() {
             ),
         ],
     );
-    assert_eq!(ts.tables().sites().num_rows(), 2);
-    assert_eq!(ts.tables().mutations().num_rows(), 3);
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 2);
-    counts
-        .iter()
-        .take(1)
-        .for_each(|c| assert_eq!(c.counts(), &[1, 1]));
-    counts
-        .iter()
-        .skip(1)
-        .take(1)
-        .for_each(|c| assert_eq!(c.counts(), &[0, 1, 1]));
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -438,9 +615,7 @@ fn test_3() {
             ],
         )],
     );
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 1);
-    counts.iter().for_each(|c| assert_eq!(c.counts(), &[2, 2]));
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -457,11 +632,7 @@ fn test_4() {
             ],
         )],
     );
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 1);
-    counts
-        .iter()
-        .for_each(|c| assert_eq!(c.counts(), &[2, 1, 1]));
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -485,10 +656,7 @@ fn test_5() {
         ],
     );
     let ts = make_test_data(make_two_identical_four_sample_trees, vec![site0, site1]);
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 2);
-    assert_eq!(counts.get(0).unwrap().counts(), &[2, 1, 1]);
-    assert_eq!(counts.get(1).unwrap().counts(), &[2, 1, 1]);
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -512,10 +680,7 @@ fn test_6() {
         ],
     );
     let ts = make_test_data(make_two_identical_four_sample_trees, vec![site0, site1]);
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 2);
-    assert_eq!(counts.get(0).unwrap().counts(), &[1, 3]);
-    assert_eq!(counts.get(1).unwrap().counts(), &[2, 1, 1]);
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -539,18 +704,14 @@ fn test_7() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 2);
-    assert_eq!(counts.get(0).unwrap().counts(), &[1, 3]);
-    assert_eq!(counts.get(1).unwrap().counts(), &[3, 1]);
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
 fn test_8() {
     let site0 = SiteData::new(60.0, "G", vec![]);
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 0);
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -564,8 +725,7 @@ fn test_9() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 0);
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -580,7 +740,7 @@ fn test_10_anc_state_missing() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
-    let _ = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -595,7 +755,7 @@ fn test_10_der_state_missing() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
-    let _ = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -611,11 +771,7 @@ fn test_11() {
             ],
         )],
     );
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 1);
-    counts
-        .iter()
-        .for_each(|c| assert_eq!(c.counts(), &[1, 2, 1]));
+    generate_counts_and_validate(&ts, None);
 }
 
 #[test]
@@ -634,11 +790,7 @@ fn test_12() {
             ],
         )],
     );
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(&ts, None).unwrap();
-    assert_eq!(counts.iter().count(), 1);
-    counts
-        .iter()
-        .for_each(|c| assert_eq!(c.counts(), &[1, 1, 1, 1, 1, 1]));
+    generate_counts_and_validate(&ts, None);
 }
 
 #[cfg(test)]

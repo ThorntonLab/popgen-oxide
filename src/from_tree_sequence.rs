@@ -45,7 +45,6 @@ pub fn try_from_tree_sequence(
 ) -> PopgenResult<MultiSiteCounts> {
     let mut counts = MultiSiteCounts::default();
     let mut left = 0.0;
-    let mut right = f64::from(ts.tables().sequence_length());
     // NOTE: we need TreeSequence to be able to provide these
     // indexes w/o going thru the Option b/c you CANNOT make a
     // ts from unindexed tables!!
@@ -89,6 +88,13 @@ pub fn try_from_tree_sequence(
                 num_sample_descendants[edges_child[edges_in[i as usize].as_usize()].as_usize()];
             i += 1;
         }
+        let right = update_right(
+            ts.tables().sequence_length().into(),
+            i,
+            edges_left,
+            edges_in,
+        );
+        let right = update_right(right, j, edges_right, edges_out);
         while current_site_index < ts.sites().num_rows()
             && site_pos[current_site_index as usize] < right
         {
@@ -175,13 +181,6 @@ pub fn try_from_tree_sequence(
             }
             current_site_index += 1;
         }
-        right = update_right(
-            ts.tables().sequence_length().into(),
-            i,
-            edges_left,
-            edges_in,
-        );
-        right = update_right(right, j, edges_right, edges_out);
         left = right;
         num_trees += 1;
     }
