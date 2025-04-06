@@ -1,0 +1,243 @@
+#[cfg(test)]
+mod naive_stats {
+    use std::collections::HashMap;
+    #[cfg(feature = "noodles")]
+    use std::io::BufRead;
+
+    use itertools::repeat_n;
+    #[cfg(feature = "noodles")]
+    use noodles::vcf::{
+        variant::record::samples::{keys::key, series::Value, Sample},
+        variant::record::AlternateBases,
+        Header, Record,
+    };
+    use popgen::{stats::{GlobalPi, GlobalStatistic}, AlleleID, MultiSiteCounts};
+    use rand::{rng, rngs::ThreadRng, seq::SliceRandom};
+    use triangle_matrix::{
+        SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut,
+    };
+
+    type Genotype = Option<Box<[u8]>>;
+    type Individual = Vec<Genotype>;
+    type Site = Vec<Individual>;
+    #[derive(Clone, Debug, Default)]
+    struct GenomeCollection {
+        data: Vec<Site>,
+    }
+
+    #[cfg(feature = "noodles")]
+    impl GenomeCollection {
+        fn vcf_record_to_site(header: &Header, record: &Record, ploidy: usize) -> Site {
+            let mut ret = Vec::with_capacity(ploidy * record.samples().iter().count());
+
+            for sample in record.samples().iter() {
+                let Some(gt_field) = sample
+                    .get(header, key::GENOTYPE)
+                    .transpose()
+                    .unwrap()
+                    .flatten()
+                else {
+                    for _ in 0..ploidy {
+                        ret.push(vec![]);
+                    }
+                    continue;
+                };
+
+                let Value::Genotype(genotype) = gt_field else {
+                    panic!("genotype field is not a genotype-type value")
+                };
+
+                let individual = genotype
+                    .iter()
+                    .map(|entry| {
+                        entry.unwrap().0.map(|id| match id {
+                            0 => Box::<[u8]>::from(record.reference_bases().as_bytes()),
+                            other => {
+                                let bases = record.alternate_bases();
+                                let nth = bases.iter().nth(other - 1);
+                                Box::<[u8]>::from(nth.unwrap().unwrap().as_bytes())
+                            }
+                        })
+                    })
+                    .collect::<Vec<_>>();
+
+                ret.push(individual);
+            }
+
+            ret
+        }
+
+        pub fn from_vcf<R: BufRead>(
+            mut reader: noodles::vcf::io::Reader<R>,
+            ploidy: usize,
+        ) -> Self {
+            let header = reader.read_header().unwrap();
+
+            Self {
+                data: reader
+                    .records()
+                    .map(Result::unwrap)
+                    .map(|rec| Self::vcf_record_to_site(&header, &rec, ploidy))
+                    .collect::<Vec<Site>>(),
+            }
+        }
+    }
+
+    impl Into<MultiSiteCounts> for GenomeCollection {
+        fn into(self) -> MultiSiteCounts {
+            // convert sites to IDs; suppose the variants appearing first get lower IDs
+            MultiSiteCounts::from_tabular(self.data.iter().map(|site| {
+                let mut ret = Vec::with_capacity(site.iter().map(|indiv| indiv.len()).sum());
+                let mut counts = HashMap::new();
+                let mut next_id = 0usize;
+                for individual in site {
+                    for genotype in individual {
+                        ret.push(genotype.as_ref().map(|actual| {
+                            let assigned_id = counts.entry(&**actual).or_insert(next_id);
+                            if assigned_id == &next_id {
+                                next_id += 1;
+                            }
+
+                            AlleleID::from(assigned_id.clone())
+                        }));
+                    }
+                }
+                ret.into_iter()
+            }))
+        }
+    }
+
+    trait NaiveGlobalStatistic: Default {
+        fn add_site(&mut self, site: &Site);
+        fn as_raw(&self) -> f64;
+
+        fn from_iter_sites<'a>(sites: impl Iterator<Item = &'a Site>) -> Self
+        where
+            Self: Default,
+        {
+            let mut ret = Self::default();
+            for site in sites {
+                ret.add_site(site);
+            }
+            ret
+        }
+    }
+
+    struct TriVec<T>(usize, Vec<T>);
+
+    impl<T> Triangle<T> for TriVec<T> {
+        type Inner = Vec<T>;
+
+        fn n(&self) -> usize {
+            self.0
+        }
+
+        fn inner(&self) -> &Self::Inner {
+            &self.1
+        }
+    }
+
+    impl<T> TriangleMut<T> for TriVec<T> {
+        fn inner_mut(&mut self) -> &mut Self::Inner {
+            &mut self.1
+        }
+    }
+
+    #[derive(Debug, Default)]
+    struct NaiveGlobalPi(f64);
+
+    impl NaiveGlobalStatistic for NaiveGlobalPi {
+        fn add_site(&mut self, site: &Site) {
+            let total_alleles = site.iter().map(|indiv| indiv.len()).sum::<usize>();
+
+            let mut mat = TriVec(
+                total_alleles,
+                Vec::from_iter(repeat_n(
+                    None::<i32>,
+                    total_alleles * (total_alleles + 1) / 2,
+                )),
+            );
+
+            for (ind_a, allele_a) in site.iter().flat_map(|indiv| indiv.iter()).enumerate() {
+                for (ind_b, allele_b) in site
+                    .iter()
+                    .flat_map(|indiv| indiv.iter())
+                    .enumerate()
+                    .skip(ind_a + 1)
+                {
+                    *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) = match *allele_a
+                    {
+                        None => None,
+                        Some(ref allele_id_a) => match allele_b {
+                            None => None,
+                            Some(allele_id_b) => match allele_id_a.eq(&allele_id_b) {
+                                false => Some(1),
+                                true => Some(0),
+                            },
+                        },
+                    }
+                }
+            }
+
+            let make_iter = || {
+                mat.iter_triangle_indices()
+                    .filter_map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
+            };
+            self.0 += make_iter().sum::<i32>() as f64 / make_iter().count() as f64;
+        }
+
+        fn as_raw(&self) -> f64 {
+            self.0
+        }
+    }
+
+    fn box_allele<const N: usize>(allele: Option<&'static [u8; N]>) -> Option<Box<[u8]>> {
+        allele.map(|a| Box::from(&a[..]))
+    }
+
+    fn shuffled_alleles<I: Clone>(
+        ids: impl Iterator<Item = (I, usize)>,
+        rng: &mut ThreadRng,
+    ) -> Vec<I> {
+        let mut site = vec![];
+        ids.for_each(|(id, count)| {
+            site.extend(repeat_n(id, count));
+        });
+
+        site.shuffle(rng);
+        site
+    }
+
+    #[test]
+    fn global_pi_against_naive() {
+        let mut rng = rng();
+        let sites = vec![
+            vec![shuffled_alleles(
+                [(Some(b"AGA"), 35), (Some(b"GAG"), 6), (None, 3)]
+                    .into_iter()
+                    .map(|(a, b)| (box_allele(a), b))
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+                &mut rng,
+            )],
+            vec![shuffled_alleles(
+                [(Some(b"GGT"), 2), (Some(b"AGC"), 14), (Some(b"ACC"), 155)]
+                    .into_iter()
+                    .map(|(a, b)| (box_allele(a), b))
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+                &mut rng,
+            )],
+        ];
+
+        let collection = GenomeCollection { data: sites };
+        let allele_counts: MultiSiteCounts = collection.clone().into();
+
+        assert!(
+            (NaiveGlobalPi::from_iter_sites(collection.data.iter()).as_raw()
+                - GlobalPi::from_iter_sites(allele_counts.iter()).as_raw())
+            .abs()
+                < f64::EPSILON
+        );
+    }
+}
