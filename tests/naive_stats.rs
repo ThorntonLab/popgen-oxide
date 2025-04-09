@@ -300,6 +300,6 @@ mod naive_stats {
         let theta_naive = NaiveWattersonTheta::from_iter_sites(collection.data.iter());
         let theta = WattersonTheta::from_iter_sites(allele_counts.iter());
 
-        assert!((theta_naive.as_raw() - theta.as_raw()) < f64::EPSILON);
+        assert!((theta_naive.as_raw() - theta.as_raw()).abs() < f64::EPSILON);
     }
 }
