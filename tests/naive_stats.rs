@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod naive_stats {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     #[cfg(feature = "noodles")]
     use std::io::BufRead;
 
@@ -11,7 +11,10 @@ mod naive_stats {
         variant::record::AlternateBases,
         Header, Record,
     };
-    use popgen::{stats::{GlobalPi, GlobalStatistic}, AlleleID, MultiSiteCounts};
+    use popgen::{
+        stats::{GlobalPi, GlobalStatistic, WattersonTheta},
+        AlleleID, MultiSiteCounts,
+    };
     use rand::{rng, rngs::ThreadRng, seq::SliceRandom};
     use triangle_matrix::{
         SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut,
@@ -239,5 +242,64 @@ mod naive_stats {
             .abs()
                 < f64::EPSILON
         );
+    }
+    #[derive(Debug, Default)]
+    struct NaiveWattersonTheta(f64);
+
+    impl NaiveGlobalStatistic for NaiveWattersonTheta {
+        fn add_site(&mut self, site: &Site) {
+            let num_variants = site
+                .iter()
+                .flat_map(|indiv| indiv.iter())
+                .filter_map(|o| o.as_ref())
+                .collect::<HashSet<_>>()
+                .len();
+            let total_samples = site
+                .iter()
+                .flat_map(|indiv| indiv.iter())
+                .filter_map(|o| o.as_ref())
+                .count();
+
+            if num_variants > 1 {
+                let numerator = (num_variants - 1) as f64;
+                let denominator = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
+                self.0 += numerator / denominator;
+            }
+        }
+
+        fn as_raw(&self) -> f64 {
+            self.0
+        }
+    }
+
+    #[test]
+    fn watterson_theta_against_naive() {
+        let mut rng = rng();
+
+        let sites = vec![
+            vec![shuffled_alleles(
+                [(Some(b"A"), 2), (Some(b"T"), 3), (Some(b"G"), 1)]
+                    .into_iter()
+                    .map(|(a, b)| (box_allele(a), b))
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+                &mut rng,
+            )],
+            vec![shuffled_alleles(
+                [(Some(b"T"), 1), (Some(b"C"), 3), (Some(b"G"), 1), (None, 1)]
+                    .into_iter()
+                    .map(|(a, b)| (box_allele(a), b))
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+                &mut rng,
+            )],
+        ];
+        let collection = GenomeCollection { data: sites };
+        let allele_counts: MultiSiteCounts = collection.clone().into();
+
+        let theta_naive = NaiveWattersonTheta::from_iter_sites(collection.data.iter());
+        let theta = WattersonTheta::from_iter_sites(allele_counts.iter());
+
+        assert!((theta_naive.as_raw() - theta.as_raw()) < f64::EPSILON);
     }
 }
