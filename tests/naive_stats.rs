@@ -86,10 +86,10 @@ mod naive_stats {
         }
     }
 
-    impl Into<MultiSiteCounts> for GenomeCollection {
-        fn into(self) -> MultiSiteCounts {
+    impl From<GenomeCollection> for MultiSiteCounts {
+        fn from(val: GenomeCollection) -> Self {
             // convert sites to IDs; suppose the variants appearing first get lower IDs
-            MultiSiteCounts::from_tabular(self.data.iter().map(|site| {
+            MultiSiteCounts::from_tabular(val.data.iter().map(|site| {
                 let mut ret = Vec::with_capacity(site.iter().map(|indiv| indiv.len()).sum());
                 let mut counts = HashMap::new();
                 let mut next_id = 0usize;
@@ -101,7 +101,7 @@ mod naive_stats {
                                 next_id += 1;
                             }
 
-                            AlleleID::from(assigned_id.clone())
+                            AlleleID::from(*assigned_id)
                         }));
                     }
                 }
@@ -173,7 +173,7 @@ mod naive_stats {
                         None => None,
                         Some(ref allele_id_a) => match allele_b {
                             None => None,
-                            Some(allele_id_b) => match allele_id_a.eq(&allele_id_b) {
+                            Some(allele_id_b) => match allele_id_a.eq(allele_id_b) {
                                 false => Some(1),
                                 true => Some(0),
                             },
