@@ -206,7 +206,6 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             assert_eq!(counts_0.total_alleles(), 18);
             assert_eq!(counts_1.counts(), &[7, 8]);
             assert_eq!(counts_1.total_alleles(), 18);
-            panic!();
         }
     }
 
