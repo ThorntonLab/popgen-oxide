@@ -70,6 +70,7 @@ mod naive_conversions {
             variant::record::AlternateBases,
             Header, Record,
         };
+        use popgen::{adapter::vcf::record_to_genotypes_adapter, MultiSiteCounts, PopgenResult};
 
         use crate::model::{GenomeCollection, Site};
 
@@ -129,6 +130,46 @@ mod naive_conversions {
                 )
             }
         }
+
+        #[test]
+        fn naive_vcf() {
+            const VCF: &str = r#"##fileformat=VCFv4.5
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
+chr0	1	.	G	CT	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/1	/0	/0	/1	/0	/1	/1	/0
+chr0	1	.	CG	A,T	.	.	.	GT	/0	/1	/1	/0	/1	/1	/2	/0	/.	/.	/0	/2	/1	/1	/1	/1	/0	/."#;
+
+            let ploidy = 1;
+
+            let from_naive: MultiSiteCounts = {
+                let reader = noodles::vcf::io::reader::Builder::default()
+                    .build_from_reader(VCF.as_bytes())
+                    .unwrap();
+
+                GenomeCollection::from_vcf(reader, ploidy)
+            }
+                .into();
+
+            let counts = {
+                let mut reader = noodles::vcf::io::reader::Builder::default()
+                    .build_from_reader(VCF.as_bytes())
+                    .unwrap();
+
+                let header = reader.read_header().unwrap();
+                let num_samples = header.sample_names().iter().count();
+
+                let all_alleles = reader
+                    .records()
+                    .map(Result::unwrap)
+                    .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy))
+                    .collect::<PopgenResult<Vec<_>>>()
+                    .unwrap();
+                MultiSiteCounts::from_tabular(all_alleles.into_iter())
+            };
+
+            assert!(from_naive.iter().zip(counts.iter()).all(|(a, b)| a == b));
+        }
     }
 }
 
@@ -153,7 +194,7 @@ mod naive_stats {
         fn as_raw(&self) -> f64;
 
         fn from_iter_sites<'a>(sites: impl Iterator<Item = &'a Site>) -> Self
-        where
+    where
             Self: Default,
         {
             let mut ret = Self::default();
@@ -207,16 +248,16 @@ mod naive_stats {
                     .skip(ind_a + 1)
                 {
                     *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) = match *allele_a
-                    {
-                        None => None,
-                        Some(ref allele_id_a) => match allele_b {
+                        {
                             None => None,
-                            Some(allele_id_b) => match allele_id_a.eq(allele_id_b) {
-                                false => Some(1),
-                                true => Some(0),
+                            Some(ref allele_id_a) => match allele_b {
+                                None => None,
+                                Some(allele_id_b) => match allele_id_a.eq(allele_id_b) {
+                                    false => Some(1),
+                                    true => Some(0),
+                                },
                             },
-                        },
-                    }
+                        }
                 }
             }
 
@@ -275,11 +316,11 @@ mod naive_stats {
         let allele_counts: MultiSiteCounts = collection.clone().into();
 
         assert!(
-            (NaiveGlobalPi::from_iter_sites(collection.sites()).as_raw()
-                - GlobalPi::from_iter_sites(allele_counts.iter()).as_raw())
+        (NaiveGlobalPi::from_iter_sites(collection.sites()).as_raw()
+            - GlobalPi::from_iter_sites(allele_counts.iter()).as_raw())
             .abs()
-                < f64::EPSILON
-        );
+        < f64::EPSILON
+    );
     }
     #[derive(Debug, Default)]
     struct NaiveWattersonTheta(f64);
