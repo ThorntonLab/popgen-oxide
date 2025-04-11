@@ -3,9 +3,9 @@ mod model {
     use popgen::{AlleleID, MultiSiteCounts};
     use std::collections::HashMap;
 
-    pub type Genotype = Option<Box<[u8]>>;
-    pub type Individual = Vec<Genotype>;
-    pub type Site = Vec<Individual>;
+    pub type Allele = Option<Box<[u8]>>;
+    pub type IndividualGenotype = Vec<Allele>;
+    pub type Site = Vec<IndividualGenotype>;
     #[derive(Clone, Debug, Default)]
     pub struct GenomeCollection {
         data: Vec<Site>,
@@ -20,7 +20,7 @@ mod model {
         where
             SiteIt: Iterator<Item = IndividualIt>,
             IndividualIt: Iterator<Item = GenotypeIt>,
-            GenotypeIt: Iterator<Item = Option<Box<[u8]>>>,
+            GenotypeIt: Iterator<Item = Allele>,
         {
             Self {
                 data: iter
