@@ -1,4 +1,12 @@
 #[cfg(test)]
+pub fn is_close(a: f64, b: f64) -> bool {
+    assert!(a.is_normal());
+    assert!(b.is_normal());
+
+    (a - b).abs() < f64::EPSILON
+}
+
+#[cfg(test)]
 mod model {
     use popgen::{AlleleID, MultiSiteCounts};
     use std::collections::HashMap;
@@ -187,7 +195,7 @@ mod naive_stats {
         SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut,
     };
 
-    use crate::model::{GenomeCollection, Site};
+    use crate::{is_close, model::{GenomeCollection, Site}};
 
     trait NaiveGlobalStatistic: Default {
         fn add_site(&mut self, site: &Site);
@@ -315,12 +323,10 @@ mod naive_stats {
         let collection = GenomeCollection::new(sites);
         let allele_counts: MultiSiteCounts = collection.clone().into();
 
-        assert!(
-        (NaiveGlobalPi::from_iter_sites(collection.sites()).as_raw()
-            - GlobalPi::from_iter_sites(allele_counts.iter()).as_raw())
-            .abs()
-        < f64::EPSILON
-    );
+        assert!(is_close(
+            NaiveGlobalPi::from_iter_sites(collection.sites()).as_raw(),
+            GlobalPi::from_iter_sites(allele_counts.iter()).as_raw()
+        ));
     }
     #[derive(Debug, Default)]
     struct NaiveWattersonTheta(f64);
@@ -379,6 +385,6 @@ mod naive_stats {
         let theta_naive = NaiveWattersonTheta::from_iter_sites(collection.sites());
         let theta = WattersonTheta::from_iter_sites(allele_counts.iter());
 
-        assert!((theta_naive.as_raw() - theta.as_raw()).abs() < f64::EPSILON);
+        assert!(is_close(theta_naive.as_raw(), theta.as_raw()));
     }
 }
