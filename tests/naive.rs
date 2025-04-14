@@ -157,7 +157,7 @@ chr0	1	.	CG	A,T	.	.	.	GT	/0	/1	/1	/0	/1	/1	/2	/0	/.	/.	/0	/2	/1	/1	/1	/1	/0	/."#
 
                 GenomeCollection::from_vcf(reader, ploidy)
             }
-                .into();
+            .into();
 
             let counts = {
                 let mut reader = noodles::vcf::io::reader::Builder::default()
@@ -202,7 +202,7 @@ mod naive_stats {
         fn as_raw(&self) -> f64;
 
         fn from_iter_sites<'a>(sites: impl Iterator<Item = &'a Site>) -> Self
-    where
+        where
             Self: Default,
         {
             let mut ret = Self::default();
@@ -256,16 +256,16 @@ mod naive_stats {
                     .skip(ind_a + 1)
                 {
                     *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) = match *allele_a
-                        {
+                    {
+                        None => None,
+                        Some(ref allele_id_a) => match allele_b {
                             None => None,
-                            Some(ref allele_id_a) => match allele_b {
-                                None => None,
-                                Some(allele_id_b) => match allele_id_a.eq(allele_id_b) {
-                                    false => Some(1),
-                                    true => Some(0),
-                                },
+                            Some(allele_id_b) => match allele_id_a.eq(allele_id_b) {
+                                false => Some(1),
+                                true => Some(0),
                             },
-                        }
+                        },
+                    }
                 }
             }
 
