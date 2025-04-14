@@ -165,7 +165,7 @@ chr0	1	.	CG	A,T	.	.	.	GT	/0	/1	/1	/0	/1	/1	/2	/0	/.	/.	/0	/2	/1	/1	/1	/1	/0	/."#
                     .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy))
                     .collect::<PopgenResult<Vec<_>>>()
                     .unwrap();
-                MultiSiteCounts::from_tabular(all_alleles.into_iter())
+                MultiSiteCounts::from_tabular(all_alleles)
             };
 
             assert!(from_naive.iter().zip(counts.iter()).all(|(a, b)| a == b));
