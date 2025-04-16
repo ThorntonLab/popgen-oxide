@@ -40,6 +40,89 @@ mod model {
         pub fn sites(&self) -> impl Iterator<Item = &Site> {
             self.data.iter()
         }
+
+        pub fn samples(
+            &self,
+        ) -> impl Iterator<Item = impl Iterator<Item = impl Iterator<Item = &Allele>>>
+        {
+            SamplesIter {
+                current_sample: 0,
+                num_samples: self.data[0].len(),
+                inner: self,
+            }
+        }
+    }
+
+    struct SamplesIter<'a> {
+        current_sample: usize,
+        num_samples: usize,
+        inner: &'a GenomeCollection,
+    }
+
+    impl<'a> Iterator for SamplesIter<'a> {
+        type Item = SampleSitesIter<'a>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.current_sample += 1;
+
+            if self.current_sample >= self.num_samples {
+                None
+            } else {
+                Some(SampleSitesIter {
+                    current_sample: self.current_sample,
+                    current_site: 0,
+                    num_sites: self.inner.data.len(),
+                    inner: self.inner,
+                })
+            }
+        }
+    }
+
+    struct SampleSitesIter<'a> {
+        current_sample: usize,
+        current_site: usize,
+        num_sites: usize,
+        inner: &'a GenomeCollection,
+    }
+
+    impl<'a> Iterator for SampleSitesIter<'a> {
+        type Item = AllelesIter<'a>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.current_site += 1;
+            if self.current_site >= self.num_sites {
+                None
+            } else {
+                Some(AllelesIter {
+                    current_sample: self.current_sample,
+                    current_site: self.current_site,
+                    current_allele: 0,
+                    num_alleles: self.inner.data[self.current_site][self.current_sample].len(),
+                    inner: self.inner,
+                })
+            }
+        }
+    }
+
+    struct AllelesIter<'a> {
+        current_sample: usize,
+        current_site: usize,
+        current_allele: usize,
+        num_alleles: usize,
+        inner: &'a GenomeCollection,
+    }
+
+    impl<'a> Iterator for AllelesIter<'a> {
+        type Item = &'a Allele;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.current_allele += 1;
+            if self.current_allele >= self.num_alleles {
+                None
+            }else {
+                Some(&self.inner.data[self.current_site][self.current_sample][self.num_alleles])
+            }
+        }
     }
 
     impl From<GenomeCollection> for MultiSiteCounts {
