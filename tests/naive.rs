@@ -41,10 +41,7 @@ mod model {
             self.data.iter()
         }
 
-        pub fn samples(
-            &self,
-        ) -> impl Iterator<Item = impl Iterator<Item = impl Iterator<Item = &Allele>>>
-        {
+        pub fn samples(&self) -> SamplesIter {
             SamplesIter {
                 current_sample: 0,
                 num_samples: self.data[0].len(),
@@ -53,7 +50,8 @@ mod model {
         }
     }
 
-    struct SamplesIter<'a> {
+    #[derive(Debug)]
+    pub struct SamplesIter<'a> {
         current_sample: usize,
         num_samples: usize,
         inner: &'a GenomeCollection,
@@ -63,22 +61,22 @@ mod model {
         type Item = SampleSitesIter<'a>;
 
         fn next(&mut self) -> Option<Self::Item> {
-            self.current_sample += 1;
-
             if self.current_sample >= self.num_samples {
                 None
             } else {
-                Some(SampleSitesIter {
+                let ret = Some(SampleSitesIter {
                     current_sample: self.current_sample,
                     current_site: 0,
                     num_sites: self.inner.data.len(),
                     inner: self.inner,
-                })
+                });
+                self.current_sample += 1;
+                ret
             }
         }
     }
 
-    struct SampleSitesIter<'a> {
+    pub struct SampleSitesIter<'a> {
         current_sample: usize,
         current_site: usize,
         num_sites: usize,
@@ -86,41 +84,15 @@ mod model {
     }
 
     impl<'a> Iterator for SampleSitesIter<'a> {
-        type Item = AllelesIter<'a>;
+        type Item = &'a IndividualGenotype;
 
         fn next(&mut self) -> Option<Self::Item> {
-            self.current_site += 1;
             if self.current_site >= self.num_sites {
                 None
             } else {
-                Some(AllelesIter {
-                    current_sample: self.current_sample,
-                    current_site: self.current_site,
-                    current_allele: 0,
-                    num_alleles: self.inner.data[self.current_site][self.current_sample].len(),
-                    inner: self.inner,
-                })
-            }
-        }
-    }
-
-    struct AllelesIter<'a> {
-        current_sample: usize,
-        current_site: usize,
-        current_allele: usize,
-        num_alleles: usize,
-        inner: &'a GenomeCollection,
-    }
-
-    impl<'a> Iterator for AllelesIter<'a> {
-        type Item = &'a Allele;
-
-        fn next(&mut self) -> Option<Self::Item> {
-            self.current_allele += 1;
-            if self.current_allele >= self.num_alleles {
-                None
-            }else {
-                Some(&self.inner.data[self.current_site][self.current_sample][self.num_alleles])
+                let ret = Some(&self.inner.data[self.current_site][self.current_sample]);
+                self.current_site += 1;
+                ret
             }
         }
     }
@@ -278,22 +250,19 @@ mod naive_stats {
         SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut,
     };
 
-    use crate::{is_close, model::{GenomeCollection, Site}};
+    use crate::{
+        is_close,
+        model::{GenomeCollection, IndividualGenotype, Site},
+    };
 
     trait NaiveGlobalStatistic: Default {
-        fn add_site(&mut self, site: &Site);
         fn as_raw(&self) -> f64;
 
-        fn from_iter_sites<'a>(sites: impl Iterator<Item = &'a Site>) -> Self
-        where
-            Self: Default,
-        {
-            let mut ret = Self::default();
-            for site in sites {
-                ret.add_site(site);
-            }
-            ret
-        }
+        fn from_iter_sites<'a>(sites: impl Iterator<Item = &'a Site>) -> Self;
+
+        fn from_iter_samples<'a>(
+            samples: impl Iterator<Item = impl Iterator<Item = &'a IndividualGenotype>>,
+        ) -> Self;
     }
 
     struct TriVec<T>(usize, Vec<T>);
@@ -319,7 +288,7 @@ mod naive_stats {
     #[derive(Debug, Default)]
     struct NaiveGlobalPi(f64);
 
-    impl NaiveGlobalStatistic for NaiveGlobalPi {
+    impl NaiveGlobalPi {
         fn add_site(&mut self, site: &Site) {
             let total_alleles = site.iter().map(|indiv| indiv.len()).sum::<usize>();
 
@@ -358,9 +327,75 @@ mod naive_stats {
             };
             self.0 += make_iter().sum::<i32>() as f64 / make_iter().count() as f64;
         }
+    }
 
+    impl NaiveGlobalStatistic for NaiveGlobalPi {
         fn as_raw(&self) -> f64 {
             self.0
+        }
+
+        fn from_iter_sites<'a>(sites: impl Iterator<Item = &'a Site>) -> Self {
+            let mut ret = Self::default();
+            for site in sites {
+                ret.add_site(site);
+            }
+            ret
+        }
+
+        fn from_iter_samples<'a>(
+            samples: impl Iterator<Item = impl Iterator<Item = &'a IndividualGenotype>>,
+        ) -> Self {
+            let mut total_differences = 0f64;
+            let mut samples_collect = Vec::<Vec<IndividualGenotype>>::new();
+
+            for s in samples {
+                let new_sample = s.cloned().collect::<Vec<_>>();
+
+                let mut expected_differences = 0f64;
+                let total_alleles = new_sample.iter().map(|indiv| indiv.len()).sum::<usize>();
+
+                let mut mat = TriVec(
+                    total_alleles,
+                    Vec::from_iter(repeat_n(
+                        None::<i32>,
+                        total_alleles * (total_alleles + 1) / 2,
+                    )),
+                );
+
+                for (ind_a, allele_a) in
+                    new_sample.iter().flat_map(|indiv| indiv.iter()).enumerate()
+                {
+                    for (ind_b, allele_b) in new_sample
+                        .iter()
+                        .flat_map(|indiv| indiv.iter())
+                        .enumerate()
+                        .skip(ind_a + 1)
+                    {
+                        *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) =
+                            match *allele_a {
+                                None => None,
+                                Some(ref allele_id_a) => match allele_b {
+                                    None => None,
+                                    Some(allele_id_b) => match allele_id_a.eq(allele_id_b) {
+                                        false => Some(1),
+                                        true => Some(0),
+                                    },
+                                },
+                            }
+                    }
+                }
+
+                let make_iter = || {
+                    mat.iter_triangle_indices()
+                        .filter_map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
+                };
+                total_differences +=
+                    make_iter().sum::<i32>() as f64 / make_iter().count() as f64;
+
+                samples_collect.push(new_sample);
+            }
+
+            Self(total_differences)
         }
     }
 
@@ -382,7 +417,7 @@ mod naive_stats {
     }
 
     #[test]
-    fn global_pi_against_naive() {
+    fn global_pi_from_sites_against_naive() {
         let mut rng = rng();
         let sites = vec![
             vec![shuffled_alleles(
@@ -405,16 +440,47 @@ mod naive_stats {
 
         let collection = GenomeCollection::new(sites);
         let allele_counts: MultiSiteCounts = collection.clone().into();
-
         assert!(is_close(
             NaiveGlobalPi::from_iter_sites(collection.sites()).as_raw(),
             GlobalPi::from_iter_sites(allele_counts.iter()).as_raw()
         ));
     }
+
+    #[test]
+    fn global_pi_from_samples_against_naive() {
+        let mut rng = rng();
+
+        let sites = vec![
+            vec![shuffled_alleles(
+                [(Some(b"AGA"), 35), (Some(b"GAG"), 6), (None, 3)]
+                    .into_iter()
+                    .map(|(a, b)| (box_allele(a), b))
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+                &mut rng,
+            )],
+            vec![shuffled_alleles(
+                [(Some(b"GGT"), 2), (Some(b"AGC"), 14), (Some(b"ACC"), 155)]
+                    .into_iter()
+                    .map(|(a, b)| (box_allele(a), b))
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+                &mut rng,
+            )],
+        ];
+        
+        let collection = GenomeCollection::new(sites);
+        let allele_counts: MultiSiteCounts = collection.clone().into();
+        assert!(is_close(
+            NaiveGlobalPi::from_iter_samples(collection.samples()).as_raw(),
+            GlobalPi::from_iter_sites(allele_counts.iter()).as_raw()
+        ));
+    }
+
     #[derive(Debug, Default)]
     struct NaiveWattersonTheta(f64);
 
-    impl NaiveGlobalStatistic for NaiveWattersonTheta {
+    impl NaiveWattersonTheta {
         fn add_site(&mut self, site: &Site) {
             let num_variants = site
                 .iter()
@@ -434,9 +500,26 @@ mod naive_stats {
                 self.0 += numerator / denominator;
             }
         }
+    }
 
+    impl NaiveGlobalStatistic for NaiveWattersonTheta {
         fn as_raw(&self) -> f64 {
             self.0
+        }
+
+        fn from_iter_sites<'a>(sites: impl Iterator<Item = &'a Site>) -> Self {
+            let mut ret = Self::default();
+
+            for site in sites {
+                ret.add_site(site);
+            }
+            ret
+        }
+
+        fn from_iter_samples<'a>(
+            samples: impl Iterator<Item = impl Iterator<Item = &'a IndividualGenotype>>,
+        ) -> Self {
+            todo!()
         }
     }
 
