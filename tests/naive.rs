@@ -288,47 +288,6 @@ mod naive_stats {
     #[derive(Debug, Default)]
     struct NaiveGlobalPi(f64);
 
-    impl NaiveGlobalPi {
-        fn add_site(&mut self, site: &Site) {
-            let total_alleles = site.iter().map(|indiv| indiv.len()).sum::<usize>();
-
-            let mut mat = TriVec(
-                total_alleles,
-                Vec::from_iter(repeat_n(
-                    None::<i32>,
-                    total_alleles * (total_alleles + 1) / 2,
-                )),
-            );
-
-            for (ind_a, allele_a) in site.iter().flat_map(|indiv| indiv.iter()).enumerate() {
-                for (ind_b, allele_b) in site
-                    .iter()
-                    .flat_map(|indiv| indiv.iter())
-                    .enumerate()
-                    .skip(ind_a + 1)
-                {
-                    *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) = match *allele_a
-                    {
-                        None => None,
-                        Some(ref allele_id_a) => match allele_b {
-                            None => None,
-                            Some(allele_id_b) => match allele_id_a.eq(allele_id_b) {
-                                false => Some(1),
-                                true => Some(0),
-                            },
-                        },
-                    }
-                }
-            }
-
-            let make_iter = || {
-                mat.iter_triangle_indices()
-                    .filter_map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
-            };
-            self.0 += make_iter().sum::<i32>() as f64 / make_iter().count() as f64;
-        }
-    }
-
     impl NaiveGlobalStatistic for NaiveGlobalPi {
         fn as_raw(&self) -> f64 {
             self.0
@@ -337,7 +296,42 @@ mod naive_stats {
         fn from_iter_sites<'a>(sites: impl Iterator<Item = &'a Site>) -> Self {
             let mut ret = Self::default();
             for site in sites {
-                ret.add_site(site);
+                let total_alleles = site.iter().map(|indiv| indiv.len()).sum::<usize>();
+
+                let mut mat = TriVec(
+                    total_alleles,
+                    Vec::from_iter(repeat_n(
+                        None::<i32>,
+                        total_alleles * (total_alleles + 1) / 2,
+                    )),
+                );
+
+                for (ind_a, allele_a) in site.iter().flat_map(|indiv| indiv.iter()).enumerate() {
+                    for (ind_b, allele_b) in site
+                        .iter()
+                        .flat_map(|indiv| indiv.iter())
+                        .enumerate()
+                        .skip(ind_a + 1)
+                    {
+                        *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) = match *allele_a
+                            {
+                                None => None,
+                                Some(ref allele_id_a) => match allele_b {
+                                    None => None,
+                                    Some(allele_id_b) => match allele_id_a.eq(allele_id_b) {
+                                        false => Some(1),
+                                        true => Some(0),
+                                    },
+                                },
+                            }
+                    }
+                }
+
+                let make_iter = || {
+                    mat.iter_triangle_indices()
+                        .filter_map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
+                };
+                ret.0 += make_iter().sum::<i32>() as f64 / make_iter().count() as f64;
             }
             ret
         }
@@ -350,8 +344,6 @@ mod naive_stats {
 
             for s in samples {
                 let new_sample = s.cloned().collect::<Vec<_>>();
-
-                let mut expected_differences = 0f64;
                 let total_alleles = new_sample.iter().map(|indiv| indiv.len()).sum::<usize>();
 
                 let mut mat = TriVec(
@@ -363,7 +355,7 @@ mod naive_stats {
                 );
 
                 for (ind_a, allele_a) in
-                    new_sample.iter().flat_map(|indiv| indiv.iter()).enumerate()
+                new_sample.iter().flat_map(|indiv| indiv.iter()).enumerate()
                 {
                     for (ind_b, allele_b) in new_sample
                         .iter()
@@ -390,7 +382,7 @@ mod naive_stats {
                         .filter_map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
                 };
                 total_differences +=
-                    make_iter().sum::<i32>() as f64 / make_iter().count() as f64;
+                make_iter().sum::<i32>() as f64 / make_iter().count() as f64;
 
                 samples_collect.push(new_sample);
             }
@@ -422,7 +414,7 @@ mod naive_stats {
         let sites = vec![
             vec![shuffled_alleles(
                 [(Some(b"AGA"), 35), (Some(b"GAG"), 6), (None, 3)]
-                    .into_iter()
+                .into_iter()
                     .map(|(a, b)| (box_allele(a), b))
                     .collect::<Vec<_>>()
                     .into_iter(),
@@ -468,7 +460,7 @@ mod naive_stats {
                 &mut rng,
             )],
         ];
-        
+
         let collection = GenomeCollection::new(sites);
         let allele_counts: MultiSiteCounts = collection.clone().into();
         assert!(is_close(
@@ -480,28 +472,6 @@ mod naive_stats {
     #[derive(Debug, Default)]
     struct NaiveWattersonTheta(f64);
 
-    impl NaiveWattersonTheta {
-        fn add_site(&mut self, site: &Site) {
-            let num_variants = site
-                .iter()
-                .flat_map(|indiv| indiv.iter())
-                .filter_map(|o| o.as_ref())
-                .collect::<HashSet<_>>()
-                .len();
-            let total_samples = site
-                .iter()
-                .flat_map(|indiv| indiv.iter())
-                .filter_map(|o| o.as_ref())
-                .count();
-
-            if num_variants > 1 {
-                let numerator = (num_variants - 1) as f64;
-                let denominator = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
-                self.0 += numerator / denominator;
-            }
-        }
-    }
-
     impl NaiveGlobalStatistic for NaiveWattersonTheta {
         fn as_raw(&self) -> f64 {
             self.0
@@ -511,7 +481,23 @@ mod naive_stats {
             let mut ret = Self::default();
 
             for site in sites {
-                ret.add_site(site);
+                let num_variants = site
+                    .iter()
+                    .flat_map(|indiv| indiv.iter())
+                    .filter_map(|o| o.as_ref())
+                    .collect::<HashSet<_>>()
+                    .len();
+                let total_samples = site
+                    .iter()
+                    .flat_map(|indiv| indiv.iter())
+                    .filter_map(|o| o.as_ref())
+                    .count();
+
+                if num_variants > 1 {
+                    let numerator = (num_variants - 1) as f64;
+                    let denominator = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
+                    ret.0 += numerator / denominator;
+                }
             }
             ret
         }
@@ -524,7 +510,7 @@ mod naive_stats {
     }
 
     #[test]
-    fn watterson_theta_against_naive() {
+    fn watterson_theta_from_sites_against_naive() {
         let mut rng = rng();
 
         let sites = vec![
