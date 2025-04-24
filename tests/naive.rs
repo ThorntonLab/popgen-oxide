@@ -313,8 +313,8 @@ mod naive_stats {
                         .enumerate()
                         .skip(ind_a + 1)
                     {
-                        *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) = match *allele_a
-                            {
+                        *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) =
+                            match *allele_a {
                                 None => None,
                                 Some(ref allele_id_a) => match allele_b {
                                     None => None,
@@ -355,7 +355,7 @@ mod naive_stats {
                 );
 
                 for (ind_a, allele_a) in
-                new_sample.iter().flat_map(|indiv| indiv.iter()).enumerate()
+                    new_sample.iter().flat_map(|indiv| indiv.iter()).enumerate()
                 {
                     for (ind_b, allele_b) in new_sample
                         .iter()
@@ -381,8 +381,7 @@ mod naive_stats {
                     mat.iter_triangle_indices()
                         .filter_map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
                 };
-                total_differences +=
-                make_iter().sum::<i32>() as f64 / make_iter().count() as f64;
+                total_differences += make_iter().sum::<i32>() as f64 / make_iter().count() as f64;
 
                 samples_collect.push(new_sample);
             }
@@ -409,12 +408,12 @@ mod naive_stats {
     }
 
     #[test]
-    fn global_pi_from_sites_against_naive() {
+    fn global_pi_against_naive_from_sites() {
         let mut rng = rng();
         let sites = vec![
             vec![shuffled_alleles(
                 [(Some(b"AGA"), 35), (Some(b"GAG"), 6), (None, 3)]
-                .into_iter()
+                    .into_iter()
                     .map(|(a, b)| (box_allele(a), b))
                     .collect::<Vec<_>>()
                     .into_iter(),
@@ -439,7 +438,7 @@ mod naive_stats {
     }
 
     #[test]
-    fn global_pi_from_samples_against_naive() {
+    fn global_pi_against_naive_against_samples() {
         let mut rng = rng();
 
         let sites = vec![
@@ -510,7 +509,7 @@ mod naive_stats {
     }
 
     #[test]
-    fn watterson_theta_from_sites_against_naive() {
+    fn watterson_theta_against_naive_from_sites() {
         let mut rng = rng();
 
         let sites = vec![
