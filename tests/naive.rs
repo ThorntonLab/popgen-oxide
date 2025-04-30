@@ -339,54 +339,47 @@ mod naive_stats {
         fn from_iter_samples<'a>(
             samples: impl Iterator<Item = impl Iterator<Item = &'a IndividualGenotype>>,
         ) -> Self {
-            let mut total_differences = 0f64;
-            let mut samples_collect = Vec::<Vec<IndividualGenotype>>::new();
+            let mut ret = Self::default();
 
-            for s in samples {
-                let new_sample = s.cloned().collect::<Vec<_>>();
-                let total_alleles = new_sample.iter().map(|indiv| indiv.len()).sum::<usize>();
+            let mut samples = samples.map(|sam| sam.collect::<Vec<_>>()).peekable();
+            let Some(first_sample) = samples.peek() else {
+                return ret;
+            };
 
-                let mut mat = TriVec(
-                    total_alleles,
-                    Vec::from_iter(repeat_n(
-                        None::<i32>,
-                        total_alleles * (total_alleles + 1) / 2,
-                    )),
-                );
+            let num_sites = first_sample.len();
+            let mut differences = vec![0; num_sites];
+            let mut valid_comparisons = vec![0; num_sites];
+            let mut collected_haplotypes = vec![vec![]; num_sites];
 
-                for (ind_a, allele_a) in
-                    new_sample.iter().flat_map(|indiv| indiv.iter()).enumerate()
-                {
-                    for (ind_b, allele_b) in new_sample
-                        .iter()
-                        .flat_map(|indiv| indiv.iter())
-                        .enumerate()
-                        .skip(ind_a + 1)
-                    {
-                        *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) =
-                            match *allele_a {
-                                None => None,
-                                Some(ref allele_id_a) => match allele_b {
-                                    None => None,
-                                    Some(allele_id_b) => match allele_id_a.eq(allele_id_b) {
-                                        false => Some(1),
-                                        true => Some(0),
-                                    },
-                                },
+            for sample in samples {
+                for (site_i, site) in (&sample).into_iter().enumerate() {
+                    for new_haplotype in *site {
+                        for previous_haplotype in &collected_haplotypes[site_i] {
+                            match (previous_haplotype, new_haplotype) {
+                                (Some(prev), Some(new)) => {
+                                    if prev != new {
+                                        differences[site_i] += 1;
+                                    }
+                                    valid_comparisons[site_i] += 1;
+                                }
+                                // invalid comparison
+                                _ => {}
                             }
+                        }
+
+                        collected_haplotypes[site_i].push(new_haplotype.clone());
                     }
                 }
-
-                let make_iter = || {
-                    mat.iter_triangle_indices()
-                        .filter_map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
-                };
-                total_differences += make_iter().sum::<i32>() as f64 / make_iter().count() as f64;
-
-                samples_collect.push(new_sample);
             }
 
-            Self(total_differences)
+            for (differences, valid_comparisons) in differences
+                .into_iter()
+                .zip(valid_comparisons.into_iter())
+            {
+                ret.0 += differences as f64 / valid_comparisons as f64;
+            }
+
+            ret
         }
     }
 
@@ -461,10 +454,11 @@ mod naive_stats {
         ];
 
         let collection = GenomeCollection::new(sites);
+        dbg!(NaiveGlobalPi::from_iter_sites(collection.sites()).as_raw());
         let allele_counts: MultiSiteCounts = collection.clone().into();
         assert!(is_close(
-            NaiveGlobalPi::from_iter_samples(collection.samples()).as_raw(),
-            GlobalPi::from_iter_sites(allele_counts.iter()).as_raw()
+            dbg!(NaiveGlobalPi::from_iter_samples(collection.samples()).as_raw()),
+            dbg!(GlobalPi::from_iter_sites(allele_counts.iter()).as_raw())
         ));
     }
 
