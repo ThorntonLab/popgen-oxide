@@ -515,6 +515,7 @@ mod naive_stats {
 
             for sample in samples {
                 for (site_i, site) in sample.iter().enumerate() {
+                    #[expect(clippy::manual_flatten, reason = "yes, we do want all of these options inside site.iter()")]
                     for allele in site.iter().cloned() {
                         if let Some(real) = allele {
                             sample_count_per_site[site_i] += 1;
