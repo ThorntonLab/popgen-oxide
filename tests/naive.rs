@@ -504,7 +504,39 @@ mod naive_stats {
         fn from_iter_samples<'a>(
             samples: impl Iterator<Item = impl Iterator<Item = &'a IndividualGenotype>>,
         ) -> Self {
-            todo!()
+            let mut samples = samples.map(|site| site.collect::<Vec<_>>()).peekable();
+            let Some(first_sample) = samples.peek() else {
+                return Self::default();
+            };
+
+            let num_sites = first_sample.len();
+            let mut state_appearance_per_site = vec![HashSet::new(); num_sites];
+            let mut sample_count_per_site = vec![0; num_sites];
+
+            for sample in samples {
+                for (site_i, site) in sample.iter().enumerate() {
+                    for allele in site.iter().cloned() {
+                        if let Some(real) = allele {
+                            sample_count_per_site[site_i] += 1;
+                            state_appearance_per_site[site_i].insert(real);
+                        }
+                    }
+                }
+            }
+
+            let mut ret = Self::default();
+            for (appearance, count) in state_appearance_per_site.iter().zip(sample_count_per_site) {
+                let s_i = appearance.len() - 1;
+
+                let mut denom = 0f64;
+                for i in 1..count {
+                    denom += 1f64 / i as f64;
+                }
+
+                ret.0 += s_i as f64 / denom;
+            }
+
+            ret
         }
     }
 
@@ -535,6 +567,38 @@ mod naive_stats {
 
         let theta_naive = NaiveWattersonTheta::from_iter_sites(collection.sites());
         let theta = WattersonTheta::from_iter_sites(allele_counts.iter());
+
+        assert!(is_close(theta_naive.as_raw(), theta.as_raw()));
+    }
+
+    #[test]
+    fn watterson_theta_against_naive_from_samples() {
+        let mut rng = rng();
+
+        let sites = vec![
+            vec![shuffled_alleles(
+                [(Some(b"A"), 2), (Some(b"T"), 3), (Some(b"G"), 1)]
+                    .into_iter()
+                    .map(|(a, b)| (box_allele(a), b))
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+                &mut rng,
+            )],
+            vec![shuffled_alleles(
+                [(Some(b"T"), 1), (Some(b"C"), 3), (Some(b"G"), 1), (None, 1)]
+                    .into_iter()
+                    .map(|(a, b)| (box_allele(a), b))
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+                &mut rng,
+            )],
+        ];
+        let collection = GenomeCollection::new(sites);
+        let allele_counts: MultiSiteCounts = collection.clone().into();
+
+        let theta_naive = NaiveWattersonTheta::from_iter_samples(collection.samples());
+        let theta = WattersonTheta::from_iter_sites(allele_counts.iter());
+        dbg!((&theta_naive, &theta));
 
         assert!(is_close(theta_naive.as_raw(), theta.as_raw()));
     }
