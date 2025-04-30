@@ -14,6 +14,9 @@ rand = "0.9.0"
 noodles-core = "0.16.0"
 triangle_matrix = "0.4.0"
 
+[profile.release]
+lto = "fat"
+
 [[test]]
 name = "test_try_from_tree_sequence"
 required-features = ["tskit"]
