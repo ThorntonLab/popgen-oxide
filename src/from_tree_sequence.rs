@@ -1,4 +1,4 @@
-use crate::{MultiSiteCounts, PopgenResult};
+use crate::{MultiSiteCounts, VaristatResult};
 
 // NOTES:
 // 1. tskit could use Add for all id types!
@@ -42,7 +42,7 @@ fn update_right(
 pub fn try_from_tree_sequence(
     ts: &tskit::TreeSequence,
     _parameters: Option<FromTreeSequenceOptions>,
-) -> PopgenResult<MultiSiteCounts> {
+) -> VaristatResult<MultiSiteCounts> {
     let mut counts = MultiSiteCounts::default();
     let mut left = 0.0;
     // NOTE: we need TreeSequence to be able to provide these
