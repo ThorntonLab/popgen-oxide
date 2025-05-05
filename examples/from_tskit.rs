@@ -1,6 +1,6 @@
 use std::env;
 
-use popgen::MultiSiteCounts;
+use varistat::MultiSiteCounts;
 
 fn process_ts(ts: &tskit::TreeSequence) {
     let counts = MultiSiteCounts::try_from_tree_sequence(ts, None).unwrap();

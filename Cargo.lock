@@ -410,19 +410,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 
 [[package]]
-name = "popgen"
-version = "0.1.0"
-dependencies = [
- "itertools 0.14.0",
- "noodles",
- "noodles-core",
- "rand",
- "thiserror 2.0.12",
- "triangle_matrix",
- "tskit",
-]
-
-[[package]]
 name = "ppv-lite86"
 version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -647,6 +634,19 @@ name = "unicode-ident"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00e2473a93778eb0bad35909dff6a10d28e63f792f16ed15e404fca9d5eeedbe"
+
+[[package]]
+name = "varistat"
+version = "0.1.0"
+dependencies = [
+ "itertools 0.14.0",
+ "noodles",
+ "noodles-core",
+ "rand",
+ "thiserror 2.0.12",
+ "triangle_matrix",
+ "tskit",
+]
 
 [[package]]
 name = "wasi"

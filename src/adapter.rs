@@ -1,6 +1,6 @@
 #[cfg(feature = "noodles")]
 pub mod vcf {
-    use crate::{AlleleID, PopgenResult};
+    use crate::{AlleleID, VaristatResult};
     use noodles::vcf::variant::record::samples::keys::key;
     use noodles::vcf::variant::record::samples::series::Value;
     use noodles::vcf::variant::record::samples::Sample;
@@ -13,7 +13,7 @@ pub mod vcf {
         record: Record,
         num_samples: usize,
         ploidy: usize,
-    ) -> PopgenResult<Vec<Option<AlleleID>>> {
+    ) -> VaristatResult<Vec<Option<AlleleID>>> {
         let mut genotypes = Vec::with_capacity(ploidy * num_samples);
 
         for sample in record.samples().iter() {

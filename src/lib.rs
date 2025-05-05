@@ -11,7 +11,7 @@ pub mod stats;
 mod test;
 pub(crate) mod util;
 
-pub type PopgenResult<T> = Result<T, PopgenError>;
+pub type VaristatResult<T> = Result<T, VaristatError>;
 
 #[cfg(feature = "tskit")]
 pub use tskit;
@@ -21,7 +21,7 @@ pub use from_tree_sequence::FromTreeSequenceOptions;
 
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
-pub enum PopgenError {
+pub enum VaristatError {
     #[cfg(feature = "noodles")]
     #[error("couldn't handle VCF: {0}")]
     NoodlesVCF(#[from] std::io::Error),
@@ -95,7 +95,7 @@ impl MultiSiteCounts {
     pub fn try_from_tree_sequence(
         ts: &tskit::TreeSequence,
         options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError> {
+    ) -> Result<Self, VaristatError> {
         from_tree_sequence::try_from_tree_sequence(ts, options)
     }
 
