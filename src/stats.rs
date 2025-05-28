@@ -194,8 +194,8 @@ impl F_ST {
         self.pi_S.1 += weight * weight;
 
         // there are more possible pairs of populations now
-        for (i, (existing_site, existing_site_weight)) in self.populations.iter().enumerate() {
-            let pi_ij = existing_site
+        for (i, (existing_pop, existing_site_weight)) in self.populations.iter().enumerate() {
+            let pi_ij = existing_pop
                 .iter()
                 .zip(population.iter())
                 .map(|(s1, s2)| {
