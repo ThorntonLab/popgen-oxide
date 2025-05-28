@@ -372,9 +372,8 @@ mod naive_stats {
                 }
             }
 
-            for (differences, valid_comparisons) in differences
-                .into_iter()
-                .zip(valid_comparisons.into_iter())
+            for (differences, valid_comparisons) in
+                differences.into_iter().zip(valid_comparisons.into_iter())
             {
                 ret.0 += differences as f64 / valid_comparisons as f64;
             }
@@ -454,11 +453,11 @@ mod naive_stats {
         ];
 
         let collection = GenomeCollection::new(sites);
-        dbg!(NaiveGlobalPi::from_iter_sites(collection.sites()).as_raw());
+        NaiveGlobalPi::from_iter_sites(collection.sites()).as_raw();
         let allele_counts: MultiSiteCounts = collection.clone().into();
         assert!(is_close(
-            dbg!(NaiveGlobalPi::from_iter_samples(collection.samples()).as_raw()),
-            dbg!(GlobalPi::from_iter_sites(allele_counts.iter()).as_raw())
+            NaiveGlobalPi::from_iter_samples(collection.samples()).as_raw(),
+            GlobalPi::from_iter_sites(allele_counts.iter()).as_raw()
         ));
     }
 
@@ -596,7 +595,6 @@ mod naive_stats {
 
         let theta_naive = NaiveWattersonTheta::from_iter_samples(collection.samples());
         let theta = WattersonTheta::from_iter_sites(allele_counts.iter());
-        dbg!((&theta_naive, &theta));
 
         assert!(is_close(theta_naive.as_raw(), theta.as_raw()));
     }
