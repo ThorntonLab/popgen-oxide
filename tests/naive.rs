@@ -9,7 +9,6 @@ pub fn is_close(a: f64, b: f64) -> bool {
 #[cfg(test)]
 mod model {
     use popgen::{AlleleID, MultiSiteCounts};
-    use std::collections::HashMap;
 
     pub type Allele = Option<Box<[u8]>>;
     pub type IndividualGenotype = Vec<Allele>;
@@ -102,17 +101,24 @@ mod model {
             // convert sites to IDs; suppose the variants appearing first get lower IDs
             MultiSiteCounts::from_tabular(val.data.iter().map(|site| {
                 let mut ret = Vec::with_capacity(site.iter().map(|indiv| indiv.len()).sum());
-                let mut counts = HashMap::new();
-                let mut next_id = 0usize;
+                let mut allele_to_id = Vec::new();
                 for individual in site {
                     for genotype in individual {
-                        ret.push(genotype.as_ref().map(|actual| {
-                            let assigned_id = counts.entry(&**actual).or_insert(next_id);
-                            if assigned_id == &next_id {
-                                next_id += 1;
+                        // assign all IDs; in sorted order so they can be stable over multiple
+                        // populations which may have alleles not found in another population
+                        if let Some(ref actual) = genotype {
+                            if let Err(at) = allele_to_id.binary_search(&&**actual) {
+                                allele_to_id.insert(at, &**actual);
                             }
+                        };
+                    }
 
-                            AlleleID::from(*assigned_id)
+                    for genotype in individual {
+                        ret.push(genotype.as_ref().map(|actual| {
+                            let assigned_id = allele_to_id
+                                .binary_search(&&**actual)
+                                .expect("should have inserted this earlier");
+                            AlleleID::from(assigned_id)
                         }));
                     }
                 }
