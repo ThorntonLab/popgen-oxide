@@ -106,11 +106,11 @@ mod model {
                     for genotype in individual {
                         // assign all IDs; in sorted order so they can be stable over multiple
                         // populations which may have alleles not found in another population
-                        if let Some(ref actual) = genotype {
-                            if let Err(at) = allele_to_id.binary_search(&&**actual) {
+                        genotype.as_ref().map(|actual| {
+                            allele_to_id.binary_search(&&**actual).err().map(|at| {
                                 allele_to_id.insert(at, &**actual);
-                            }
-                        };
+                            });
+                        });
                     }
 
                     for genotype in individual {
