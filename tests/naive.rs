@@ -103,14 +103,12 @@ mod model {
                 let mut ret = Vec::with_capacity(site.iter().map(|indiv| indiv.len()).sum());
                 let mut allele_to_id = Vec::new();
                 for individual in site {
-                    for genotype in individual {
-                        // assign all IDs; in sorted order so they can be stable over multiple
-                        // populations which may have alleles not found in another population
-                        genotype.as_ref().map(|actual| {
-                            allele_to_id.binary_search(&&**actual).err().map(|at| {
-                                allele_to_id.insert(at, &**actual);
-                            });
-                        });
+                    // assign all IDs; in sorted order so they can be stable over multiple
+                    // populations which may have alleles not found in another population
+                    for allele in individual.iter().flatten() {
+                        if let Some(at) = allele_to_id.binary_search(&&**allele).err() {
+                            allele_to_id.insert(at, &**allele);
+                        };
                     }
 
                     for genotype in individual {
@@ -358,18 +356,14 @@ mod naive_stats {
             let mut collected_haplotypes = vec![vec![]; num_sites];
 
             for sample in samples {
-                for (site_i, site) in (&sample).into_iter().enumerate() {
+                for (site_i, site) in sample.iter().enumerate() {
                     for new_haplotype in *site {
                         for previous_haplotype in &collected_haplotypes[site_i] {
-                            match (previous_haplotype, new_haplotype) {
-                                (Some(prev), Some(new)) => {
-                                    if prev != new {
-                                        differences[site_i] += 1;
-                                    }
-                                    valid_comparisons[site_i] += 1;
+                            if let (Some(prev), Some(new)) = (previous_haplotype, new_haplotype) {
+                                if prev != new {
+                                    differences[site_i] += 1;
                                 }
-                                // invalid comparison
-                                _ => {}
+                                valid_comparisons[site_i] += 1;
                             }
                         }
 
