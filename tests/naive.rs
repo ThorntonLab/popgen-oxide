@@ -206,8 +206,8 @@ mod naive_conversions {
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##contig=<ID=chr0>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
-chr0	1	.	G	CT	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/1	/0	/0	/1	/0	/1	/1	/0
-chr0	1	.	CG	A,T	.	.	.	GT	/0	/1	/1	/0	/1	/1	/2	/0	/.	/.	/0	/2	/1	/1	/1	/1	/0	/."#;
+chr0	1	.	CT	G	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/1	/0	/0	/1	/0	/1	/1	/0
+chr0	1	.	A	CG,T	.	.	.	GT	/0	/1	/1	/0	/1	/1	/2	/0	/.	/.	/0	/2	/1	/1	/1	/1	/0	/."#;
 
             let ploidy = 1;
 
