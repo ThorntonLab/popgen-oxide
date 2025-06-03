@@ -209,7 +209,7 @@ impl F_ST {
                         })
                         .sum::<i64>();
 
-                    let total_comparisons = (s1.counts().iter().copied().sum::<Count>()
+                    let total_comparisons = (s1.counts().iter().sum::<Count>()
                         * s2.counts().iter().sum::<Count>())
                         as i32;
 
