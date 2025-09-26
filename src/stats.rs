@@ -199,18 +199,21 @@ impl F_ST {
                 .iter()
                 .zip(population.iter())
                 .map(|(s1, s2)| {
-                    1. -
-                        // do complement of diversity, i.e. expected homozygosity
-                        // for each variant...
-                        (0..max(s1.counts.len(), s2.counts.len()))
-                            .map(|variant_num| {
-                                // how many homozygous pairs?
-                                s1.counts.get(variant_num).unwrap_or(&0)
-                                    * s2.counts.get(variant_num).unwrap_or(&0)
-                            })
-                            .sum::<i64>() as f64
-                            // how many possible pairs?
-                            / ((s1.total_alleles * s2.total_alleles) as f64)
+                    // do complement of diversity, i.e. expected homozygosity
+                    // for each variant...
+                    let num_homozygous = (0..max(s1.counts.len(), s2.counts.len()))
+                        .map(|variant_num| {
+                            // how many homozygous pairs?
+                            s1.counts.get(variant_num).unwrap_or(&0)
+                                * s2.counts.get(variant_num).unwrap_or(&0)
+                        })
+                        .sum::<i64>();
+
+                    let total_comparisons = (s1.counts().iter().sum::<Count>()
+                        * s2.counts().iter().sum::<Count>())
+                        as i32;
+
+                    1. - num_homozygous as f64 / (total_comparisons as f64)
                 })
                 .sum();
 
