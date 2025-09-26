@@ -227,7 +227,7 @@ impl F_ST {
     /// Construct an [`F_STView`] from this struct with the provided `selected_populations`.
     /// It is assumed these are valid indices into the populations already provided to `self`, panicking otherwise.
     /// The terms necessary to compute F-statistics are recomputed immediately.
-    pub fn only_populations(&self, selected_populations: HashSet<usize>) -> F_STView {
+    pub fn only_populations(&self, selected_populations: HashSet<usize>) -> F_STView<'_> {
         #[allow(non_snake_case)]
         let mut pi_S = (0., 0.);
         #[allow(non_snake_case)]
