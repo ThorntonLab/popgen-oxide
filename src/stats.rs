@@ -1,6 +1,7 @@
+use crate::counts::MultiSiteCounts;
 use crate::iter::SiteCounts;
 use crate::util::UnorderedPair;
-use crate::{Count, MultiSiteCounts};
+use crate::Count;
 use itertools::Itertools;
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};

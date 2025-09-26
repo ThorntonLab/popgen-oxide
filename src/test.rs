@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::{AlleleID, Count, MultiSiteCounts};
+    use crate::{AlleleID, Count};
 
+    use crate::counts::MultiSiteCounts;
     use crate::iter::SiteCounts;
     use crate::stats::{GlobalPi, GlobalStatistic, TajimaD, WattersonTheta};
     use itertools::Itertools;
@@ -16,7 +17,8 @@ mod tests {
     #[cfg(feature = "noodles")]
     mod vcf {
         use crate::adapter::vcf::record_to_genotypes_adapter;
-        use crate::{AlleleID, MultiSiteCounts, PopgenResult};
+        use crate::counts::MultiSiteCounts;
+        use crate::{AlleleID, PopgenResult};
         use noodles::vcf::header::record::value::map::{Contig, Format};
         use noodles::vcf::header::record::value::Map;
         use noodles::vcf::variant::io::Write;
