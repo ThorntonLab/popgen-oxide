@@ -140,7 +140,7 @@ impl MultiSiteCounts {
         self.total_alleles.is_empty()
     }
 
-    pub fn iter(&self) -> MultiSiteCountsIter {
+    pub fn iter(&self) -> MultiSiteCountsIter<'_> {
         MultiSiteCountsIter {
             inner: self,
             next_site_ind: (
@@ -169,7 +169,7 @@ impl MultiSiteCounts {
     /// Get the allele counts at a specific site index.
     ///
     /// Returns [`None`] if the site index is invalid.
-    pub fn get(&self, site: usize) -> Option<SiteCounts> {
+    pub fn get(&self, site: usize) -> Option<SiteCounts<'_>> {
         Some(SiteCounts {
             counts: self.counts_slice_at(site)?,
             total_alleles: self.total_alleles[site],
