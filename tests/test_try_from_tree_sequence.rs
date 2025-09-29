@@ -1,8 +1,8 @@
 // NOTE: these tests require compiling
 // with the tskit feature
 
-use popgen::tskit;
-use popgen::tskit::prelude::StreamingIterator;
+use varistat::tskit;
+use varistat::tskit::prelude::StreamingIterator;
 
 #[cfg(test)]
 struct MutationData {
@@ -63,7 +63,7 @@ struct SiteCountContents {
 }
 
 #[cfg(test)]
-fn validate_site_counts(counts: &popgen::iter::SiteCounts, expected: SiteCountContents) {
+fn validate_site_counts(counts: &varistat::iter::SiteCounts, expected: SiteCountContents) {
     let num_alleles = expected
         .derived
         .iter()
@@ -246,7 +246,7 @@ mod naive_details {
 #[cfg(test)]
 fn generate_expected_site_counts_naive(
     ts: &tskit::TreeSequence,
-    options: Option<popgen::FromTreeSequenceOptions>,
+    options: Option<varistat::FromTreeSequenceOptions>,
 ) -> Vec<SiteCountContents> {
     let mut expected = vec![];
     // We have no code depending on options yet
@@ -645,9 +645,9 @@ where
 #[cfg(test)]
 fn generate_counts_and_validate(
     ts: &tskit::TreeSequence,
-    options: Option<popgen::FromTreeSequenceOptions>,
+    options: Option<varistat::FromTreeSequenceOptions>,
 ) {
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(ts, None).unwrap();
+    let counts = varistat::MultiSiteCounts::try_from_tree_sequence(ts, None).unwrap();
     let expected = generate_expected_site_counts_naive(ts, options);
     assert_eq!(counts.len(), expected.len());
     for (obs, exp) in counts.iter().zip(expected.into_iter()) {
