@@ -223,7 +223,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             let header = vcf_reader.read_header().unwrap();
 
             let mut adapter = VCFToPopulationsAdapter::new(&header, None, |pop_name| {
-                Ok(Cow::from(
+                Ok::<_, ()>(Cow::from(
                     ["A", "B"][pop_name
                         .strip_prefix("s")
                         .unwrap()
