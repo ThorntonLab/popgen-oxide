@@ -162,9 +162,7 @@ pub mod vcf {
                             let (allele_id, _) = entry?;
                             self.buf_num_samples[population_id] += 1;
                             if let Some(allele_id) = allele_id {
-                                self.buf_counts[population_id
-                                    * num_populations
-                                    + allele_id] += 1;
+                                self.buf_counts[population_id * num_populations + allele_id] += 1;
                             }
                         }
                     }
