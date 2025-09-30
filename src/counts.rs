@@ -48,9 +48,9 @@ impl MultiSiteCounts {
     #[cfg(feature = "tskit")]
     pub fn try_from_tree_sequence(
         ts: &tskit::TreeSequence,
-        options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError> {
-        from_tree_sequence::try_from_tree_sequence(ts, options)
+        options: Option<crate::FromTreeSequenceOptions>,
+    ) -> Result<Self, crate::PopgenError> {
+        crate::from_tree_sequence::try_from_tree_sequence(ts, options)
     }
 
     pub fn add_site<Samples>(&mut self, samples: Samples)
