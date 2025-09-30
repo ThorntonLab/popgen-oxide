@@ -1,6 +1,7 @@
 use crate::iter::{MultiSiteCountsIter, SiteCounts};
 use crate::{AlleleID, Count};
 use std::cmp::max;
+use std::ops::Index;
 
 #[derive(Debug, Default, Clone)]
 pub struct MultiSiteCounts {
@@ -127,5 +128,25 @@ impl MultiSiteCounts {
             counts: self.counts_slice_at(site)?,
             total_alleles: self.total_alleles[site],
         })
+    }
+}
+
+/// A collection of [`MultiSiteCounts`], with an added invariant.
+///
+/// A naive collection of such counts does not necessarily form a meaningful collection of populations with comparable counts.
+/// This is because each implicitly encodes the mapping from actual allele to a position in the array describing the count of each allele.
+/// This mapping may not be the same between independent [`MultiSiteCounts`] structs.
+///
+/// This struct remedies this by building these [`MultiSiteCounts`] such that they all respect the same mapping.
+#[derive(Debug, Default, Clone)]
+pub struct MultiPopulationCounts {
+    pub(crate) populations: Vec<MultiSiteCounts>,
+}
+
+impl Index<usize> for MultiPopulationCounts {
+    type Output = MultiSiteCounts;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.populations[index]
     }
 }

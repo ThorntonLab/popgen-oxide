@@ -16,7 +16,7 @@ mod tests {
 
     #[cfg(feature = "noodles")]
     mod vcf {
-        use crate::adapter::vcf::record_to_genotypes_adapter;
+        use crate::adapter::vcf::{record_to_genotypes_adapter, VCFToPopulationsAdapter};
         use crate::counts::MultiSiteCounts;
         use crate::{AlleleID, PopgenResult};
         use noodles::vcf::header::record::value::map::{Contig, Format};
@@ -32,6 +32,7 @@ mod tests {
         use noodles::vcf::variant::RecordBuf;
         use rand::prelude::SliceRandom;
         use rand::rng;
+        use std::borrow::Cow;
 
         // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
         // the appropriate IDs, number of samples, etc. will be calculated
@@ -211,6 +212,43 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             assert_eq!(counts_0.total_alleles(), 18);
             assert_eq!(counts_1.counts(), &[7, 8]);
             assert_eq!(counts_1.total_alleles(), 18);
+        }
+
+        #[test]
+        fn load_vcf_multi_population() {
+            let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+                .build_from_reader(make_vcf().as_bytes())
+                .unwrap();
+
+            let header = vcf_reader.read_header().unwrap();
+
+            let mut adapter = VCFToPopulationsAdapter::new(&header, None, |pop_name| {
+                Ok(Cow::from(
+                    ["A", "B"][pop_name
+                        .strip_prefix("s")
+                        .unwrap()
+                        .parse::<usize>()
+                        .unwrap()
+                        % 2],
+                ))
+            })
+            .unwrap();
+
+            for record in vcf_reader.records() {
+                let record = record.unwrap();
+                adapter.add_record(&record).unwrap();
+            }
+
+            let (population_name_to_idx, counts) = adapter.build();
+            assert_eq!(population_name_to_idx.get("A").unwrap(), &0);
+            assert_eq!(population_name_to_idx.get("B").unwrap(), &1);
+
+            let pop = &counts[0];
+            let first_pop_first_site = pop.iter().next().unwrap();
+            assert_eq!(first_pop_first_site.counts(), &[5, 4]);
+            assert_eq!(first_pop_first_site.total_alleles(), 9);
+
+            todo!("test other sites")
         }
     }
 
