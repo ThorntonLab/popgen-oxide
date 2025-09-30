@@ -85,7 +85,7 @@ pub mod vcf {
             let mut sample_to_population = Vec::with_capacity(num_samples);
             let mut population_name_to_idx = HashMap::new();
 
-            let ControlFlow::Continue(_) =
+            if let ControlFlow::Break(err) =
                 header.sample_names().iter().try_for_each(|sample_name| {
                     sample_to_population.push({
                         let pop_name = match which_population(sample_name) {
@@ -104,8 +104,8 @@ pub mod vcf {
 
                     ControlFlow::Continue(())
                 })
-            else {
-                todo!("cb err")
+            {
+                return Err(err);
             };
 
             let num_populations = population_name_to_idx.len();
