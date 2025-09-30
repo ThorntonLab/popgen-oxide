@@ -73,13 +73,13 @@ pub mod vcf {
     }
 
     impl<'h> VCFToPopulationsAdapter<'h> {
-        pub fn new<W>(
+        pub fn new<W, E>(
             header: &'h Header,
             ploidy: Option<usize>,
             mut which_population: W,
-        ) -> Result<Self, ()>
+        ) -> Result<Self, E>
         where
-            W: FnMut(&str) -> Result<Cow<str>, ()>,
+            W: FnMut(&str) -> Result<Cow<str>, E>,
         {
             let num_samples = header.sample_names().len();
             let mut sample_to_population = Vec::with_capacity(num_samples);
