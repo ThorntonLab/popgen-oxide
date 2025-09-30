@@ -243,12 +243,29 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             assert_eq!(population_name_to_idx.get("A").unwrap(), &0);
             assert_eq!(population_name_to_idx.get("B").unwrap(), &1);
 
-            let pop = &counts[0];
-            let first_pop_first_site = pop.iter().next().unwrap();
-            assert_eq!(first_pop_first_site.counts(), &[5, 4]);
-            assert_eq!(first_pop_first_site.total_alleles(), 9);
+            {
+                let first_pop = &counts[0];
+                let mut pop_iter = first_pop.iter();
+                let first_site = pop_iter.next().unwrap();
+                assert_eq!(first_site.counts(), &[5, 4]);
+                assert_eq!(first_site.total_alleles(), 9);
 
-            todo!("test other sites")
+                let second_site = pop_iter.next().unwrap();
+                assert_eq!(second_site.counts(), &[4, 4]);
+                assert_eq!(second_site.total_alleles(), 9);
+            }
+
+            {
+                let second_pop = &counts[1];
+                let mut pop_iter = second_pop.iter();
+                let first_site = pop_iter.next().unwrap();
+                assert_eq!(first_site.counts(), &[6, 3]);
+                assert_eq!(first_site.total_alleles(), 9);
+
+                let second_site = pop_iter.next().unwrap();
+                assert_eq!(second_site.counts(), &[3, 4]);
+                assert_eq!(second_site.total_alleles(), 9);
+            }
         }
     }
 
