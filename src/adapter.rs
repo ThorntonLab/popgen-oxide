@@ -72,14 +72,25 @@ pub mod vcf {
         buf_num_samples: Box<[usize]>,
     }
 
+    pub trait WhichPopulation<E> {
+        fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, E>;
+    }
+
+    // TODO: is this necessary
+    impl<T, E> WhichPopulation<E> for &mut T where T: WhichPopulation<E> {
+        fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, E> {
+            (*self).which_population(sample_name)
+        }
+    }
+
     impl<'h> VCFToPopulationsAdapter<'h> {
         pub fn new<W, E>(
             header: &'h Header,
             ploidy: Option<usize>,
-            mut which_population: W,
+            mut mapper: W,
         ) -> Result<Self, E>
         where
-            W: FnMut(&str) -> Result<Cow<str>, E>,
+            W: WhichPopulation<E>,
         {
             let num_samples = header.sample_names().len();
             let mut sample_to_population = Vec::with_capacity(num_samples);
@@ -88,7 +99,7 @@ pub mod vcf {
             if let ControlFlow::Break(err) =
                 header.sample_names().iter().try_for_each(|sample_name| {
                     sample_to_population.push({
-                        let pop_name = match which_population(sample_name) {
+                        let pop_name = match mapper.which_population(sample_name) {
                             Ok(name) => name,
                             Err(e) => return ControlFlow::Break(e),
                         };
@@ -142,6 +153,8 @@ pub mod vcf {
             self.buf_num_samples.fill(0);
 
             for (sample_i, sample) in record.samples().iter().enumerate() {
+                // freak out if not enough samples on the record (or too many)
+                // research: is this out of spec? if so, does noodles check that for us?
                 let population_id = self.sample_to_population[sample_i];
                 match sample
                     // get the GT field

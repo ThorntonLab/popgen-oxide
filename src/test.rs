@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{AlleleID, Count};
+    use std::collections::HashMap;
 
     use crate::counts::MultiSiteCounts;
     use crate::iter::SiteCounts;
@@ -16,7 +17,9 @@ mod tests {
 
     #[cfg(feature = "noodles")]
     mod vcf {
-        use crate::adapter::vcf::{record_to_genotypes_adapter, VCFToPopulationsAdapter};
+        use crate::adapter::vcf::{
+            record_to_genotypes_adapter, VCFToPopulationsAdapter, WhichPopulation,
+        };
         use crate::counts::MultiSiteCounts;
         use crate::{AlleleID, PopgenResult};
         use noodles::vcf::header::record::value::map::{Contig, Format};
@@ -216,23 +219,31 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 
         #[test]
         fn load_vcf_multi_population() {
+            struct ABMapper;
+
+            impl WhichPopulation<()> for ABMapper {
+                fn which_population<'s>(
+                    &'s mut self,
+                    sam_name: &'_ str,
+                ) -> Result<Cow<'s, str>, ()> {
+                    Ok(Cow::from(
+                        ["A", "B"][sam_name
+                            .strip_prefix("s")
+                            .unwrap()
+                            .parse::<usize>()
+                            .unwrap()
+                            % 2],
+                    ))
+                }
+            }
+
             let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
                 .build_from_reader(make_vcf().as_bytes())
                 .unwrap();
 
             let header = vcf_reader.read_header().unwrap();
 
-            let mut adapter = VCFToPopulationsAdapter::new(&header, None, |pop_name| {
-                Ok::<_, ()>(Cow::from(
-                    ["A", "B"][pop_name
-                        .strip_prefix("s")
-                        .unwrap()
-                        .parse::<usize>()
-                        .unwrap()
-                        % 2],
-                ))
-            })
-            .unwrap();
+            let mut adapter = VCFToPopulationsAdapter::new(&header, None, ABMapper).unwrap();
 
             for record in vcf_reader.records() {
                 let record = record.unwrap();
