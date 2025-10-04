@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use crate::{AlleleID, Count};
-    use std::collections::HashMap;
 
     use crate::counts::MultiSiteCounts;
     use crate::iter::SiteCounts;
@@ -36,6 +35,7 @@ mod tests {
         use rand::prelude::SliceRandom;
         use rand::rng;
         use std::borrow::Cow;
+        use std::collections::HashMap;
 
         // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
         // the appropriate IDs, number of samples, etc. will be calculated
@@ -219,21 +219,23 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 
         #[test]
         fn load_vcf_multi_population() {
-            struct ABMapper;
+            // use this overly verbose and inefficient map to verify lifetime correctness
+            let map = (0..18)
+                .map(|n| (format!("s{}", n), ["A", "B"][n % 2].to_owned()))
+                .collect::<HashMap<_, _>>();
 
-            impl WhichPopulation<()> for ABMapper {
+            struct MapBasedMapper(HashMap<String, String>);
+
+            impl WhichPopulation<()> for MapBasedMapper {
                 fn which_population<'s>(
                     &'s mut self,
-                    sam_name: &'_ str,
+                    sample_name: &'_ str,
                 ) -> Result<Cow<'s, str>, ()> {
-                    Ok(Cow::from(
-                        ["A", "B"][sam_name
-                            .strip_prefix("s")
-                            .unwrap()
-                            .parse::<usize>()
-                            .unwrap()
-                            % 2],
-                    ))
+                    self.0
+                        .get(sample_name)
+                        .map(String::as_str)
+                        .map(Cow::Borrowed)
+                        .ok_or(())
                 }
             }
 
@@ -243,7 +245,8 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 
             let header = vcf_reader.read_header().unwrap();
 
-            let mut adapter = VCFToPopulationsAdapter::new(&header, None, &mut ABMapper).unwrap();
+            let mut mapper = MapBasedMapper(map);
+            let mut adapter = VCFToPopulationsAdapter::new(&header, None, &mut mapper).unwrap();
 
             for record in vcf_reader.records() {
                 let record = record.unwrap();
