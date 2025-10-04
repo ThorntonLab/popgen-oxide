@@ -76,7 +76,6 @@ pub mod vcf {
         fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, E>;
     }
 
-    // TODO: is this necessary
     impl<T, E> WhichPopulation<E> for &mut T where T: WhichPopulation<E> {
         fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, E> {
             (*self).which_population(sample_name)

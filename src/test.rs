@@ -243,7 +243,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 
             let header = vcf_reader.read_header().unwrap();
 
-            let mut adapter = VCFToPopulationsAdapter::new(&header, None, ABMapper).unwrap();
+            let mut adapter = VCFToPopulationsAdapter::new(&header, None, &mut ABMapper).unwrap();
 
             for record in vcf_reader.records() {
                 let record = record.unwrap();
