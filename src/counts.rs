@@ -1,4 +1,5 @@
 use crate::iter::{MultiSiteCountsIter, SiteCounts};
+use crate::stats::F_ST;
 use crate::{AlleleID, Count};
 use std::cmp::max;
 use std::ops::Index;
@@ -148,5 +149,23 @@ impl Index<usize> for MultiPopulationCounts {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.populations[index]
+    }
+}
+
+impl MultiPopulationCounts {
+    /// Stream selected sub-populations of this [`Self`] into a computation of [`F_ST`].
+    ///
+    /// Sub-populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
+    /// The newly created struct immutably borrows from `self`.
+    pub fn f_st_if(&'_ self, mut pred: impl FnMut(usize) -> Option<f64>) -> F_ST<'_> {
+        let mut ret = F_ST::default();
+
+        for pop_i in 0..self.populations.len() {
+            if let Some(weight) = pred(pop_i) {
+                ret.add_population(&self.populations[pop_i], weight);
+            }
+        }
+
+        ret
     }
 }
