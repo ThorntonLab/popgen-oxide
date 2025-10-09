@@ -184,7 +184,7 @@ pub struct F_ST<'m> {
 // TODO: tests for all of these
 impl<'m> F_ST<'m> {
     /// Construct a new instance of this statistic, ready to accept populations via [`Self::add_population`].
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 
