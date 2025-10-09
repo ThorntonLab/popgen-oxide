@@ -2,9 +2,8 @@ use crate::counts::MultiSiteCounts;
 use crate::iter::SiteCounts;
 use crate::util::UnorderedPair;
 use crate::Count;
-use itertools::Itertools;
 use std::cmp::max;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// A statistic calculable from and applicable to one site/locus.
 pub trait SiteStatistic {
