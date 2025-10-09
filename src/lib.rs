@@ -27,6 +27,8 @@ pub enum PopgenError {
     #[cfg(feature = "tskit")]
     #[error("tskit error: {0}")]
     Tskit(#[from] tskit::TskitError),
+    #[error("slices were expected to be of the same length")]
+    MismatchedSliceLength,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

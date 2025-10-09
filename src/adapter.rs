@@ -76,7 +76,10 @@ pub mod vcf {
         fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, E>;
     }
 
-    impl<T, E> WhichPopulation<E> for &mut T where T: WhichPopulation<E> {
+    impl<T, E> WhichPopulation<E> for &mut T
+    where
+        T: WhichPopulation<E>,
+    {
         fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, E> {
             (*self).which_population(sample_name)
         }
@@ -125,9 +128,7 @@ pub mod vcf {
                 ploidy,
                 sample_to_population,
                 population_name_to_idx,
-                populations: MultiPopulationCounts {
-                    populations: vec![MultiSiteCounts::default(); num_populations],
-                },
+                populations: MultiPopulationCounts::of_empty_populations(num_populations),
                 // we'll resize if we ever get a record with more variants
                 buf_counts: vec![0; num_populations * 2],
                 buf_num_samples: vec![0; num_populations].into_boxed_slice(),
@@ -135,7 +136,7 @@ pub mod vcf {
         }
 
         pub fn add_record(&mut self, record: &Record) -> PopgenResult<()> {
-            let num_populations = self.populations.populations.len();
+            let num_populations = self.populations.num_populations();
 
             // let's assume that every stated allele is used
             let num_variants = 1 + record.alternate_bases().iter().count();
@@ -182,13 +183,14 @@ pub mod vcf {
                 };
             }
 
-            for (population_i, population) in self.populations.populations.iter_mut().enumerate() {
-                population.add_site_from_counts(
-                    &self.buf_counts
-                        [population_i * num_populations..(population_i + 1) * num_populations],
-                    self.buf_num_samples[population_i] as i32,
-                );
-            }
+            self.populations
+                .extend_populations_from_site(|population_i| {
+                    (
+                        &self.buf_counts
+                            [population_i * num_populations..(population_i + 1) * num_populations],
+                        self.buf_num_samples[population_i],
+                    )
+                })?;
 
             Ok(())
         }

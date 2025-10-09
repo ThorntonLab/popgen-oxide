@@ -1,6 +1,6 @@
 use crate::iter::{MultiSiteCountsIter, SiteCounts};
 use crate::stats::F_ST;
-use crate::{AlleleID, Count};
+use crate::{AlleleID, Count, PopgenError, PopgenResult};
 use std::cmp::max;
 use std::ops::Index;
 
@@ -141,7 +141,7 @@ impl MultiSiteCounts {
 /// This struct remedies this by building these [`MultiSiteCounts`] such that they all respect the same mapping.
 #[derive(Debug, Default, Clone)]
 pub struct MultiPopulationCounts {
-    pub(crate) populations: Vec<MultiSiteCounts>,
+    populations: Vec<MultiSiteCounts>,
 }
 
 impl Index<usize> for MultiPopulationCounts {
@@ -153,6 +153,45 @@ impl Index<usize> for MultiPopulationCounts {
 }
 
 impl MultiPopulationCounts {
+    /// Create a new [`Self`] containing `how_many` populations, but containing no data.
+    pub fn of_empty_populations(how_many: usize) -> Self {
+        Self {
+            populations: vec![MultiSiteCounts::default(); how_many],
+        }
+    }
+
+    /// Extend the populations contained in [`Self`], using the successive (allele counts, number of samples) pairs provided.
+    /// The first pair will be used to form the counts at this new site in the first population.
+    /// The second pair will form the counts at the same site in the second population, etc.
+    ///
+    /// # Errors
+    /// This function will fail **without rollback guarantees** if the provided slices do not match in length.
+    pub fn extend_populations_from_site<'c>(
+        &mut self,
+        mut get_counts: impl FnMut(usize) -> (&'c [Count], usize),
+    ) -> PopgenResult<()> {
+        let mut inferred_slice_length = None;
+
+        for (population_i, population) in self.populations.iter_mut().enumerate() {
+            let (allele_counts, num_samples) = get_counts(population_i);
+            if inferred_slice_length.is_some_and(|inf| allele_counts.len() != inf) {
+                return Err(PopgenError::MismatchedSliceLength);
+            } else {
+                inferred_slice_length = Some(allele_counts.len());
+            }
+
+            // TODO; we don't check that the sum of counts is not greater than stated num_samples
+            population.add_site_from_counts(allele_counts, num_samples as i32);
+        }
+
+        Ok(())
+    }
+
+    /// Return the number of populations contained in [`Self`].
+    pub fn num_populations(&self) -> usize {
+        self.populations.len()
+    }
+
     /// Stream selected sub-populations of this [`Self`] into a computation of [`F_ST`].
     ///
     /// Sub-populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
