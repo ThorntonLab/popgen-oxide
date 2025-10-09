@@ -2,9 +2,9 @@
 mod tests {
     use crate::{AlleleID, Count};
 
-    use crate::counts::MultiSiteCounts;
+    use crate::counts::{MultiPopulationCounts, MultiSiteCounts};
     use crate::iter::SiteCounts;
-    use crate::stats::{GlobalPi, GlobalStatistic, TajimaD, WattersonTheta};
+    use crate::stats::{FStatisticParts, GlobalPi, GlobalStatistic, TajimaD, WattersonTheta};
     use itertools::Itertools;
     use rand::rng;
     use rand::rngs::ThreadRng;
@@ -506,5 +506,40 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 
         let tajima = TajimaD::from_iter_sites(allele_counts.iter());
         assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn f_st() {
+        let mut populations = MultiPopulationCounts::of_empty_populations(3);
+
+        let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
+
+        populations
+            .extend_populations_from_site(|i| (&data[i].0, data[i].1))
+            .unwrap();
+
+        let f_st = populations.f_st_if(|_| Some(1. / populations.num_populations() as f64));
+
+        #[allow(non_snake_case)]
+        let (pi_B_top, pi_B_bottom) = f_st.pi_B_parts();
+
+        assert!(
+            pi_B_top
+                - ((
+            // differences between (0, 1)
+            6
+                // (0, 2)
+                + 7
+                // (1, 2)
+                + 9
+        ) as f64
+            // number of comparisons between any two populations
+            / 9.
+            // product of population weights
+            / 9.)
+                < f64::EPSILON
+        );
+
+        assert_eq!(pi_B_bottom, (1. / 3.) * (1. / 3.) * 3.);
     }
 }
