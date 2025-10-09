@@ -183,11 +183,6 @@ pub struct F_ST<'m> {
 
 // TODO: tests for all of these
 impl<'m> F_ST<'m> {
-    /// Construct a new instance of this statistic, ready to accept populations via [`Self::add_population`].
-    pub(crate) fn new() -> Self {
-        Self::default()
-    }
-
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
     pub(crate) fn add_population(&mut self, population: &'m MultiSiteCounts, weight: f64) {
