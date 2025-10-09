@@ -281,6 +281,30 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
                 assert_eq!(second_site.total_alleles(), 9);
             }
         }
+
+        #[test]
+        fn research() {
+            let vcf_str = r#"##fileformat=VCFv4.5
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1
+chr0	1	.	A	C	.	.	.	GT	/0	/1	/1
+chr0	1	.	G	A	.	.	.	GT	/0"#;
+
+            let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+                .build_from_reader(vcf_str.as_bytes())
+                .unwrap();
+
+            let header = vcf_reader.read_header().unwrap();
+            for record in vcf_reader.records() {
+                let record = record.unwrap();
+
+                let samples = record.samples().iter().collect::<Vec<_>>();
+                dbg!(samples);
+            }
+
+            todo!()
+        }
     }
 
     struct TriVec<T>(usize, Vec<T>);
@@ -524,7 +548,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         let (pi_B_top, pi_B_bottom) = f_st.pi_B_parts();
 
         assert!(
-            pi_B_top
+            (pi_B_top
                 - ((
             // differences between (0, 1)
             6
@@ -536,7 +560,8 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             // number of comparisons between any two populations
             / 9.
             // product of population weights
-            / 9.)
+            / 9.))
+                .abs()
                 < f64::EPSILON
         );
 
