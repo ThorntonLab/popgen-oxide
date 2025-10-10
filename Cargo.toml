@@ -19,6 +19,7 @@ lto = "fat"
 
 [[test]]
 name = "test_try_from_tree_sequence"
+path = "tests/test_try_from_tree_sequence.rs"
 required-features = ["tskit"]
 
 [[example]]
