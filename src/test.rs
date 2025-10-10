@@ -335,6 +335,22 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
     }
 
     #[test]
+    #[should_panic]
+    fn bad_site_negative_count() {
+        let mut counts = MultiSiteCounts::default();
+
+        counts.add_site_from_counts([-1, -2, -3], 100).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn bad_site_deficient_total() {
+        let mut counts = MultiSiteCounts::default();
+
+        counts.add_site_from_counts([1, 2, 3], 1).unwrap();
+    }
+
+    #[test]
     fn global_pi() {
         let mut rng = rng();
         let sites = vec![
