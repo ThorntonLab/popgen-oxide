@@ -123,6 +123,7 @@ impl MultiSiteCounts {
     }
 
     pub fn add_site_from_counts(&mut self, counts: impl AsRef<[Count]>, total_alleles: i32) {
+        debug_assert!(counts.as_ref().iter().cloned().sum::<Count>() as i32 <= total_alleles);
         self.counts.extend_from_slice(counts.as_ref());
         // count backwards in case counts_this_site.is_empty() or other strange case
         self.count_starts
