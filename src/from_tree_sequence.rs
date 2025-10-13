@@ -68,8 +68,10 @@ pub fn try_from_tree_sequence(
     let mut num_sample_descendants = vec![0_i64; ts.nodes().num_rows().as_usize()];
     let mut num_mutated_sample_descendants = vec![0_i64; ts.mutations().num_rows().as_usize()];
     let mut parent = vec![tskit::NodeId::NULL; ts.nodes().num_rows().as_usize()];
+    let mut num_sampled_genomes = 0_i32;
     for s in ts.nodes().iter().filter(|i| i.flags.is_sample()) {
         num_sample_descendants[s.id.as_usize()] = 1;
+        num_sampled_genomes += 1;
     }
     let mut current_site_index = 0;
     let mut current_mutation_index = 0;
@@ -177,7 +179,7 @@ pub fn try_from_tree_sequence(
                 .count()
                 > 1
             {
-                counts.add_site_from_counts(&allele_counts, allele_counts.len() as i32);
+                counts.add_site_from_counts(&allele_counts, num_sampled_genomes);
             }
             current_site_index += 1;
         }
