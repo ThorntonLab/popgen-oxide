@@ -22,6 +22,9 @@ name = "test_try_from_tree_sequence"
 path = "tests/test_try_from_tree_sequence.rs"
 required-features = ["tskit"]
 
+[[test]]
+name = "naive"
+
 [[example]]
 name = "from_vcf"
 required-features = ["noodles"]
