@@ -194,7 +194,7 @@ impl F_ST {
         self.pi_S.1 += weight * weight;
 
         // there are more possible pairs of populations now
-        for (i, (existing_pop, existing_site_weight)) in self.populations.iter().enumerate() {
+        for (i, (existing_pop, existing_pop_weight)) in self.populations.iter().enumerate() {
             let pi_ij = existing_pop
                 .iter()
                 .zip(population.iter())
@@ -221,8 +221,8 @@ impl F_ST {
             self.diversity_between
                 .insert(UnorderedPair::new(i, self.populations.len()), pi_ij);
 
-            self.pi_B.0 += weight * existing_site_weight * pi_ij;
-            self.pi_B.1 += weight * existing_site_weight;
+            self.pi_B.0 += weight * existing_pop_weight * pi_ij;
+            self.pi_B.1 += weight * existing_pop_weight;
         }
         self.populations.push((population, weight));
     }
