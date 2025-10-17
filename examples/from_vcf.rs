@@ -17,13 +17,12 @@ fn main() {
     let ploidy = 1;
 
     let header = reader.read_header().unwrap();
-    let num_samples = header.sample_names().len();
     let all_alleles = reader
         .records()
         // ignore IO errors
         .map(Result::unwrap)
         // this crate maps a record to allele IDs for you
-        .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy).unwrap());
+        .map(|rec| record_to_genotypes_adapter(&header, rec, ploidy).unwrap());
 
     // this constructor is iterator-based
     let counts = MultiSiteCounts::from_tabular(all_alleles);
