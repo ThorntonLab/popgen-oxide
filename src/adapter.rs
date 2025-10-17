@@ -11,9 +11,9 @@ pub mod vcf {
     pub fn record_to_genotypes_adapter(
         header: &Header,
         record: Record,
-        num_samples: usize,
         ploidy: usize,
     ) -> PopgenResult<Vec<Option<AlleleID>>> {
+        let num_samples = header.sample_names().len();
         let mut genotypes = Vec::with_capacity(ploidy * num_samples);
 
         for sample in record.samples().iter() {

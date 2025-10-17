@@ -162,12 +162,11 @@ mod tests {
                 .unwrap();
 
             let header = reader.read_header().unwrap();
-            let num_samples = header.sample_names().iter().count();
 
             let all_alleles = reader
                 .records()
                 .map(Result::unwrap)
-                .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy))
+                .map(|rec| record_to_genotypes_adapter(&header, rec, ploidy))
                 .collect::<PopgenResult<Vec<_>>>()
                 .unwrap();
             let counts = MultiSiteCounts::from_tabular(all_alleles.iter().cloned());
