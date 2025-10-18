@@ -180,7 +180,6 @@ pub struct F_ST<'m> {
     pi_B: (f64, f64),
 }
 
-// TODO: tests for all of these
 impl<'m> F_ST<'m> {
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
