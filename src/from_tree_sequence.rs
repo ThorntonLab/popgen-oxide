@@ -179,7 +179,11 @@ pub fn try_from_tree_sequence(
                 .count()
                 > 1
             {
-                counts.add_site_from_counts(&allele_counts, num_sampled_genomes);
+                // this won't panic because our counts are ultimately derived from a collection of
+                // alleles, which always obeys the required properties
+                counts
+                    .add_site_from_counts(&allele_counts, num_sampled_genomes)
+                    .unwrap();
             }
             current_site_index += 1;
         }

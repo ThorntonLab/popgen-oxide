@@ -28,6 +28,10 @@ pub enum PopgenError {
     #[cfg(feature = "tskit")]
     #[error("tskit error: {0}")]
     Tskit(#[from] tskit::TskitError),
+    #[error("inputted allele count may not be negative; got {0}")]
+    NegativeCount(Count),
+    #[error("stated total alleles is less than sum of counts of present variants")]
+    TotalAllelesDeficient,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -119,10 +123,40 @@ impl MultiSiteCounts {
             counts_this_site[allele_id_under] += 1;
         }
 
-        self.add_site_from_counts(counts_this_site, total_alleles);
+        // this is still panic-safe because counts formed from actual data in this way
+        // are always sound
+        self.add_site_from_counts(counts_this_site, total_alleles)
+            .unwrap();
     }
 
-    pub fn add_site_from_counts(&mut self, counts: impl AsRef<[Count]>, total_alleles: i32) {
+    /// Add a site with counts of present alleles as described by `counts` and `total_alleles`
+    /// alleles in total, including missing data.
+    ///
+    /// # Errors
+    /// - If any element in `counts` is negative.
+    /// - If `total_alleles` is less than the sum of elements of `counts`.
+    ///
+    /// If either error occurs, the underlying struct has not been modified.
+    pub fn add_site_from_counts(
+        &mut self,
+        counts: impl AsRef<[Count]>,
+        total_alleles: i32,
+    ) -> PopgenResult<()> {
+        let counts = counts.as_ref();
+
+        if let Some(bad) = counts.iter().find(|&c| c < &0) {
+            return Err(PopgenError::NegativeCount(*bad));
+        }
+
+        if counts.iter().sum::<Count>() as i32 > total_alleles {
+            return Err(PopgenError::TotalAllelesDeficient);
+        }
+
+        self.add_site_from_counts_unchecked(counts, total_alleles);
+        Ok(())
+    }
+
+    fn add_site_from_counts_unchecked(&mut self, counts: &[Count], total_alleles: i32) {
         self.counts.extend_from_slice(counts.as_ref());
         // count backwards in case counts_this_site.is_empty() or other strange case
         self.count_starts

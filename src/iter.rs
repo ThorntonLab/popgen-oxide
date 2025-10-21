@@ -89,17 +89,17 @@ fn test_reverse_iteration_over_empty() {
 #[test]
 fn test_count() {
     let mut counts = MultiSiteCounts::default();
-    counts.add_site_from_counts([1, 2, 3], 6);
+    counts.add_site_from_counts([1, 2, 3], 6).unwrap();
     assert_eq!(counts.iter().count(), 1);
 }
 
 #[cfg(test)]
 fn make_nonempty_counts() -> MultiSiteCounts {
     let mut counts = MultiSiteCounts::default();
-    counts.add_site_from_counts([1, 2, 3], 6);
-    counts.add_site_from_counts([1, 1, 1], 3);
-    counts.add_site_from_counts([1, 5, 1], 7);
-    counts.add_site_from_counts([1, 6, 2], 9);
+    counts.add_site_from_counts([1, 2, 3], 6).unwrap();
+    counts.add_site_from_counts([1, 1, 1], 3).unwrap();
+    counts.add_site_from_counts([1, 5, 1], 7).unwrap();
+    counts.add_site_from_counts([1, 6, 2], 9).unwrap();
 
     counts
 }
@@ -147,7 +147,7 @@ fn test_exhaust_back() {
 #[test]
 fn test_single_site_getters() {
     let mut counts = MultiSiteCounts::default();
-    counts.add_site_from_counts([9, 8, 7], 35);
+    counts.add_site_from_counts([9, 8, 7], 35).unwrap();
     let site = counts.get(0).unwrap();
     assert_eq!(site.counts(), &[9, 8, 7]);
     assert_eq!(site.total_alleles(), 35);
