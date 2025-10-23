@@ -44,6 +44,10 @@ jobs:
       - name: run doc tests (powerset)
         run: |
           cargo hack test --doc --feature-powerset
+      - name: run examples
+        run: |
+          cargo run --example from_vcf --features=noodles
+          cargo run --example from_vcf_indexed --features=noodles
 
   fmt:
     name: rustfmt
