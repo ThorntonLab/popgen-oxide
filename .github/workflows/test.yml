@@ -48,6 +48,7 @@ jobs:
         run: |
           cargo run --example from_vcf --features=noodles
           cargo run --example from_vcf_indexed --features=noodles
+          cargo run --example from_tskit --features=tskit
 
   fmt:
     name: rustfmt
