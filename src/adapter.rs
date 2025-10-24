@@ -21,7 +21,7 @@ pub mod vcf {
                 // get the GT field
                 .get(header, key::GENOTYPE)
                 .transpose()
-                .map_err(|e| crate::PopgenError::NoodlesVCF(e))?
+                .map_err(crate::PopgenError::NoodlesVCF)?
             {
                 // return nothing if field missing
                 None => {
@@ -46,7 +46,7 @@ pub mod vcf {
                     for entry in genotype.iter() {
                         genotypes.push(
                             entry
-                                .map_err(|e| crate::PopgenError::NoodlesVCF(e))?
+                                .map_err(crate::PopgenError::NoodlesVCF)?
                                 .0
                                 .map(AlleleID::from),
                         )
