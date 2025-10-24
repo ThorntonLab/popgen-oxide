@@ -1,5 +1,3 @@
-use std::env;
-
 use popgen::MultiSiteCounts;
 
 fn process_ts(ts: &tskit::TreeSequence) {
@@ -9,13 +7,10 @@ fn process_ts(ts: &tskit::TreeSequence) {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    assert_eq!(args.len(), 2);
-    let ts = tskit::TreeSequence::load(&args[1]).unwrap();
+    let ts = make_tree_sequence();
     process_ts(&ts);
 }
 
-#[cfg(test)]
 fn make_tree_sequence() -> tskit::TreeSequence {
     // start with tables
     let mut tables = tskit::TableCollection::new(100.0).unwrap();
