@@ -20,7 +20,8 @@ pub mod vcf {
             let fetched_field = match sample
                 // get the GT field
                 .get(header, key::GENOTYPE)
-                .transpose()?
+                .transpose()
+                .map_err(|e| crate::PopgenError::NoodlesVCF(e))?
             {
                 // return nothing if field missing
                 None => {
@@ -43,7 +44,12 @@ pub mod vcf {
             match fetched_field {
                 Value::Genotype(genotype) => {
                     for entry in genotype.iter() {
-                        genotypes.push(entry?.0.map(AlleleID::from))
+                        genotypes.push(
+                            entry
+                                .map_err(|e| crate::PopgenError::NoodlesVCF(e))?
+                                .0
+                                .map(AlleleID::from),
+                        )
                     }
                 }
                 other => {
