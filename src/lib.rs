@@ -20,19 +20,35 @@ pub use tskit;
 pub use from_tree_sequence::FromTreeSequenceOptions;
 
 #[non_exhaustive]
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum PopgenError {
     #[cfg(feature = "noodles")]
-    #[error("couldn't handle VCF: {0}")]
-    NoodlesVCF(#[from] std::io::Error),
+    NoodlesVCF(std::io::Error),
     #[cfg(feature = "tskit")]
-    #[error("tskit error: {0}")]
-    Tskit(#[from] tskit::TskitError),
-    #[error("inputted allele count may not be negative; got {0}")]
+    Tskit(tskit::TskitError),
     NegativeCount(Count),
-    #[error("stated total alleles is less than sum of counts of present variants")]
     TotalAllelesDeficient,
 }
+
+impl std::fmt::Display for PopgenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PopgenError::NegativeCount(c) => {
+                write!(f, "inputted allele count may not be negative; got {}", c)
+            }
+            PopgenError::TotalAllelesDeficient => write!(
+                f,
+                "stated total alleles is less than sum of counts of present variants"
+            ),
+            #[cfg(feature = "tskit")]
+            PopgenError::Tskit(e) => write!(f, "tskit error: {}", e),
+            #[cfg(feature = "noodles")]
+            PopgenError::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for PopgenError {}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AlleleID(usize);
