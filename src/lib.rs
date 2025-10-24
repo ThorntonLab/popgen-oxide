@@ -23,14 +23,10 @@ pub use from_tree_sequence::FromTreeSequenceOptions;
 #[derive(Debug)]
 pub enum PopgenError {
     #[cfg(feature = "noodles")]
-    //#[error("couldn't handle VCF: {0}")]
     NoodlesVCF(std::io::Error),
     #[cfg(feature = "tskit")]
-    // #[error("tskit error: {0}")]
     Tskit(tskit::TskitError),
-    // #[error("inputted allele count may not be negative; got {0}")]
     NegativeCount(Count),
-    // #[error("stated total alleles is less than sum of counts of present variants")]
     TotalAllelesDeficient,
 }
 
@@ -52,9 +48,9 @@ impl std::fmt::Display for PopgenError {
                 "stated total alleles is less than sum of counts of present variants"
             ),
             #[cfg(feature = "tskit")]
-            PopgenError::Tskit(e) => todo!(),
+            PopgenError::Tskit(e) => write!(f, "tskit error: {}", e),
             #[cfg(feature = "noodles")]
-            PopgenError::NoodlesVCF(e) => todo!(),
+            PopgenError::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
         }
     }
 }
