@@ -44,8 +44,13 @@ impl From<tskit::TskitError> for PopgenError {
 impl std::fmt::Display for PopgenError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PopgenError::NegativeCount(c) => todo!(),
-            PopgenError::TotalAllelesDeficient => todo!(),
+            PopgenError::NegativeCount(c) => {
+                write!(f, "inputted allele count may not be negative; got {}", c)
+            }
+            PopgenError::TotalAllelesDeficient => write!(
+                f,
+                "stated total alleles is less than sum of counts of present variants"
+            ),
             #[cfg(feature = "tskit")]
             PopgenError::Tskit(e) => todo!(),
             #[cfg(feature = "noodles")]
