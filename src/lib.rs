@@ -9,7 +9,7 @@ mod from_tree_sequence;
 pub mod iter;
 pub mod stats;
 mod test;
-pub(crate) mod util;
+mod util;
 
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
