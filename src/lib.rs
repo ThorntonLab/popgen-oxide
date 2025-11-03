@@ -9,6 +9,8 @@ mod from_tree_sequence;
 pub mod iter;
 pub mod stats;
 mod test;
+#[cfg(test)]
+mod testdata;
 mod util;
 
 pub type PopgenResult<T> = Result<T, PopgenError>;
