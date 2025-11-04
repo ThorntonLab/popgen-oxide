@@ -22,11 +22,10 @@ pub struct FromTreeSequenceOptions {}
 
 fn update_right(
     right: f64,
-    index: u64,
+    index: usize,
     position_slice: &[tskit::Position],
     diff_slice: &[tskit::EdgeId],
 ) -> f64 {
-    let index = index as usize;
     if index < diff_slice.len() {
         let temp = position_slice[diff_slice[index].as_usize()];
         if temp < right {
@@ -60,9 +59,9 @@ pub fn try_from_tree_sequence(
     let mutation_site = ts.tables().mutations().site_slice();
     let mutation_node = ts.tables().mutations().node_slice();
     let mutation_parent = ts.tables().mutations().parent_slice();
-    let num_edges = ts.edges().num_rows();
-    let mut i = 0;
-    let mut j = 0;
+    let num_edges = ts.edges().num_rows().as_usize();
+    let mut i = 0_usize;
+    let mut j = 0_usize;
 
     let mut num_trees = 0;
     let mut num_sample_descendants = vec![0_i64; ts.nodes().num_rows().as_usize()];
@@ -77,17 +76,17 @@ pub fn try_from_tree_sequence(
     let mut current_mutation_index = 0;
     let mut alleles_at_site = vec![];
     while i < num_edges && left < ts.tables().sequence_length() {
-        while j < num_edges && edges_right[edges_out[j as usize].as_usize()] == left {
-            num_sample_descendants[edges_parent[edges_out[j as usize].as_usize()].as_usize()] -=
-                num_sample_descendants[edges_child[edges_out[j as usize].as_usize()].as_usize()];
-            parent[edges_child[edges_out[j as usize].as_usize()].as_usize()] = tskit::NodeId::NULL;
+        while j < num_edges && edges_right[edges_out[j].as_usize()] == left {
+            num_sample_descendants[edges_parent[edges_out[j].as_usize()].as_usize()] -=
+                num_sample_descendants[edges_child[edges_out[j].as_usize()].as_usize()];
+            parent[edges_child[edges_out[j].as_usize()].as_usize()] = tskit::NodeId::NULL;
             j += 1;
         }
-        while i < num_edges && edges_left[edges_in[i as usize].as_usize()] == left {
-            parent[edges_child[edges_in[i as usize].as_usize()].as_usize()] =
-                edges_parent[edges_in[i as usize].as_usize()];
-            num_sample_descendants[edges_parent[edges_in[i as usize].as_usize()].as_usize()] +=
-                num_sample_descendants[edges_child[edges_in[i as usize].as_usize()].as_usize()];
+        while i < num_edges && edges_left[edges_in[i].as_usize()] == left {
+            parent[edges_child[edges_in[i].as_usize()].as_usize()] =
+                edges_parent[edges_in[i].as_usize()];
+            num_sample_descendants[edges_parent[edges_in[i].as_usize()].as_usize()] +=
+                num_sample_descendants[edges_child[edges_in[i].as_usize()].as_usize()];
             i += 1;
         }
         let right = update_right(
