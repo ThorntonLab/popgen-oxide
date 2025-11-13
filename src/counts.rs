@@ -207,4 +207,8 @@ impl MultiPopulationCounts {
 
         ret
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &MultiSiteCounts> {
+        self.populations.iter()
+    }
 }

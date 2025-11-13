@@ -153,8 +153,6 @@ pub mod vcf {
             self.buf_num_samples.fill(0);
 
             for (sample_i, sample) in record.samples().iter().enumerate() {
-                // freak out if not enough samples on the record (or too many)
-                // research: is this out of spec? if so, does noodles check that for us?
                 let population_id = self.sample_to_population[sample_i];
                 match sample
                     // get the GT field

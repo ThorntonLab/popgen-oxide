@@ -281,30 +281,6 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
                 assert_eq!(second_site.total_alleles(), 9);
             }
         }
-
-        #[test]
-        fn research() {
-            let vcf_str = r#"##fileformat=VCFv4.5
-##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-##contig=<ID=chr0>
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1
-chr0	1	.	A	C	.	.	.	GT	/0	/1	/1
-chr0	1	.	G	A	.	.	.	GT	/0"#;
-
-            let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
-                .build_from_reader(vcf_str.as_bytes())
-                .unwrap();
-
-            let header = vcf_reader.read_header().unwrap();
-            for record in vcf_reader.records() {
-                let record = record.unwrap();
-
-                let samples = record.samples().iter().collect::<Vec<_>>();
-                dbg!(samples);
-            }
-
-            todo!()
-        }
     }
 
     struct TriVec<T>(usize, Vec<T>);
@@ -545,34 +521,66 @@ chr0	1	.	G	A	.	.	.	GT	/0"#;
         }
 
         let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
+        let weights = [1.0, 2.0, 3.0];
 
         populations
             .extend_populations_from_site(|i| (&data[i].0, data[i].1))
             .unwrap();
 
-        let f_st = populations.f_st_if(|_| Some(1. / populations.num_populations() as f64));
+        let f_st = populations.f_st_if(|i| Some(weights[i]));
 
         #[allow(non_snake_case)]
         let (pi_B_top, pi_B_bottom) = f_st.pi_B_parts();
 
         assert!(
             (pi_B_top
-                - ((
-            // differences between (0, 1)
-            6
-                // (0, 2)
-                + 7
-                // (1, 2)
-                + 9
-        ) as f64
+                - (
+                // differences between (0, 1)
+                6.0 * weights[0] * weights[1]
+                    // (0, 2)
+                    + 7.0 * weights[0] * weights[2]
+                    // (1, 2)
+                    + 9.0 * weights[1] * weights[2]
+            )
             // number of comparisons between any two populations
-            / 9.
-            // product of population weights
-            / 9.))
+            / 9.)
                 .abs()
+                // this comparison seems a little finicky
+                < 10.0_f64.powi(-10)
+        );
+
+        assert_eq!(
+            pi_B_bottom,
+            weights
+                .iter()
+                .enumerate()
+                .flat_map(|(i, w1)| weights.iter().skip(i + 1).map(move |w2| w1 * w2))
+                .sum::<f64>()
+        );
+
+        #[allow(non_snake_case)]
+        let (pi_S_top, pi_S_bottom) = f_st.pi_S_parts();
+
+        assert!(
+            (pi_S_top
+                - populations
+                    .iter()
+                    .enumerate()
+                    .map(|(i, pop)| {
+                        // sum of weight * weight * pi within this population
+                        GlobalPi::from_iter_sites(pop.iter()).as_raw() * (weights[i]).powi(2)
+                    })
+                    .sum::<f64>())
+            .abs()
                 < f64::EPSILON
         );
 
-        assert_eq!(pi_B_bottom, (1. / 3.) * (1. / 3.) * 3.);
+        assert!(
+            (pi_S_bottom
+                // denominator should be sum of squares of weights
+                - weights.iter().map(|w| w.powi(2)).sum::<f64>())
+            .abs()
+                < f64::EPSILON
+        );
     }
 }
