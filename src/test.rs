@@ -509,16 +509,23 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
     }
 
     #[test]
-    fn f_st() {
-        let mut populations = MultiPopulationCounts::of_empty_populations(3);
-
-        {
+    fn f_st_empty() {
+        fn ok(populations: &MultiPopulationCounts) {
             // this is the one case where these fail; let's make sure that is the case
             let f_st = populations.f_st_if(|_| None);
             assert_eq!(f_st.pi_S(), None);
             assert_eq!(f_st.pi_B(), None);
             assert_eq!(f_st.pi_D(), None);
         }
+
+        ok(&MultiPopulationCounts::of_empty_populations(0));
+        ok(&MultiPopulationCounts::of_empty_populations(1));
+        ok(&MultiPopulationCounts::of_empty_populations(5));
+    }
+
+    #[test]
+    fn f_st() {
+        let mut populations = MultiPopulationCounts::of_empty_populations(3);
 
         let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
         let weights = [1.0, 2.0, 3.0];
