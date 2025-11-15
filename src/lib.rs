@@ -7,6 +7,8 @@ pub mod adapter;
 #[cfg(feature = "tskit")]
 mod from_tree_sequence;
 pub mod iter;
+#[cfg(test)]
+mod naivecalculations;
 pub mod stats;
 mod test;
 #[cfg(test)]
