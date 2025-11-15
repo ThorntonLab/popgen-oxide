@@ -1,10 +1,10 @@
 use crate::testdata::GenotypeData;
 use crate::testdata::Site;
 
-pub fn pi_site<G: Iterator<Item = GenotypeData>>(genotpes: G) -> f64 {
+pub fn pi_site(genotypes: &dyn Iterator<Item = GenotypeData>) -> f64 {
     todo!()
 }
 
-pub fn pi<'s, S: Iterator<Item = &'s Site>>(sites: &'s S) -> f64 {
+pub fn pi<'s>(sites: &'s dyn Iterator<Item = &'s Site>) -> f64 {
     todo!()
 }
