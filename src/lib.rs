@@ -8,6 +8,8 @@ pub mod adapter;
 mod from_tree_sequence;
 pub mod iter;
 pub mod stats;
+#[cfg(test)]
+mod naivecalculations;
 mod test;
 #[cfg(test)]
 mod testdata;
