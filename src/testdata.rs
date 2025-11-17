@@ -112,11 +112,21 @@ pub fn random_site(
     allele_frequencies: &[f64],
     options: Option<RandomSiteOptions>,
 ) -> Site {
-    let options = options.unwrap_or_default();
     let mut rng = StdRng::seed_from_u64(seed);
-    let site = Site::random(&mut rng, ploidy, num_samples, allele_frequencies);
+    random_site_rng(num_samples, ploidy, allele_frequencies, options, &mut rng)
+}
+
+pub fn random_site_rng(
+    num_samples: usize,
+    ploidy: usize,
+    allele_frequencies: &[f64],
+    options: Option<RandomSiteOptions>,
+    rng: &mut StdRng,
+) -> Site {
+    let options = options.unwrap_or_default();
+    let site = Site::random(rng, ploidy, num_samples, allele_frequencies);
     if let Some(rate) = options.missing_data_rate {
-        site.make_missing(&mut rng, rate)
+        site.make_missing(rng, rate)
     } else {
         site
     }
