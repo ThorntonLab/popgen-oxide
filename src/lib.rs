@@ -13,9 +13,9 @@ mod util;
 #[cfg(test)]
 mod naivecalculations;
 #[cfg(test)]
-mod testdata;
-#[cfg(test)]
 mod test;
+#[cfg(test)]
+mod testdata;
 
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
