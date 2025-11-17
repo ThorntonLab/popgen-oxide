@@ -136,7 +136,7 @@ pub fn random_site_rng(
 pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> MultiSiteCounts {
     let mut mcounts = MultiSiteCounts::default();
     for s in sites {
-        // The number of INDIVIDUALS genotypes at this site
+        // The number of INDIVIDUAL genotypes at this site
         let num_samples = s.iter().count();
         let num_alleles = s
             .iter()
@@ -149,7 +149,11 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
                 counts[i] += c;
             }
         }
-        mcounts.add_site_from_counts(&counts, num_samples as i32).unwrap();
+        // FIXME: the 2nd arg is an INCORRECT HACK ASSUMING DIPLOID SAMPLES.
+        // proper testing that varies ploidy will trigger an error here.
+        mcounts
+            .add_site_from_counts(&counts, 2 * num_samples as i32)
+            .unwrap();
     }
     mcounts
 }
