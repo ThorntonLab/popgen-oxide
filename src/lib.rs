@@ -7,13 +7,14 @@ pub mod adapter;
 #[cfg(feature = "tskit")]
 mod from_tree_sequence;
 pub mod iter;
-#[cfg(test)]
-mod naivecalculations;
 pub mod stats;
 mod test;
+mod util;
+
+#[cfg(test)]
+mod naivecalculations;
 #[cfg(test)]
 mod testdata;
-mod util;
 
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
