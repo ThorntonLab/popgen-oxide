@@ -6,7 +6,7 @@ pub fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
     let mut num_comparisons = 0_i64;
     let g = genotypes.collect::<Vec<_>>();
     for (i, j) in g.iter().enumerate() {
-        for k in g.iter().skip(i + 1) {
+        for k in g.iter().skip(i) {
             for b in j.iter() {
                 for c in k.iter() {
                     num_differences += (b - c).abs();
