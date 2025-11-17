@@ -450,4 +450,18 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         let tajima = TajimaD::from_iter_sites(allele_counts.iter());
         assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
     }
+
+    #[test]
+    fn pi_from_random_data() {
+        use rand::prelude::*;
+
+        let mut rng = StdRng::seed_from_u64(54321);
+        let freqs = [0.25, 0.5, 0.25]; // fixed allele freqs per site
+        let mut sites = vec![];
+        for _ in 0..10 {
+            let site = crate::testdata::random_site_rng(10, 2, &freqs, None, &mut rng);
+            sites.push(site);
+        }
+        let counts = crate::naivecalculations::single_pop_counts(sites.as_slice());
+    }
 }
