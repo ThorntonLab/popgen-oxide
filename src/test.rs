@@ -477,6 +477,9 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
         let pi_naive = crate::naivecalculations::pi(&mut sites.iter_mut());
         // compare
-        assert!((pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10);
+        assert!(
+            (pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10,
+            "{pi_from_counts:?} != {pi_naive}"
+        );
     }
 }

@@ -1,9 +1,22 @@
 use crate::testdata::GenotypeData;
 use crate::testdata::Site;
-use crate::MultiSiteCounts;
 
 pub fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
-    todo!()
+    let mut num_differences = 0_i64;
+    let mut num_comparisons = 0_i64;
+    let g = genotypes.collect::<Vec<_>>();
+    for (i, j) in g.iter().enumerate() {
+        for k in g.iter().skip(i + 1) {
+            num_differences += j
+                .iter()
+                .zip(k.iter())
+                .map(|(a, b)| (a - b).abs())
+                .sum::<i64>();
+            num_comparisons += 1;
+        }
+    }
+    println!("{num_differences}, {num_comparisons}");
+    (num_differences / num_comparisons) as f64
 }
 
 pub fn pi<'s>(sites: &'s mut dyn Iterator<Item = &'s mut Site>) -> f64 {
