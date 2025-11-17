@@ -133,8 +133,25 @@ pub fn random_site_rng(
     }
 }
 
-pub fn single_pop_counts<'s>(sites: &'s dyn Iterator<Item = &'s Site>) -> MultiSiteCounts {
-    todo!()
+pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> MultiSiteCounts {
+    let mut mcounts = MultiSiteCounts::default();
+    for s in sites {
+        // The number of INDIVIDUALS genotypes at this site
+        let num_samples = s.iter().count();
+        let num_alleles = s
+            .iter()
+            .take(1)
+            .map(|g| g.iter().count())
+            .collect::<Vec<_>>()[0];
+        let mut counts = vec![0; num_alleles];
+        for g in s.iter() {
+            for (i, c) in g.iter().enumerate() {
+                counts[i] += c;
+            }
+        }
+        mcounts.add_site_from_counts(&counts, num_samples as i32).unwrap();
+    }
+    mcounts
 }
 
 // Helper fns below
