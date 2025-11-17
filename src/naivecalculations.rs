@@ -7,14 +7,20 @@ pub fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
     let g = genotypes.collect::<Vec<_>>();
     for (i, j) in g.iter().enumerate() {
         for k in g.iter().skip(i + 1) {
-            let d = j
-                .iter()
-                .zip(k.iter())
-                .map(|(a, b)| (a - b).abs())
-                .sum::<i64>();
-            println!("{j:?} {k:?} {d}");
-            num_differences += d;
-            num_comparisons += 1;
+            for b in j.iter() {
+                for c in k.iter() {
+                    num_differences += (b - c).abs();
+                    num_comparisons += 1;
+                }
+            }
+            // let d = j
+            //     .iter()
+            //     .zip(k.iter())
+            //     .map(|(a, b)| (a - b).abs())
+            //     .sum::<i64>();
+            // println!("{j:?} {k:?} {d}");
+            // num_differences += d;
+            // num_comparisons += 1;
         }
     }
     println!(
