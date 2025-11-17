@@ -25,7 +25,7 @@ pub fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
     for &i in &temp {
         let x = i as f64;
         let n = sum as f64;
-        ttl += (x/n)*((x-1.)/(n-1.));
+        ttl += (x / n) * ((x - 1.) / (n - 1.));
     }
     ttl = 1. - ttl;
     println!(
