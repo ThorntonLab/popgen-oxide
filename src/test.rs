@@ -451,6 +451,13 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
     }
 
+    // The basic logic here is that we should 
+    // be able to make random data, convert it
+    // to our normal format, and get stats
+    // from both data inputs and get the same
+    // answer.
+    // If this is not possible then we have bugs
+    // in one of several possible places...
     #[test]
     fn pi_from_random_data() {
         use rand::prelude::*;
