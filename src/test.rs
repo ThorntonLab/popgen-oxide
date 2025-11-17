@@ -462,7 +462,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             let site = crate::testdata::random_site_rng(10, 2, &freqs, None, &mut rng);
             sites.push(site);
         }
-        let counts = crate::naivecalculations::single_pop_counts(&sites.iter());
+        let counts = crate::testdata::single_pop_counts(&sites.iter());
         let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
         let pi_naive = crate::naivecalculations::pi(&sites.iter());
     }
