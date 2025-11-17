@@ -13,7 +13,7 @@ pub fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
                 .map(|(a, b)| (a - b).abs())
                 .sum::<i64>();
             println!("{j:?} {k:?} {d}");
-            num_differences += d / 2;
+            num_differences += d;
             num_comparisons += 1;
         }
     }
