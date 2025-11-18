@@ -20,7 +20,9 @@ fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
             num_comparisons += 1;
         }
     }
-    assert_eq!(num_comparisons as usize, temp.len() * (temp.len() - 1) / 2);
+    if !temp.is_empty() {
+        assert_eq!(num_comparisons as usize, temp.len() * (temp.len() - 1) / 2);
+    }
     num_differences as f64 / num_comparisons as f64
 }
 
