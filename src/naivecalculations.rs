@@ -4,9 +4,8 @@ use crate::testdata::Site;
 fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
     let mut num_differences = 0_i64;
     let mut num_comparisons = 0_i64;
-    let g = genotypes.collect::<Vec<_>>();
     let mut temp = vec![];
-    for gi in g.iter() {
+    for gi in genotypes {
         for (i, j) in gi.iter().enumerate() {
             for _ in 0..j {
                 temp.push(i);
