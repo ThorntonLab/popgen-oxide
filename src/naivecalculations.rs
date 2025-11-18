@@ -5,16 +5,25 @@ pub fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
     let mut num_differences = 0_i64;
     let mut num_comparisons = 0_i64;
     let g = genotypes.collect::<Vec<_>>();
-    let num_alleles = g[0].iter().count();
-    let mut temp = vec![0; num_alleles];
+    let mut temp = vec![];
     for gi in g.iter() {
+        println!("{gi:?}");
         for (i, j) in gi.iter().enumerate() {
             for _ in 0..j {
+                println!("pushing {i}");
                 temp.push(i);
             }
         }
     }
-    todo!("all by all comparison");
+    println!("{}", temp.len());
+    for (i, j) in temp.iter().enumerate() {
+        for k in temp.iter().skip(i + 1) {
+            if j != k {
+                num_differences += 1;
+            }
+            num_comparisons += 1;
+        }
+    }
     //let mut temp2 = vec![];
     //for (i, j) in g.iter().enumerate() {
     //    for (x, y) in j.iter().enumerate() {
@@ -49,6 +58,8 @@ pub fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
     //    temp2.len(),
     //    (num_differences as f64 / num_comparisons as f64)
     //);
+    println!("{temp:?}");
+    println!("{num_differences} {num_comparisons}");
     num_differences as f64 / num_comparisons as f64
 }
 
