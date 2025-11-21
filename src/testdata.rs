@@ -138,13 +138,12 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
     for s in sites {
         // The number of INDIVIDUAL genotypes at this site
         let num_samples = s.iter().count();
-        let alleles = s
+        if let Some(max_allele_id) = s
             .iter()
             .flat_map(|i| i.iter())
             .flatten()
-            .collect::<Vec<_>>();
-        // if there is only missing data, the vec will be emtpy
-        if let Some(max_allele_id) = alleles.iter().max_by(|i, j| i.cmp(j)) {
+            .max_by(|i, j| i.cmp(j))
+        {
             let ploidy = s.iter().take(1).flat_map(|i| i.iter()).count();
             let mut counts = vec![0; max_allele_id + 1];
             for g in s.iter() {
