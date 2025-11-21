@@ -6,10 +6,8 @@ fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
     let mut num_comparisons = 0_i64;
     let mut temp = vec![];
     for gi in genotypes {
-        for i in gi.iter() {
-            if let Some(allele) = i {
-                temp.push(allele);
-            }
+        for allele in gi.iter().flatten() {
+            temp.push(allele);
         }
     }
     for (i, j) in temp.iter().enumerate() {
