@@ -1,8 +1,12 @@
 use crate::iter::{MultiSiteCountsIter, SiteCounts};
-use crate::stats::F_ST;
-use crate::{AlleleID, Count, PopgenError, PopgenResult};
+#[cfg(feature = "tskit")]
+use crate::{FromTreeSequenceOptions, from_tree_sequence};
+use crate::{AlleleID, PopgenResult, PopgenError};
 use std::cmp::max;
 use std::ops::Index;
+use crate::stats::F_ST;
+
+pub type Count = i64;
 
 #[derive(Debug, Default, Clone)]
 pub struct MultiSiteCounts {
@@ -49,9 +53,9 @@ impl MultiSiteCounts {
     #[cfg(feature = "tskit")]
     pub fn try_from_tree_sequence(
         ts: &tskit::TreeSequence,
-        options: Option<crate::FromTreeSequenceOptions>,
-    ) -> Result<Self, crate::PopgenError> {
-        crate::from_tree_sequence::try_from_tree_sequence(ts, options)
+        options: Option<FromTreeSequenceOptions>,
+    ) -> Result<Self, PopgenError> {
+        from_tree_sequence::try_from_tree_sequence(ts, options)
     }
 
     pub fn add_site<Samples>(&mut self, samples: Samples)
@@ -74,10 +78,40 @@ impl MultiSiteCounts {
             counts_this_site[allele_id_under] += 1;
         }
 
-        self.add_site_from_counts(counts_this_site, total_alleles);
+        // this is still panic-safe because counts formed from actual data in this way
+        // are always sound
+        self.add_site_from_counts(counts_this_site, total_alleles)
+            .unwrap();
     }
 
-    pub fn add_site_from_counts(&mut self, counts: impl AsRef<[Count]>, total_alleles: i32) {
+    /// Add a site with counts of present alleles as described by `counts` and `total_alleles`
+    /// alleles in total, including missing data.
+    ///
+    /// # Errors
+    /// - If any element in `counts` is negative.
+    /// - If `total_alleles` is less than the sum of elements of `counts`.
+    ///
+    /// If either error occurs, the underlying struct has not been modified.
+    pub fn add_site_from_counts(
+        &mut self,
+        counts: impl AsRef<[Count]>,
+        total_alleles: i32,
+    ) -> PopgenResult<()> {
+        let counts = counts.as_ref();
+
+        if let Some(bad) = counts.iter().find(|&c| c < &0) {
+            return Err(PopgenError::NegativeCount(*bad));
+        }
+
+        if counts.iter().sum::<Count>() as i32 > total_alleles {
+            return Err(PopgenError::TotalAllelesDeficient);
+        }
+
+        self.add_site_from_counts_unchecked(counts, total_alleles);
+        Ok(())
+    }
+
+    fn add_site_from_counts_unchecked(&mut self, counts: &[Count], total_alleles: i32) {
         self.counts.extend_from_slice(counts.as_ref());
         // count backwards in case counts_this_site.is_empty() or other strange case
         self.count_starts

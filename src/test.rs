@@ -168,12 +168,11 @@ mod tests {
                 .unwrap();
 
             let header = reader.read_header().unwrap();
-            let num_samples = header.sample_names().iter().count();
 
             let all_alleles = reader
                 .records()
                 .map(Result::unwrap)
-                .map(|rec| record_to_genotypes_adapter(&header, rec, num_samples, ploidy))
+                .map(|rec| record_to_genotypes_adapter(&header, rec, ploidy))
                 .collect::<PopgenResult<Vec<_>>>()
                 .unwrap();
             let counts = MultiSiteCounts::from_tabular(all_alleles.iter().cloned());
@@ -404,6 +403,22 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 
         assert!(counts.is_empty());
         assert_eq!(counts.len(), 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn bad_site_negative_count() {
+        let mut counts = MultiSiteCounts::default();
+
+        counts.add_site_from_counts([-1, -2, -3], 100).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn bad_site_deficient_total() {
+        let mut counts = MultiSiteCounts::default();
+
+        counts.add_site_from_counts([1, 2, 3], 1).unwrap();
     }
 
     #[test]

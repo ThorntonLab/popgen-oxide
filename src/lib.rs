@@ -2,13 +2,17 @@ use std::fmt::Debug;
 use std::str::FromStr;
 
 pub mod adapter;
-pub mod counts;
+mod counts;
 #[cfg(feature = "tskit")]
 mod from_tree_sequence;
 pub mod iter;
 pub mod stats;
 mod test;
-pub(crate) mod util;
+#[cfg(test)]
+mod testdata;
+mod util;
+
+pub use counts::*;
 
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
@@ -19,16 +23,34 @@ pub use tskit;
 pub use from_tree_sequence::FromTreeSequenceOptions;
 
 #[non_exhaustive]
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum PopgenError {
     #[cfg(feature = "noodles")]
-    #[error("couldn't handle VCF: {0}")]
-    NoodlesVCF(#[from] std::io::Error),
+    NoodlesVCF(std::io::Error),
     #[cfg(feature = "tskit")]
-    #[error("tskit error: {0}")]
-    Tskit(#[from] tskit::TskitError),
-    #[error("slices were expected to be of the same length")]
+    Tskit(tskit::TskitError),
+    NegativeCount(Count),
+    TotalAllelesDeficient,
     MismatchedSliceLength,
+}
+
+impl std::fmt::Display for PopgenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PopgenError::NegativeCount(c) => {
+                write!(f, "inputted allele count may not be negative; got {}", c)
+            }
+            PopgenError::TotalAllelesDeficient => write!(
+                f,
+                "stated total alleles is less than sum of counts of present variants"
+            ),
+            PopgenError::MismatchedSliceLength=> write!(f, "slices were expected to be of the same length"),
+            #[cfg(feature = "tskit")]
+            PopgenError::Tskit(e) => write!(f, "tskit error: {}", e),
+            #[cfg(feature = "noodles")]
+            PopgenError::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -47,5 +69,3 @@ impl From<usize> for AlleleID {
         Self(value)
     }
 }
-
-type Count = i64;

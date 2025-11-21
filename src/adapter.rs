@@ -15,16 +15,17 @@ pub mod vcf {
     pub fn record_to_genotypes_adapter(
         header: &Header,
         record: Record,
-        num_samples: usize,
         ploidy: usize,
     ) -> PopgenResult<Vec<Option<AlleleID>>> {
+        let num_samples = header.sample_names().len();
         let mut genotypes = Vec::with_capacity(ploidy * num_samples);
 
         for sample in record.samples().iter() {
             let fetched_field = match sample
                 // get the GT field
                 .get(header, key::GENOTYPE)
-                .transpose()?
+                .transpose()
+                .map_err(crate::PopgenError::NoodlesVCF)?
             {
                 // return nothing if field missing
                 None => {
@@ -47,7 +48,12 @@ pub mod vcf {
             match fetched_field {
                 Value::Genotype(genotype) => {
                     for entry in genotype.iter() {
-                        genotypes.push(entry?.0.map(AlleleID::from))
+                        genotypes.push(
+                            entry
+                                .map_err(crate::PopgenError::NoodlesVCF)?
+                                .0
+                                .map(AlleleID::from),
+                        )
                     }
                 }
                 other => {
