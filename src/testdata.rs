@@ -153,8 +153,13 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
                     counts[i] += 1;
                 }
             }
+            // Probably overly strict but we might as well
+            // never let anything invalid slide through test functions
+            let ploidy = i32::try_from(ploidy).unwrap();
+            let num_samples = i32::try_from(num_samples).unwrap();
+            let total_alleles = ploidy.checked_mul(num_samples).unwrap();
             mcounts
-                .add_site_from_counts(&counts, (ploidy as i32) * num_samples as i32)
+                .add_site_from_counts(&counts, total_alleles)
                 .unwrap();
         }
     }
