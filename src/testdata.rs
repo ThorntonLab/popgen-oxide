@@ -1,15 +1,14 @@
 #![allow(dead_code)]
 
-use crate::Count;
 use rand::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct GenotypeData {
-    data: Box<[Count]>,
+    data: Box<[Option<usize>]>,
 }
 
 impl GenotypeData {
-    pub fn iter(&self) -> impl Iterator<Item = Count> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = Option<usize>> + '_ {
         self.data.iter().cloned()
     }
 
@@ -20,15 +19,7 @@ impl GenotypeData {
             .data
             .iter()
             .cloned()
-            .map(|c| {
-                let mut temp = c;
-                for _ in 0..c {
-                    if u.sample(rng) < rate {
-                        temp -= 1;
-                    }
-                }
-                temp
-            })
+            .map(|c| if u.sample(rng) < rate { None } else { c })
             .collect::<Vec<_>>()
             .into_boxed_slice();
         Self { data }
@@ -59,13 +50,19 @@ impl Site {
         for _ in 0..num_samples {
             // Collect a multinomial sample
             let temp = multinomial(rng, ploidy, allele_frequencies);
-            let temp = temp
-                .iter()
-                .cloned()
-                .map(|i| i64::try_from(i).unwrap())
-                .collect::<Vec<_>>()
-                .into_boxed_slice();
-            let temp = GenotypeData { data: temp };
+            let mut genotype = vec![];
+            for (i, &t) in temp.iter().enumerate() {
+                for _ in 0..t {
+                    genotype.push(Some(i))
+                }
+            }
+            for _ in genotype.len()..ploidy {
+                genotype.push(None);
+            }
+            assert_eq!(genotype.len(), ploidy);
+            let temp = GenotypeData {
+                data: genotype.into_boxed_slice(),
+            };
             data.push(temp)
         }
         assert_eq!(data.len(), num_samples);
@@ -171,16 +168,16 @@ fn test_random_site() {
     let mut rng = StdRng::seed_from_u64(0);
     let s = Site::random(&mut rng, 2, 10, &[0.25, 0.75]);
     s.iter().for_each(|g| {
-        assert_eq!(g.iter().sum::<Count>(), 2);
+        assert_eq!(g.iter().count(), 2);
     });
 
     let c = s.clone().make_missing(&mut rng, 1.0);
     c.iter().for_each(|g| {
-        assert!(g.iter().all(|i| i == 0), "{c:?}");
+        assert!(g.iter().all(|i| i.is_none()), "{c:?}");
     });
 
     let c = s.clone().make_missing(&mut rng, 0.0);
     c.iter().for_each(|g| {
-        assert_eq!(g.iter().sum::<Count>(), 2);
+        assert_eq!(g.iter().filter(|i| i.is_some()).count(), 2);
     });
 }
