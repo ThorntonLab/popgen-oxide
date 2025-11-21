@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::MultiSiteCounts;
 use rand::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -130,6 +131,10 @@ pub fn random_site_rng(
     } else {
         site
     }
+}
+
+pub fn single_pop_counts<'s>(sites: &'s dyn Iterator<Item = &'s Site>) -> MultiSiteCounts {
+    todo!()
 }
 
 // Helper fns below
