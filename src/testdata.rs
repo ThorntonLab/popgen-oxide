@@ -137,24 +137,24 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
     let mut mcounts = MultiSiteCounts::default();
     for s in sites {
         // The number of INDIVIDUAL genotypes at this site
-        todo!("get maximum allele id from the input iterator");
-        todo!("get the ploidy from the input iterator");
         let num_samples = s.iter().count();
-        let num_alleles = s
+        let max_allele_id = s
             .iter()
-            .take(1)
-            .map(|g| g.iter().count())
-            .collect::<Vec<_>>()[0];
-        let mut counts = vec![0; num_alleles];
+            .map(|i| i.iter())
+            .flatten()
+            .filter(|i| i.is_some())
+            .map(|i| i.unwrap())
+            .max_by(|i, j| i.cmp(j))
+            .unwrap();
+        let ploidy = s.iter().take(1).map(|i| i.iter()).flatten().count();
+        let mut counts = vec![0; max_allele_id + 1];
         for g in s.iter() {
-            for (i, c) in g.iter().enumerate() {
-                counts[i] += c;
+            for i in g.iter().filter(|i| i.is_some()).map(|i| i.unwrap()) {
+                counts[i] += 1;
             }
         }
-        // FIXME: the 2nd arg is an INCORRECT HACK ASSUMING DIPLOID SAMPLES.
-        // proper testing that varies ploidy will trigger an error here.
         mcounts
-            .add_site_from_counts(&counts, 2 * num_samples as i32)
+            .add_site_from_counts(&counts, (ploidy as  i32) * num_samples as i32)
             .unwrap();
     }
     mcounts
