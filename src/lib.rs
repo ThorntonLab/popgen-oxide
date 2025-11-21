@@ -8,10 +8,14 @@ pub mod adapter;
 mod from_tree_sequence;
 pub mod iter;
 pub mod stats;
+mod util;
+
+#[cfg(test)]
+mod naivecalculations;
+#[cfg(test)]
 mod test;
 #[cfg(test)]
 mod testdata;
-mod util;
 
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
