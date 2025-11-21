@@ -137,6 +137,8 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
     let mut mcounts = MultiSiteCounts::default();
     for s in sites {
         // The number of INDIVIDUAL genotypes at this site
+        todo!("get maximum allele id from the input iterator");
+        todo!("get the ploidy from the input iterator");
         let num_samples = s.iter().count();
         let num_alleles = s
             .iter()
