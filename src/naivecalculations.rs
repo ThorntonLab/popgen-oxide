@@ -22,18 +22,18 @@ fn pairwise_diffs(alleles: &[usize]) -> (i64, i64) {
             num_comparisons += 1;
         }
     }
-    (num_differences, num_comparisons)
-}
-
-fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
-    let alleles = flatten_to_alleles(genotypes);
-    let (num_differences, num_comparisons) = pairwise_diffs(&alleles);
     if !alleles.is_empty() {
         assert_eq!(
             num_comparisons as usize,
             alleles.len() * (alleles.len() - 1) / 2
         );
     }
+    (num_differences, num_comparisons)
+}
+
+fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
+    let alleles = flatten_to_alleles(genotypes);
+    let (num_differences, num_comparisons) = pairwise_diffs(&alleles);
     num_differences as f64 / num_comparisons as f64
 }
 
