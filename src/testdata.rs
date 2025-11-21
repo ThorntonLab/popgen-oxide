@@ -146,11 +146,10 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
         {
             let ploidy = s.iter().take(1).flat_map(|i| i.iter()).count();
             let mut counts = vec![0; max_allele_id + 1];
-            for g in s.iter() {
-                for i in g.iter().flatten() {
-                    counts[i] += 1;
-                }
-            }
+            s.iter()
+                .flat_map(|g| g.iter())
+                .flatten()
+                .for_each(|i| counts[i] += 1);
             // Probably overly strict but we might as well
             // never let anything invalid slide through test functions
             let ploidy = i32::try_from(ploidy).unwrap();
