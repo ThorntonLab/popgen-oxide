@@ -44,7 +44,9 @@ impl std::fmt::Display for PopgenError {
                 f,
                 "stated total alleles is less than sum of counts of present variants"
             ),
-            PopgenError::MismatchedSliceLength=> write!(f, "slices were expected to be of the same length"),
+            PopgenError::MismatchedSliceLength => {
+                write!(f, "slices were expected to be of the same length")
+            }
             #[cfg(feature = "tskit")]
             PopgenError::Tskit(e) => write!(f, "tskit error: {}", e),
             #[cfg(feature = "noodles")]

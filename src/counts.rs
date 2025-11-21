@@ -1,10 +1,10 @@
 use crate::iter::{MultiSiteCountsIter, SiteCounts};
+use crate::stats::F_ST;
 #[cfg(feature = "tskit")]
-use crate::{FromTreeSequenceOptions, from_tree_sequence};
-use crate::{AlleleID, PopgenResult, PopgenError};
+use crate::{from_tree_sequence, FromTreeSequenceOptions};
+use crate::{AlleleID, PopgenError, PopgenResult};
 use std::cmp::max;
 use std::ops::Index;
-use crate::stats::F_ST;
 
 pub type Count = i64;
 
