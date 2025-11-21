@@ -1,5 +1,6 @@
 use noodles::vcf;
-use popgen::{adapter::vcf::record_to_genotypes_adapter, MultiSiteCounts};
+use popgen::adapter::vcf::record_to_genotypes_adapter;
+use popgen::counts::MultiSiteCounts;
 
 static VCF_FILE: &str = r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">

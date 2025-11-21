@@ -647,7 +647,7 @@ fn generate_counts_and_validate(
     ts: &tskit::TreeSequence,
     options: Option<popgen::FromTreeSequenceOptions>,
 ) {
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(ts, None).unwrap();
+    let counts = popgen::counts::MultiSiteCounts::try_from_tree_sequence(ts, None).unwrap();
     let expected = generate_expected_site_counts_naive(ts, options);
     assert_eq!(counts.len(), expected.len());
     for (obs, exp) in counts.iter().zip(expected.into_iter()) {

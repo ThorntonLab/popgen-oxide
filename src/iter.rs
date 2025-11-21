@@ -1,4 +1,5 @@
-use crate::{Count, MultiSiteCounts};
+use crate::counts::MultiSiteCounts;
+use crate::Count;
 
 pub struct MultiSiteCountsIter<'inner> {
     pub(crate) inner: &'inner MultiSiteCounts,

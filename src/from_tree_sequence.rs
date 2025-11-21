@@ -1,5 +1,5 @@
-use crate::{MultiSiteCounts, PopgenResult};
-
+use crate::counts::MultiSiteCounts;
+use crate::PopgenResult;
 // NOTES:
 // 1. tskit could use Add for all id types!
 //    Oh, they do exist but they are for Self.
@@ -17,7 +17,7 @@ use crate::{MultiSiteCounts, PopgenResult};
 
 #[derive(Default)]
 /// Options affecting the behavior of
-/// [crate::MultiSiteCounts::try_from_tree_sequence]
+/// [crate::counts::MultiSiteCounts::try_from_tree_sequence]
 pub struct FromTreeSequenceOptions {}
 
 fn update_right(
