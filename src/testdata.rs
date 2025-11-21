@@ -145,6 +145,7 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
             .max_by(|i, j| i.cmp(j))
         {
             let ploidy = s.iter().take(1).flat_map(|i| i.iter()).count();
+            assert!(ploidy > 0);
             let mut counts = vec![0; max_allele_id + 1];
             s.iter()
                 .flat_map(|g| g.iter())
