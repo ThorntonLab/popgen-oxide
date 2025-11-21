@@ -140,11 +140,11 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
         let num_samples = s.iter().count();
         let max_allele_id = s
             .iter()
-            .map(|i| i.iter())
+            .flat_map(|i|i.iter())
             .flatten()
-            .filter(|i| i.is_some())
-            .map(|i| i.unwrap())
-            .max_by(|i, j| i.cmp(j))
+            //.filter(|i| i.is_some())
+            //.map(|i| i.unwrap())
+            .max_by(|i, j| {println!("{i:?}, {j:?}");println!("{:?}",i.cmp(j));i.cmp(j)})
             .unwrap();
         let ploidy = s.iter().take(1).map(|i| i.iter()).flatten().count();
         let mut counts = vec![0; max_allele_id + 1];
