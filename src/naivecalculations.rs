@@ -4,22 +4,22 @@ use crate::testdata::Site;
 fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
     let mut num_differences = 0_i64;
     let mut num_comparisons = 0_i64;
-    let mut temp = vec![];
+    let mut alleles = vec![];
     for gi in genotypes {
         for allele in gi.iter().flatten() {
-            temp.push(allele);
+            alleles.push(allele);
         }
     }
-    for (i, j) in temp.iter().enumerate() {
-        for k in temp.iter().skip(i + 1) {
+    for (i, j) in alleles.iter().enumerate() {
+        for k in alleles.iter().skip(i + 1) {
             if j != k {
                 num_differences += 1;
             }
             num_comparisons += 1;
         }
     }
-    if !temp.is_empty() {
-        assert_eq!(num_comparisons as usize, temp.len() * (temp.len() - 1) / 2);
+    if !alleles.is_empty() {
+        assert_eq!(num_comparisons as usize, alleles.len() * (alleles.len() - 1) / 2);
     }
     num_differences as f64 / num_comparisons as f64
 }
