@@ -12,9 +12,9 @@ fn flatten_to_alleles(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> Vec<
 }
 
 fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
+    let alleles = flatten_to_alleles(genotypes);
     let mut num_differences = 0_i64;
     let mut num_comparisons = 0_i64;
-    let alleles = flatten_to_alleles(genotypes);
     for (i, j) in alleles.iter().enumerate() {
         for k in alleles.iter().skip(i + 1) {
             if j != k {
