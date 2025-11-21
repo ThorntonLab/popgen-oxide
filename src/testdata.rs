@@ -140,22 +140,22 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
         let num_samples = s.iter().count();
         let max_allele_id = s
             .iter()
-            .flat_map(|i|i.iter())
+            .flat_map(|i| i.iter())
             .flatten()
-            //.filter(|i| i.is_some())
-            //.map(|i| i.unwrap())
-            .max_by(|i, j| {println!("{i:?}, {j:?}");println!("{:?}",i.cmp(j));i.cmp(j)})
-            .unwrap();
-        let ploidy = s.iter().take(1).map(|i| i.iter()).flatten().count();
-        let mut counts = vec![0; max_allele_id + 1];
-        for g in s.iter() {
-            for i in g.iter().filter(|i| i.is_some()).map(|i| i.unwrap()) {
-                counts[i] += 1;
+            .collect::<Vec<_>>();
+        if !max_allele_id.is_empty() {
+            let max_allele_id = max_allele_id.iter().max_by(|i, j| i.cmp(j)).unwrap();
+            let ploidy = s.iter().take(1).flat_map(|i| i.iter()).count();
+            let mut counts = vec![0; max_allele_id + 1];
+            for g in s.iter() {
+                for i in g.iter().flatten() {
+                    counts[i] += 1;
+                }
             }
+            mcounts
+                .add_site_from_counts(&counts, (ploidy as i32) * num_samples as i32)
+                .unwrap();
         }
-        mcounts
-            .add_site_from_counts(&counts, (ploidy as  i32) * num_samples as i32)
-            .unwrap();
     }
     mcounts
 }
