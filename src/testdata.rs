@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::MultiSiteCounts;
 use rand::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -88,7 +89,7 @@ impl Site {
 
 #[derive(Clone, Default)]
 pub struct RandomSiteOptions {
-    missing_data_rate: Option<f64>,
+    pub(super) missing_data_rate: Option<f64>,
 }
 
 // Generate random data at a "site".
@@ -112,14 +113,55 @@ pub fn random_site(
     allele_frequencies: &[f64],
     options: Option<RandomSiteOptions>,
 ) -> Site {
-    let options = options.unwrap_or_default();
     let mut rng = StdRng::seed_from_u64(seed);
-    let site = Site::random(&mut rng, ploidy, num_samples, allele_frequencies);
+    random_site_rng(num_samples, ploidy, allele_frequencies, options, &mut rng)
+}
+
+pub fn random_site_rng(
+    num_samples: usize,
+    ploidy: usize,
+    allele_frequencies: &[f64],
+    options: Option<RandomSiteOptions>,
+    rng: &mut StdRng,
+) -> Site {
+    let options = options.unwrap_or_default();
+    let site = Site::random(rng, ploidy, num_samples, allele_frequencies);
     if let Some(rate) = options.missing_data_rate {
-        site.make_missing(&mut rng, rate)
+        site.make_missing(rng, rate)
     } else {
         site
     }
+}
+
+pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> MultiSiteCounts {
+    let mut mcounts = MultiSiteCounts::default();
+    for s in sites {
+        // The number of INDIVIDUAL genotypes at this site
+        let num_samples = s.iter().count();
+        if let Some(max_allele_id) = s
+            .iter()
+            .flat_map(|i| i.iter())
+            .flatten()
+            .max_by(|i, j| i.cmp(j))
+        {
+            let ploidy = s.iter().take(1).flat_map(|i| i.iter()).count();
+            assert!(ploidy > 0);
+            let mut counts = vec![0; max_allele_id + 1];
+            s.iter()
+                .flat_map(|g| g.iter())
+                .flatten()
+                .for_each(|i| counts[i] += 1);
+            // Probably overly strict but we might as well
+            // never let anything invalid slide through test functions
+            let ploidy = i32::try_from(ploidy).unwrap();
+            let num_samples = i32::try_from(num_samples).unwrap();
+            let total_alleles = ploidy.checked_mul(num_samples).unwrap();
+            mcounts
+                .add_site_from_counts(&counts, total_alleles)
+                .unwrap();
+        }
+    }
+    mcounts
 }
 
 // Helper fns below

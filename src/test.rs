@@ -1,4 +1,3 @@
-#[cfg(test)]
 mod tests {
     use crate::{AlleleID, Count, MultiSiteCounts};
 
@@ -450,5 +449,85 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 
         let tajima = TajimaD::from_iter_sites(allele_counts.iter());
         assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
+    }
+
+    // The basic logic here is that we should
+    // be able to make random data, convert it
+    // to our normal format, and get stats
+    // from both data inputs and get the same
+    // answer.
+    // If this is not possible then we have bugs
+    // in one of several possible places...
+    #[test]
+    fn pi_from_random_data() {
+        use rand::prelude::*;
+
+        let mut rng = StdRng::seed_from_u64(54321);
+        for ploidy in [1, 2, 3, 4] {
+            let freqs = [0.25, 0.5, 0.25]; // fixed allele freqs per site
+            let mut sites = vec![];
+            // make 10 random sites.
+            // No missing data, etc..
+            for _ in 0..10 {
+                let site = crate::testdata::random_site_rng(10, ploidy, &freqs, None, &mut rng);
+                sites.push(site);
+            }
+            // convert to our normal format
+            let counts = crate::testdata::single_pop_counts(&mut sites.iter());
+            // get the calcs
+            let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
+            let pi_naive = crate::naivecalculations::pi(&mut sites.iter_mut());
+            // compare
+            if pi_naive.is_nan() {
+                assert!(pi_from_counts.as_raw().is_nan());
+            } else {
+                assert!(
+                    (pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10,
+                    "{pi_from_counts:?} != {pi_naive}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn pi_from_random_data_with_missing_data() {
+        use rand::prelude::*;
+
+        let mut rng = StdRng::seed_from_u64(54321);
+
+        for ploidy in [1, 2, 4] {
+            for rate in [0.01, 0.1, 0.5, 0.9] {
+                let freqs = [0.25, 0.5, 0.25]; // fixed allele freqs per site
+                let mut sites = vec![];
+                // make 10 random sites.
+                // No missing data, etc..
+                for _ in 0..10 {
+                    let site = crate::testdata::random_site_rng(
+                        10,
+                        ploidy,
+                        &freqs,
+                        Some(crate::testdata::RandomSiteOptions {
+                            missing_data_rate: Some(rate),
+                        }),
+                        &mut rng,
+                    );
+                    sites.push(site);
+                }
+                // convert to our normal format
+                let counts = crate::testdata::single_pop_counts(&mut sites.iter());
+                // get the calcs
+                let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
+                let pi_naive = crate::naivecalculations::pi(&mut sites.iter_mut());
+                // compare
+                if pi_naive.is_nan() {
+                    assert!(pi_from_counts.as_raw().is_nan());
+                } else {
+                    assert!(
+                        (pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10,
+                        "{pi_from_counts:?} != {pi_naive}"
+                    );
+                }
+            }
+        }
     }
 }
