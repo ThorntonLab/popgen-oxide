@@ -33,8 +33,10 @@ pub enum PopgenError {
     NoodlesVCF(std::io::Error),
     #[cfg(feature = "tskit")]
     Tskit(tskit::TskitError),
+    Io(std::io::Error),
     NegativeCount(Count),
     TotalAllelesDeficient,
+    MismatchedSliceLength,
 }
 
 impl std::fmt::Display for PopgenError {
@@ -47,6 +49,10 @@ impl std::fmt::Display for PopgenError {
                 f,
                 "stated total alleles is less than sum of counts of present variants"
             ),
+            PopgenError::Io(e) => write!(f, "io error: {}", e),
+            PopgenError::MismatchedSliceLength => {
+                write!(f, "slices were expected to be of the same length")
+            }
             #[cfg(feature = "tskit")]
             PopgenError::Tskit(e) => write!(f, "tskit error: {}", e),
             #[cfg(feature = "noodles")]
@@ -56,6 +62,12 @@ impl std::fmt::Display for PopgenError {
 }
 
 impl std::error::Error for PopgenError {}
+
+impl From<std::io::Error> for PopgenError {
+    fn from(e: std::io::Error) -> Self {
+        PopgenError::Io(e)
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AlleleID(usize);
