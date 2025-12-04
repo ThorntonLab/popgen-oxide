@@ -1,8 +1,10 @@
 use crate::iter::{MultiSiteCountsIter, SiteCounts};
+use crate::stats::F_ST;
 #[cfg(feature = "tskit")]
 use crate::{from_tree_sequence, FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
 use std::cmp::max;
+use std::ops::Index;
 
 pub type Count = i64;
 
@@ -161,5 +163,85 @@ impl MultiSiteCounts {
             counts: self.counts_slice_at(site)?,
             total_alleles: self.total_alleles[site],
         })
+    }
+}
+
+/// A collection of [`MultiSiteCounts`], with an added invariant.
+///
+/// A naive collection of such counts does not necessarily form a meaningful collection of populations with comparable counts.
+/// This is because each implicitly encodes the mapping from actual allele to a position in the array describing the count of each allele.
+/// This mapping may not be the same between independent [`MultiSiteCounts`] structs.
+///
+/// This struct remedies this by building these [`MultiSiteCounts`] such that they all respect the same mapping.
+#[derive(Debug, Default, Clone)]
+pub struct MultiPopulationCounts {
+    populations: Vec<MultiSiteCounts>,
+}
+
+impl Index<usize> for MultiPopulationCounts {
+    type Output = MultiSiteCounts;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.populations[index]
+    }
+}
+
+impl MultiPopulationCounts {
+    /// Create a new [`Self`] containing `how_many` populations, but containing no data.
+    pub fn of_empty_populations(how_many: usize) -> Self {
+        Self {
+            populations: vec![MultiSiteCounts::default(); how_many],
+        }
+    }
+
+    /// Extend the populations contained in [`Self`], using the successive (allele counts, number of samples) pairs provided.
+    /// The first pair will be used to form the counts at this new site in the first population.
+    /// The second pair will form the counts at the same site in the second population, etc.
+    ///
+    /// # Errors
+    /// This function will fail **without rollback guarantees** if the provided slices do not match in length.
+    pub fn extend_populations_from_site<'c>(
+        &mut self,
+        mut get_counts: impl FnMut(usize) -> (&'c [Count], usize),
+    ) -> PopgenResult<()> {
+        let mut inferred_slice_length = None;
+
+        for (population_i, population) in self.populations.iter_mut().enumerate() {
+            let (allele_counts, num_samples) = get_counts(population_i);
+            if inferred_slice_length.is_some_and(|inf| allele_counts.len() != inf) {
+                return Err(PopgenError::MismatchedSliceLength);
+            } else {
+                inferred_slice_length = Some(allele_counts.len());
+            }
+
+            population.add_site_from_counts(allele_counts, num_samples as i32)?;
+        }
+
+        Ok(())
+    }
+
+    /// Return the number of populations contained in [`Self`].
+    pub fn num_populations(&self) -> usize {
+        self.populations.len()
+    }
+
+    /// Stream selected sub-populations of this [`Self`] into a computation of [`F_ST`].
+    ///
+    /// Sub-populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
+    /// The newly created struct immutably borrows from `self`.
+    pub fn f_st_if(&'_ self, mut pred: impl FnMut(usize) -> Option<f64>) -> F_ST<'_> {
+        let mut ret = F_ST::default();
+
+        for pop_i in 0..self.populations.len() {
+            if let Some(weight) = pred(pop_i) {
+                ret.add_population(&self.populations[pop_i], weight);
+            }
+        }
+
+        ret
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &MultiSiteCounts> {
+        self.populations.iter()
     }
 }

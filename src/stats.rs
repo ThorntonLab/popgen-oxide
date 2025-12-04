@@ -1,9 +1,8 @@
 use crate::iter::SiteCounts;
 use crate::util::UnorderedPair;
 use crate::{Count, MultiSiteCounts};
-use itertools::Itertools;
 use std::cmp::max;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// A statistic calculable from and applicable to one site/locus.
 pub trait SiteStatistic {
@@ -161,12 +160,15 @@ impl GlobalStatistic for TajimaD {
 }
 
 /// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953).
+///
+/// Construction of this type from an arbitrary collection of [`MultiSiteCounts`] is not sound,
+/// because the invariant of [`crate::counts::MultiPopulationCounts`] is required.
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 #[derive(Clone, Default, Debug)]
-pub struct F_ST {
+pub struct F_ST<'m> {
     /// (population, weight) pairs
-    populations: Vec<(MultiSiteCounts, f64)>,
+    populations: Vec<(&'m MultiSiteCounts, f64)>,
     // total pi_T derivable from other terms, no need to store anything new
     /// for pi_S
     diversity_within: Vec<f64>,
@@ -177,17 +179,11 @@ pub struct F_ST {
     pi_B: (f64, f64),
 }
 
-// TODO: tests for all of these
-impl F_ST {
-    /// Construct a new instance of this statistic, ready to accept populations via [`Self::add_population`].
-    pub fn new() -> Self {
-        Self::default()
-    }
-
+impl<'m> F_ST<'m> {
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
-    pub fn add_population(&mut self, population: MultiSiteCounts, weight: f64) {
-        let pi_new_site = GlobalPi::from(&population).as_raw();
+    pub(crate) fn add_population(&mut self, population: &'m MultiSiteCounts, weight: f64) {
+        let pi_new_site = GlobalPi::from(population).as_raw();
         self.diversity_within.push(pi_new_site);
 
         self.pi_S.0 += weight * weight * pi_new_site;
@@ -225,42 +221,6 @@ impl F_ST {
             self.pi_B.1 += weight * existing_pop_weight;
         }
         self.populations.push((population, weight));
-    }
-
-    /// Construct an [`F_STView`] from this struct with the provided `selected_populations`.
-    /// It is assumed these are valid indices into the populations already provided to `self`, panicking otherwise.
-    /// The terms necessary to compute F-statistics are recomputed immediately.
-    pub fn only_populations(&self, selected_populations: HashSet<usize>) -> F_STView<'_> {
-        #[allow(non_snake_case)]
-        let mut pi_S = (0., 0.);
-        #[allow(non_snake_case)]
-        let mut pi_B = (0., 0.);
-
-        for index in selected_populations.iter() {
-            let (_, weight) = self.populations.get(*index).unwrap();
-            pi_S.0 += weight * weight * self.diversity_within[*index];
-            pi_S.1 += weight * weight;
-        }
-
-        for pair in selected_populations
-            .iter()
-            .tuple_combinations()
-            .map(|(&i, &j)| UnorderedPair::new(i, j))
-            .unique()
-        {
-            let UnorderedPair(i, j) = pair;
-            pi_B.0 += self.populations[i].1
-                * self.populations[j].1
-                * self.diversity_between.get(&pair).unwrap();
-            pi_B.1 += self.populations[i].1 * self.populations[j].1;
-        }
-
-        F_STView {
-            inner: self,
-            selected_populations,
-            pi_S,
-            pi_B,
-        }
     }
 }
 
@@ -334,40 +294,7 @@ pub trait FStatistics: FStatisticParts {
     }
 }
 
-impl FStatisticParts for F_ST {
-    #[allow(non_snake_case)]
-    fn pi_S_parts(&self) -> (f64, f64) {
-        self.pi_S
-    }
-
-    #[allow(non_snake_case)]
-    fn pi_B_parts(&self) -> (f64, f64) {
-        self.pi_B
-    }
-}
-
-/// A view into an underlying [`F_ST`] with a subset of populations from which to compute F-statistics.
-/// Constructed via [`F_ST::only_populations`].
-#[allow(non_camel_case_types, non_snake_case)]
-#[derive(Clone, Debug)]
-pub struct F_STView<'a> {
-    inner: &'a F_ST,
-    selected_populations: HashSet<usize>,
-    pi_S: (f64, f64),
-    pi_B: (f64, f64),
-}
-
-impl<'a> F_STView<'a> {
-    pub fn inner(&self) -> &'a F_ST {
-        self.inner
-    }
-
-    pub fn selected_populations(&self) -> &HashSet<usize> {
-        &self.selected_populations
-    }
-}
-
-impl FStatisticParts for F_STView<'_> {
+impl FStatisticParts for F_ST<'_> {
     #[allow(non_snake_case)]
     fn pi_S_parts(&self) -> (f64, f64) {
         self.pi_S

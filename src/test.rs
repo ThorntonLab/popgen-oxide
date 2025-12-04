@@ -1,8 +1,9 @@
 mod tests {
-    use crate::{AlleleID, Count, MultiSiteCounts};
+    use crate::{AlleleID, Count};
 
+    use crate::counts::{MultiPopulationCounts, MultiSiteCounts};
     use crate::iter::SiteCounts;
-    use crate::stats::{GlobalPi, GlobalStatistic, TajimaD, WattersonTheta};
+    use crate::stats::{FStatisticParts, GlobalPi, GlobalStatistic, TajimaD, WattersonTheta};
     use itertools::Itertools;
     use rand::rng;
     use rand::rngs::ThreadRng;
@@ -14,8 +15,11 @@ mod tests {
 
     #[cfg(feature = "noodles")]
     mod vcf {
-        use crate::adapter::vcf::record_to_genotypes_adapter;
-        use crate::{AlleleID, MultiSiteCounts, PopgenResult};
+        use crate::adapter::vcf::{
+            record_to_genotypes_adapter, VCFToPopulationsAdapter, WhichPopulation,
+        };
+        use crate::counts::MultiSiteCounts;
+        use crate::{AlleleID, PopgenResult};
         use noodles::vcf::header::record::value::map::{Contig, Format};
         use noodles::vcf::header::record::value::Map;
         use noodles::vcf::variant::io::Write;
@@ -29,6 +33,8 @@ mod tests {
         use noodles::vcf::variant::RecordBuf;
         use rand::prelude::SliceRandom;
         use rand::rng;
+        use std::borrow::Cow;
+        use std::collections::HashMap;
 
         // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
         // the appropriate IDs, number of samples, etc. will be calculated
@@ -207,6 +213,71 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             assert_eq!(counts_0.total_alleles(), 18);
             assert_eq!(counts_1.counts(), &[7, 8]);
             assert_eq!(counts_1.total_alleles(), 18);
+        }
+
+        #[test]
+        fn load_vcf_multi_population() {
+            // use this overly verbose and inefficient map to verify lifetime correctness
+            let map = (0..18)
+                .map(|n| (format!("s{}", n), ["A", "B"][n % 2].to_owned()))
+                .collect::<HashMap<_, _>>();
+
+            struct MapBasedMapper(HashMap<String, String>);
+
+            impl WhichPopulation<()> for MapBasedMapper {
+                fn which_population<'s>(
+                    &'s mut self,
+                    sample_name: &'_ str,
+                ) -> Result<Cow<'s, str>, ()> {
+                    self.0
+                        .get(sample_name)
+                        .map(String::as_str)
+                        .map(Cow::Borrowed)
+                        .ok_or(())
+                }
+            }
+
+            let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+                .build_from_reader(make_vcf().as_bytes())
+                .unwrap();
+
+            let header = vcf_reader.read_header().unwrap();
+
+            let mut mapper = MapBasedMapper(map);
+            let mut adapter = VCFToPopulationsAdapter::new(&header, None, &mut mapper).unwrap();
+
+            for record in vcf_reader.records() {
+                let record = record.unwrap();
+                adapter.add_record(&record).unwrap();
+            }
+
+            let (population_name_to_idx, counts) = adapter.build();
+            assert_eq!(population_name_to_idx.get("A").unwrap(), &0);
+            assert_eq!(population_name_to_idx.get("B").unwrap(), &1);
+
+            {
+                let first_pop = &counts[0];
+                let mut pop_iter = first_pop.iter();
+                let first_site = pop_iter.next().unwrap();
+                assert_eq!(first_site.counts(), &[5, 4]);
+                assert_eq!(first_site.total_alleles(), 9);
+
+                let second_site = pop_iter.next().unwrap();
+                assert_eq!(second_site.counts(), &[4, 4]);
+                assert_eq!(second_site.total_alleles(), 9);
+            }
+
+            {
+                let second_pop = &counts[1];
+                let mut pop_iter = second_pop.iter();
+                let first_site = pop_iter.next().unwrap();
+                assert_eq!(first_site.counts(), &[6, 3]);
+                assert_eq!(first_site.total_alleles(), 9);
+
+                let second_site = pop_iter.next().unwrap();
+                assert_eq!(second_site.counts(), &[3, 4]);
+                assert_eq!(second_site.total_alleles(), 9);
+            }
         }
     }
 
@@ -529,5 +600,88 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
                 }
             }
         }
+    }
+
+    #[test]
+    fn f_st_empty() {
+        fn ok(populations: &MultiPopulationCounts) {
+            // this is the one case where these fail; let's make sure that is the case
+            let f_st = populations.f_st_if(|_| None);
+            assert_eq!(f_st.pi_S(), None);
+            assert_eq!(f_st.pi_B(), None);
+            assert_eq!(f_st.pi_D(), None);
+        }
+
+        ok(&MultiPopulationCounts::of_empty_populations(0));
+        ok(&MultiPopulationCounts::of_empty_populations(1));
+        ok(&MultiPopulationCounts::of_empty_populations(5));
+    }
+
+    #[test]
+    fn f_st() {
+        let mut populations = MultiPopulationCounts::of_empty_populations(3);
+
+        let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
+        let weights = [1.0, 2.0, 3.0];
+
+        populations
+            .extend_populations_from_site(|i| (&data[i].0, data[i].1))
+            .unwrap();
+
+        let f_st = populations.f_st_if(|i| Some(weights[i]));
+
+        #[allow(non_snake_case)]
+        let (pi_B_top, pi_B_bottom) = f_st.pi_B_parts();
+
+        assert!(
+            (pi_B_top
+                - (
+                // differences between (0, 1)
+                6.0 * weights[0] * weights[1]
+                    // (0, 2)
+                    + 7.0 * weights[0] * weights[2]
+                    // (1, 2)
+                    + 9.0 * weights[1] * weights[2]
+            )
+                // number of comparisons between any two populations
+                / 9.)
+                .abs()
+                // this comparison seems a little finicky
+                < 10.0_f64.powi(-10)
+        );
+
+        assert_eq!(
+            pi_B_bottom,
+            weights
+                .iter()
+                .enumerate()
+                .flat_map(|(i, w1)| weights.iter().skip(i + 1).map(move |w2| w1 * w2))
+                .sum::<f64>()
+        );
+
+        #[allow(non_snake_case)]
+        let (pi_S_top, pi_S_bottom) = f_st.pi_S_parts();
+
+        assert!(
+            (pi_S_top
+                - populations
+                    .iter()
+                    .enumerate()
+                    .map(|(i, pop)| {
+                        // sum of weight * weight * pi within this population
+                        GlobalPi::from_iter_sites(pop.iter()).as_raw() * (weights[i]).powi(2)
+                    })
+                    .sum::<f64>())
+            .abs()
+                < f64::EPSILON
+        );
+
+        assert!(
+            (pi_S_bottom
+                // denominator should be sum of squares of weights
+                - weights.iter().map(|w| w.powi(2)).sum::<f64>())
+            .abs()
+                < f64::EPSILON
+        );
     }
 }
