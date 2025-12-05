@@ -41,3 +41,27 @@ fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
 pub fn pi<'s>(sites: &'s mut dyn Iterator<Item = &'s mut Site>) -> f64 {
     sites.map(|s| pi_site(&mut s.iter().cloned())).sum::<f64>()
 }
+
+fn watterson_theta_denominator(n: usize) -> f64 {
+    let mut rv = 0.;
+    for i in 1..n {
+        rv += 1. / (i as f64)
+    }
+    rv
+}
+
+pub fn watterson_theta<'s>(sites: &'s mut dyn Iterator<Item = &'s mut Site>) -> f64 {
+    let mut rv = 0.0;
+    for s in sites {
+        let alleles = flatten_to_alleles(&mut s.iter().cloned());
+        let an = watterson_theta_denominator(alleles.len());
+        let num_unique_alleles = alleles
+            .into_iter()
+            .collect::<std::collections::HashSet<_>>()
+            .len();
+        if num_unique_alleles > 1 {
+            rv += (num_unique_alleles as f64 - 1.) / an;
+        }
+    }
+    rv
+}
