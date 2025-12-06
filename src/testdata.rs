@@ -286,7 +286,7 @@ impl RandomAlleleFreqIterator {
 // loss in some cases. (See the rand_distr
 // impl of sample for details.)
 struct RandomAlleleFreqIteratorDetail {
-    rng: rand::rngs::StdRng,
+    rng: StdRng,
     gammas: Vec<rand_distr::Gamma<f64>>,
 }
 
