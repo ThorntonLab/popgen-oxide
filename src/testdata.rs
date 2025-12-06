@@ -248,6 +248,7 @@ impl Iterator for FixedMutationIteratorDetail {
     }
 }
 
+/// When [`.iter()`](Self::iter()) is called, return an infinite iterator yielding multinomials, where each is produced from the Dirichlet distribution with concentration parameters given to [`Self::new()`].
 pub struct RandomAlleleFreqIterator {
     seed: u64,
     coefficients: Vec<f64>,
@@ -264,9 +265,6 @@ impl RandomAlleleFreqIterator {
         }
     }
 
-    /// WARNING: return value never returns None, so
-    /// caller must use \.take(usize) in order
-    /// for things to end.
     pub fn iter(&self) -> Box<dyn Iterator<Item = Vec<f64>>> {
         Box::new(RandomAlleleFreqIteratorDetail::new(
             self.seed,
