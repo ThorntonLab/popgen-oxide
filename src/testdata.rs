@@ -203,6 +203,51 @@ fn multinomial(rng: &mut StdRng, n: usize, coefficients: &[f64]) -> Box<[usize]>
     rv.into_boxed_slice()
 }
 
+/// A factory which yields, via [`.iter()`](Self::iter), iterator(s) yielding `Vec<f64>`s which:
+/// * Each have length `num_alleles`.
+/// * Each yielded `Vec` will have a different index uniquely set to `1.0`.
+///   All other elements will be `0.0`.
+///
+/// The elements yielded from one iterator represent every possible allele frequency distribution for a single *fixed mutation* given that there are `num_alleles` total alleles.
+#[derive(Copy, Clone, Debug)]
+pub struct FixedMutationIterator {
+    num_alleles: usize,
+}
+
+impl FixedMutationIterator {
+    pub fn new(num_alleles: usize) -> Self {
+        assert!(num_alleles > 0);
+        Self { num_alleles }
+    }
+
+    pub fn iter(&self) -> Box<dyn Iterator<Item = Vec<f64>>> {
+        Box::new(FixedMutationIteratorDetail {
+            num_alleles: self.num_alleles,
+            current_allele: 0,
+        })
+    }
+}
+
+struct FixedMutationIteratorDetail {
+    num_alleles: usize,
+    current_allele: usize,
+}
+
+impl Iterator for FixedMutationIteratorDetail {
+    type Item = Vec<f64>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_allele < self.num_alleles {
+            let mut rv = vec![0.0; self.num_alleles];
+            rv[self.current_allele] = 1.0;
+            self.current_allele += 1;
+            Some(rv)
+        } else {
+            None
+        }
+    }
+}
+
 // Tests of our test fns. (A bit meta...)
 
 #[test]
@@ -222,4 +267,18 @@ fn test_random_site() {
     c.iter().for_each(|g| {
         assert_eq!(g.iter().filter(|i| i.is_some()).count(), 2);
     });
+}
+
+#[test]
+fn test_fixed_mutation_iterator() {
+    let f = FixedMutationIterator::new(4);
+    assert_eq!(f.iter().count(), 4);
+    for (i, v) in f.iter().enumerate() {
+        assert_eq!(v[i], 1.);
+        assert_eq!(v.iter().cloned().filter(|&vi| vi == 1.).count(), 1);
+        assert_eq!(
+            v.iter().cloned().filter(|&vi| vi == 0.).count(),
+            v.len() - 1
+        );
+    }
 }
