@@ -255,7 +255,7 @@ pub struct RandomAlleleFreqIterator {
 
 impl RandomAlleleFreqIterator {
     pub fn new(seed: u64, coefficients: &[f64]) -> Self {
-        // We will generally just unrap Err from rand/rand_distr,
+        // We will generally just unwrap Err from rand/rand_distr,
         // but this is one we can catch quite early.
         assert!(coefficients.len() > 1);
         Self {
