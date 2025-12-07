@@ -2,6 +2,9 @@ mod naivecalculations;
 mod test;
 mod testdata;
 
+// tests of TYPES go below
+mod multisitecounts;
+
 // tests of CALCULATIONS go below
 
 mod fst;
