@@ -10,6 +10,8 @@ pub mod stats;
 mod util;
 
 #[cfg(test)]
+mod testing;
+#[cfg(test)]
 mod naivecalculations;
 #[cfg(test)]
 mod test;
