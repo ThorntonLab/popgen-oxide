@@ -7,21 +7,21 @@ use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
 use std::iter::repeat_n;
 
-fn shuffled_site(
-    ids: impl Iterator<Item = (Option<AlleleID>, usize)>,
-    rng: &mut ThreadRng,
-) -> Vec<Option<AlleleID>> {
-    let mut site = vec![];
-    ids.for_each(|(id, count)| {
-        site.extend(repeat_n(id, count));
-    });
-
-    site.shuffle(rng);
-    site
-}
-
 #[test]
 fn tajima_d() {
+    fn shuffled_site(
+        ids: impl Iterator<Item = (Option<AlleleID>, usize)>,
+        rng: &mut ThreadRng,
+    ) -> Vec<Option<AlleleID>> {
+        let mut site = vec![];
+        ids.for_each(|(id, count)| {
+            site.extend(repeat_n(id, count));
+        });
+
+        site.shuffle(rng);
+        site
+    }
+
     let mut rng = rng();
 
     let sites = vec![
