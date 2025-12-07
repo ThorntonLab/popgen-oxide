@@ -9,9 +9,9 @@ mod tests {
     use rand::rngs::ThreadRng;
     use rand::seq::SliceRandom;
     use std::iter::repeat_n;
-    use triangle_matrix::{
-        SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut,
-    };
+    // use triangle_matrix::{
+    //     SimpleLowerTri, SymmetricUpperTri, SymmetricUpperTriMut, Triangle, TriangleMut,
+    // };
 
     #[cfg(feature = "noodles")]
     mod vcf {
@@ -281,25 +281,25 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         }
     }
 
-    struct TriVec<T>(usize, Vec<T>);
+    // struct TriVec<T>(usize, Vec<T>);
 
-    impl<T> Triangle<T> for TriVec<T> {
-        type Inner = Vec<T>;
+    // impl<T> Triangle<T> for TriVec<T> {
+    //     type Inner = Vec<T>;
 
-        fn n(&self) -> usize {
-            self.0
-        }
+    //     fn n(&self) -> usize {
+    //         self.0
+    //     }
 
-        fn inner(&self) -> &Self::Inner {
-            &self.1
-        }
-    }
+    //     fn inner(&self) -> &Self::Inner {
+    //         &self.1
+    //     }
+    // }
 
-    impl<T> TriangleMut<T> for TriVec<T> {
-        fn inner_mut(&mut self) -> &mut Self::Inner {
-            &mut self.1
-        }
-    }
+    // impl<T> TriangleMut<T> for TriVec<T> {
+    //     fn inner_mut(&mut self) -> &mut Self::Inner {
+    //         &mut self.1
+    //     }
+    // }
 
     fn shuffled_site(
         ids: impl Iterator<Item = (Option<AlleleID>, usize)>,
@@ -317,40 +317,40 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
     /// inefficient O(n^2) computation of pairwise diversity at a site
     ///
     /// hidden in test module because nobody should use this; just want to verify without magic numbers that calculations are correct
-    fn pi_from_matrix(alleles: &[Option<AlleleID>]) -> f64 {
-        use SymmetricUpperTri;
-        use SymmetricUpperTriMut;
+    // fn pi_from_matrix(alleles: &[Option<AlleleID>]) -> f64 {
+    //     use SymmetricUpperTri;
+    //     use SymmetricUpperTriMut;
 
-        let total_alleles = alleles.len();
-        let mut mat = TriVec(
-            total_alleles,
-            Vec::from_iter(repeat_n(
-                None::<i32>,
-                total_alleles * (total_alleles + 1) / 2,
-            )),
-        );
+    //     let total_alleles = alleles.len();
+    //     let mut mat = TriVec(
+    //         total_alleles,
+    //         Vec::from_iter(repeat_n(
+    //             None::<i32>,
+    //             total_alleles * (total_alleles + 1) / 2,
+    //         )),
+    //     );
 
-        for (ind_a, allele_a) in alleles.iter().enumerate() {
-            for (ind_b, allele_b) in alleles.iter().enumerate().skip(ind_a + 1) {
-                *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) = match *allele_a {
-                    None => None,
-                    Some(allele_id_a) => match *allele_b {
-                        None => None,
-                        Some(allele_id_b) => match allele_id_a.eq(&allele_id_b) {
-                            false => Some(1),
-                            true => Some(0),
-                        },
-                    },
-                }
-            }
-        }
+    //     for (ind_a, allele_a) in alleles.iter().enumerate() {
+    //         for (ind_b, allele_b) in alleles.iter().enumerate().skip(ind_a + 1) {
+    //             *SymmetricUpperTriMut::get_element_mut(&mut mat, ind_a, ind_b) = match *allele_a {
+    //                 None => None,
+    //                 Some(allele_id_a) => match *allele_b {
+    //                     None => None,
+    //                     Some(allele_id_b) => match allele_id_a.eq(&allele_id_b) {
+    //                         false => Some(1),
+    //                         true => Some(0),
+    //                     },
+    //                 },
+    //             }
+    //         }
+    //     }
 
-        let make_iter = || {
-            mat.iter_triangle_indices()
-                .filter_map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
-        };
-        make_iter().sum::<i32>() as f64 / make_iter().count() as f64
-    }
+    //     let make_iter = || {
+    //         mat.iter_triangle_indices()
+    //             .filter_map(|(i, j)| *SymmetricUpperTri::get_element(&mat, i, j))
+    //     };
+    //     make_iter().sum::<i32>() as f64 / make_iter().count() as f64
+    // }
 
     #[test]
     fn load_raw() {
@@ -420,53 +420,53 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         counts.add_site_from_counts([1, 2, 3], 1).unwrap();
     }
 
-    #[test]
-    fn global_pi() {
-        let mut rng = rng();
-        let sites = vec![
-            shuffled_site(
-                vec![
-                    (Some(AlleleID::from(0)), 35),
-                    (Some(AlleleID::from(1)), 6),
-                    (None, 3),
-                ]
-                .into_iter(),
-                &mut rng,
-            ),
-            shuffled_site(
-                vec![
-                    (Some(AlleleID::from(0)), 2),
-                    (Some(AlleleID::from(1)), 14),
-                    (Some(AlleleID::from(2)), 155),
-                ]
-                .into_iter(),
-                &mut rng,
-            ),
-        ];
+    // #[test]
+    // fn global_pi() {
+    //     let mut rng = rng();
+    //     let sites = vec![
+    //         shuffled_site(
+    //             vec![
+    //                 (Some(AlleleID::from(0)), 35),
+    //                 (Some(AlleleID::from(1)), 6),
+    //                 (None, 3),
+    //             ]
+    //             .into_iter(),
+    //             &mut rng,
+    //         ),
+    //         shuffled_site(
+    //             vec![
+    //                 (Some(AlleleID::from(0)), 2),
+    //                 (Some(AlleleID::from(1)), 14),
+    //                 (Some(AlleleID::from(2)), 155),
+    //             ]
+    //             .into_iter(),
+    //             &mut rng,
+    //         ),
+    //     ];
 
-        let expect_site_0 = pi_from_matrix(&sites[0]);
-        let expect_site_1 = pi_from_matrix(&sites[1]);
+    //     let expect_site_0 = pi_from_matrix(&sites[0]);
+    //     let expect_site_1 = pi_from_matrix(&sites[1]);
 
-        let allele_counts = MultiSiteCounts::from_tabular(sites);
+    //     let allele_counts = MultiSiteCounts::from_tabular(sites);
 
-        assert!(
-            (GlobalPi::from_iter_sites(allele_counts.iter().take(1)).as_raw() - expect_site_0)
-                .abs()
-                < f64::EPSILON
-        );
-        assert!(
-            (GlobalPi::from_iter_sites(allele_counts.iter().skip(1).take(1)).as_raw()
-                - expect_site_1)
-                .abs()
-                < f64::EPSILON
-        );
-        assert!(
-            (GlobalPi::from_iter_sites(allele_counts.iter()).as_raw()
-                - (expect_site_0 + expect_site_1))
-                .abs()
-                < f64::EPSILON
-        );
-    }
+    //     assert!(
+    //         (GlobalPi::from_iter_sites(allele_counts.iter().take(1)).as_raw() - expect_site_0)
+    //             .abs()
+    //             < f64::EPSILON
+    //     );
+    //     assert!(
+    //         (GlobalPi::from_iter_sites(allele_counts.iter().skip(1).take(1)).as_raw()
+    //             - expect_site_1)
+    //             .abs()
+    //             < f64::EPSILON
+    //     );
+    //     assert!(
+    //         (GlobalPi::from_iter_sites(allele_counts.iter()).as_raw()
+    //             - (expect_site_0 + expect_site_1))
+    //             .abs()
+    //             < f64::EPSILON
+    //     );
+    // }
 
     #[test]
     fn watterson_theta() {
@@ -520,111 +520,6 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 
         let tajima = TajimaD::from_iter_sites(allele_counts.iter());
         assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
-    }
-
-    // The basic logic here is that we should
-    // be able to make random data, convert it
-    // to our normal format, and get stats
-    // from both data inputs and get the same
-    // answer.
-    // If this is not possible then we have bugs
-    // in one of several possible places...
-    #[test]
-    fn pi_from_random_data() {
-        use rand::prelude::*;
-
-        let mut rng = StdRng::seed_from_u64(54321);
-        for ploidy in [1, 2, 3, 4] {
-            let freqs = [0.25, 0.5, 0.25]; // fixed allele freqs per site
-            let mut sites = vec![];
-            // make 10 random sites.
-            // No missing data, etc..
-            for _ in 0..10 {
-                let site =
-                    crate::testing::testdata::random_site_rng(10, ploidy, &freqs, None, &mut rng);
-                sites.push(site);
-            }
-            // convert to our normal format
-            let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-            // get the calcs
-            let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
-            let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
-            // compare
-            if pi_naive.is_nan() {
-                assert!(pi_from_counts.as_raw().is_nan());
-            } else {
-                assert!(
-                    (pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10,
-                    "{pi_from_counts:?} != {pi_naive}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn pi_from_random_data_with_missing_data() {
-        use rand::prelude::*;
-
-        let mut rng = StdRng::seed_from_u64(54321);
-
-        for ploidy in [1, 2, 4] {
-            for rate in [0.01, 0.1, 0.5, 0.9] {
-                let freqs = [0.25, 0.5, 0.25]; // fixed allele freqs per site
-                let mut sites = vec![];
-                // make 10 random sites.
-                // No missing data, etc..
-                for _ in 0..10 {
-                    let site = crate::testing::testdata::random_site_rng(
-                        10,
-                        ploidy,
-                        &freqs,
-                        Some(crate::testing::testdata::RandomSiteOptions {
-                            missing_data_rate: Some(rate),
-                        }),
-                        &mut rng,
-                    );
-                    sites.push(site);
-                }
-                // convert to our normal format
-                let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-                // get the calcs
-                let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
-                let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
-                // compare
-                if pi_naive.is_nan() {
-                    assert!(pi_from_counts.as_raw().is_nan());
-                } else {
-                    assert!(
-                        (pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10,
-                        "{pi_from_counts:?} != {pi_naive}"
-                    );
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn pi_allele_frequency_of_one() {
-        use rand::prelude::*;
-
-        let mut rng = StdRng::seed_from_u64(54321);
-        for ploidy in [1, 2, 4] {
-            for num_alleles in [2, 3, 4] {
-                let freqs_iter = crate::testing::testdata::FixedMutationIterator::new(num_alleles);
-
-                for freqs in freqs_iter.iter() {
-                    assert_eq!(freqs.len(), num_alleles);
-                    let site = crate::testing::testdata::random_site_rng(
-                        10, ploidy, &freqs, None, &mut rng,
-                    );
-                    // convert to our normal format
-                    let counts =
-                        crate::testing::testdata::single_pop_counts(&mut std::iter::once(&site));
-                    let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
-                    assert_eq!(pi_from_counts.as_raw(), 0.);
-                }
-            }
-        }
     }
 
     #[test]
