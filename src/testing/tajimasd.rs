@@ -7,6 +7,10 @@ use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
 use std::iter::repeat_n;
 
+// NOTE: the copy/pase of shuffled_site can be
+// considered okay b/c this test will go away
+// once we have a naive implementation in place
+// and can test using our random data API.
 #[test]
 fn tajima_d() {
     fn shuffled_site(
