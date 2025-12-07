@@ -10,11 +10,7 @@ pub mod stats;
 mod util;
 
 #[cfg(test)]
-mod naivecalculations;
-#[cfg(test)]
-mod test;
-#[cfg(test)]
-mod testdata;
+mod testing;
 
 pub use counts::*;
 
