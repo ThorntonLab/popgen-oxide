@@ -442,7 +442,6 @@ dependencies = [
  "noodles-core",
  "rand",
  "rand_distr",
- "triangle_matrix",
  "tskit",
 ]
 
@@ -634,12 +633,6 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[package]]
-name = "triangle_matrix"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d2c16bd91b39350657d29da25c9cf9ecbc3d95506529c37373f6ae350241ff1"
 
 [[package]]
 name = "tskit"
