@@ -4,6 +4,7 @@ mod testdata;
 
 // tests of CALCULATIONS go below
 
+mod fst;
 mod pi;
 mod wattersons_theta;
 
