@@ -248,6 +248,81 @@ impl Iterator for FixedMutationIteratorDetail {
     }
 }
 
+/// When [`.iter()`](Self::iter()) is called, return an infinite iterator yielding multinomials, where each is produced from the Dirichlet distribution with concentration parameters given to [`Self::new()`].
+pub struct RandomAlleleFreqIterator {
+    seed: u64,
+    coefficients: Vec<f64>,
+}
+
+impl RandomAlleleFreqIterator {
+    pub fn new(seed: u64, coefficients: &[f64]) -> Self {
+        // We will generally just unwrap Err from rand/rand_distr,
+        // but this is one we can catch quite early.
+        assert!(coefficients.len() > 1);
+        Self {
+            seed,
+            coefficients: coefficients.to_owned(),
+        }
+    }
+
+    pub fn iter(&self) -> Box<dyn Iterator<Item = Vec<f64>>> {
+        Box::new(RandomAlleleFreqIteratorDetail::new(
+            self.seed,
+            &self.coefficients,
+        ))
+    }
+}
+
+// This type is effectively rolling its
+// own implementation of rand_distr::Dirichlet.
+// We need this b/c the rand_distr version
+// is const generic but we require variable
+// length outputs at run time.
+//
+// We do not bother with beta densities
+// and just accept the slight efficiency
+// loss in some cases. (See the rand_distr
+// impl of sample for details.)
+struct RandomAlleleFreqIteratorDetail {
+    rng: StdRng,
+    gammas: Vec<rand_distr::Gamma<f64>>,
+}
+
+impl RandomAlleleFreqIteratorDetail {
+    fn new(seed: u64, coefficients: &[f64]) -> Self {
+        let rng = rand::rngs::StdRng::seed_from_u64(seed);
+        let gammas = coefficients
+            .iter()
+            .cloned()
+            .map(|f| rand_distr::Gamma::new(f, 1.0).unwrap())
+            .collect::<Vec<_>>();
+        Self { rng, gammas }
+    }
+
+    // Copy of the rand_distr impl of sample
+    fn sample(&mut self) -> Option<Vec<f64>> {
+        let mut rv = vec![0.0; self.gammas.len()];
+        let mut sum = 0.0;
+        for (i, g) in rv.iter_mut().zip(self.gammas.iter()) {
+            *i = g.sample(&mut self.rng);
+            sum += *i;
+        }
+        let x = 1. / sum;
+        for i in rv.iter_mut() {
+            *i *= x;
+        }
+        Some(rv)
+    }
+}
+
+impl Iterator for RandomAlleleFreqIteratorDetail {
+    type Item = Vec<f64>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.sample()
+    }
+}
+
 // Tests of our test fns. (A bit meta...)
 
 #[test]
@@ -280,5 +355,16 @@ fn test_fixed_mutation_iterator() {
             v.iter().cloned().filter(|&vi| vi == 0.).count(),
             v.len() - 1
         );
+    }
+}
+
+#[test]
+fn test_rand_allele_freq_iter() {
+    for coefficients in [vec![1., 1., 1.], vec![f64::EPSILON, 1.]] {
+        let f = RandomAlleleFreqIterator::new(101, &coefficients);
+        for sample in f.iter().take(100) {
+            assert_eq!(sample.len(), coefficients.len());
+            assert!((sample.iter().sum::<f64>() - 1.).abs() <= 1e-8);
+        }
     }
 }
