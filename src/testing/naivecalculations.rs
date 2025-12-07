@@ -1,5 +1,5 @@
-use crate::testdata::GenotypeData;
-use crate::testdata::Site;
+use crate::testing::testdata::GenotypeData;
+use crate::testing::testdata::Site;
 
 fn flatten_to_alleles(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> Vec<usize> {
     let mut alleles = vec![];

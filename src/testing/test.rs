@@ -540,14 +540,15 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             // make 10 random sites.
             // No missing data, etc..
             for _ in 0..10 {
-                let site = crate::testdata::random_site_rng(10, ploidy, &freqs, None, &mut rng);
+                let site =
+                    crate::testing::testdata::random_site_rng(10, ploidy, &freqs, None, &mut rng);
                 sites.push(site);
             }
             // convert to our normal format
-            let counts = crate::testdata::single_pop_counts(&mut sites.iter());
+            let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
             // get the calcs
             let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
-            let pi_naive = crate::naivecalculations::pi(&mut sites.iter_mut());
+            let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
             // compare
             if pi_naive.is_nan() {
                 assert!(pi_from_counts.as_raw().is_nan());
@@ -573,11 +574,11 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
                 // make 10 random sites.
                 // No missing data, etc..
                 for _ in 0..10 {
-                    let site = crate::testdata::random_site_rng(
+                    let site = crate::testing::testdata::random_site_rng(
                         10,
                         ploidy,
                         &freqs,
-                        Some(crate::testdata::RandomSiteOptions {
+                        Some(crate::testing::testdata::RandomSiteOptions {
                             missing_data_rate: Some(rate),
                         }),
                         &mut rng,
@@ -585,10 +586,10 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
                     sites.push(site);
                 }
                 // convert to our normal format
-                let counts = crate::testdata::single_pop_counts(&mut sites.iter());
+                let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
                 // get the calcs
                 let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
-                let pi_naive = crate::naivecalculations::pi(&mut sites.iter_mut());
+                let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
                 // compare
                 if pi_naive.is_nan() {
                     assert!(pi_from_counts.as_raw().is_nan());
@@ -609,13 +610,16 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         let mut rng = StdRng::seed_from_u64(54321);
         for ploidy in [1, 2, 4] {
             for num_alleles in [2, 3, 4] {
-                let freqs_iter = crate::testdata::FixedMutationIterator::new(num_alleles);
+                let freqs_iter = crate::testing::testdata::FixedMutationIterator::new(num_alleles);
 
                 for freqs in freqs_iter.iter() {
                     assert_eq!(freqs.len(), num_alleles);
-                    let site = crate::testdata::random_site_rng(10, ploidy, &freqs, None, &mut rng);
+                    let site = crate::testing::testdata::random_site_rng(
+                        10, ploidy, &freqs, None, &mut rng,
+                    );
                     // convert to our normal format
-                    let counts = crate::testdata::single_pop_counts(&mut std::iter::once(&site));
+                    let counts =
+                        crate::testing::testdata::single_pop_counts(&mut std::iter::once(&site));
                     let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
                     assert_eq!(pi_from_counts.as_raw(), 0.);
                 }
@@ -717,13 +721,15 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             // make 10 random sites.
             // No missing data, etc..
             for _ in 0..10 {
-                let site = crate::testdata::random_site_rng(10, ploidy, &freqs, None, &mut rng);
+                let site =
+                    crate::testing::testdata::random_site_rng(10, ploidy, &freqs, None, &mut rng);
                 sites.push(site);
             }
             // convert to our normal format
-            let counts = crate::testdata::single_pop_counts(&mut sites.iter());
+            let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
             let theta = WattersonTheta::from_iter_sites(counts.iter());
-            let theta_naive = crate::naivecalculations::watterson_theta(&mut sites.iter_mut());
+            let theta_naive =
+                crate::testing::naivecalculations::watterson_theta(&mut sites.iter_mut());
             if theta_naive.is_nan() {
                 assert!(theta.as_raw().is_nan())
             } else {
@@ -745,11 +751,11 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
                 // make 10 random sites.
                 // No missing data, etc..
                 for _ in 0..10 {
-                    let site = crate::testdata::random_site_rng(
+                    let site = crate::testing::testdata::random_site_rng(
                         10,
                         ploidy,
                         &freqs,
-                        Some(crate::testdata::RandomSiteOptions {
+                        Some(crate::testing::testdata::RandomSiteOptions {
                             missing_data_rate: Some(rate),
                         }),
                         &mut rng,
@@ -757,10 +763,11 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
                     sites.push(site);
                 }
                 // convert to our normal format
-                let counts = crate::testdata::single_pop_counts(&mut sites.iter());
+                let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
                 // get the calcs
                 let theta = WattersonTheta::from_iter_sites(counts.iter());
-                let theta_naive = crate::naivecalculations::watterson_theta(&mut sites.iter_mut());
+                let theta_naive =
+                    crate::testing::naivecalculations::watterson_theta(&mut sites.iter_mut());
                 // compare
                 if theta_naive.is_nan() {
                     assert!(theta.as_raw().is_nan());

@@ -11,12 +11,6 @@ mod util;
 
 #[cfg(test)]
 mod testing;
-#[cfg(test)]
-mod naivecalculations;
-#[cfg(test)]
-mod test;
-#[cfg(test)]
-mod testdata;
 
 pub use counts::*;
 
