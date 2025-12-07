@@ -6,6 +6,7 @@ mod testdata;
 
 mod fst;
 mod pi;
+mod tajimasd;
 mod wattersons_theta;
 
 // tests of OTHER THINGS, like
