@@ -12,4 +12,3 @@ mod wattersons_theta;
 
 #[cfg(feature = "noodles")]
 mod noodles_vcf;
-
