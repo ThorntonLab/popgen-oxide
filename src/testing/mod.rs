@@ -1,5 +1,4 @@
 mod naivecalculations;
-mod test;
 mod testdata;
 
 // tests of TYPES go below
