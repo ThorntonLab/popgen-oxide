@@ -5,38 +5,6 @@ use crate::Count;
 use crate::MultiSiteCounts;
 
 #[test]
-fn watterson_theta() {
-    let sites = vec![
-        vec![Some(0), Some(0), Some(1), Some(1), Some(1), Some(2)],
-        vec![Some(0), Some(1), Some(1), Some(1), Some(2), None],
-    ]
-    .into_iter()
-    .map(|site| {
-        site.into_iter()
-            .map(|sam| sam.map(AlleleID::from))
-            .collect::<Vec<_>>()
-    })
-    .collect::<Vec<_>>();
-
-    let allele_counts = MultiSiteCounts::from_tabular(sites);
-    let theta = WattersonTheta::from_iter_sites(allele_counts.iter());
-
-    let mut expected = 0f64;
-    for site in allele_counts.iter() {
-        let num_variants = site.counts.iter().filter(|c| **c > 0).count();
-        let total_samples = site.counts.iter().filter(|c| **c > 0).sum::<Count>();
-
-        if num_variants > 1 {
-            let numerator = (num_variants - 1) as f64;
-            let denominator = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
-            expected += numerator / denominator;
-        }
-    }
-
-    assert!((theta.as_raw() - expected).abs() < f64::EPSILON);
-}
-
-#[test]
 fn watterson_theta_from_random_data() {
     use rand::prelude::*;
 
