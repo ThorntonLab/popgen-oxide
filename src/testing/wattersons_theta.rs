@@ -1,8 +1,5 @@
 use crate::stats::GlobalStatistic;
 use crate::stats::WattersonTheta;
-use crate::AlleleID;
-use crate::Count;
-use crate::MultiSiteCounts;
 
 #[test]
 fn watterson_theta_from_random_data() {
