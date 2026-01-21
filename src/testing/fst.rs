@@ -1,7 +1,10 @@
+use std::borrow::Cow;
 use crate::stats::FStatisticParts;
 use crate::stats::GlobalPi;
 use crate::stats::GlobalStatistic;
+use crate::testing::testdata::RandomSiteOptions;
 use crate::MultiPopulationCounts;
+use std::collections::HashMap;
 
 #[test]
 fn f_st_empty() {
@@ -84,4 +87,71 @@ fn f_st() {
         .abs()
             < f64::EPSILON
     );
+}
+
+#[test]
+fn f_st_from_random_data() {
+    use rand::prelude::*;
+    let n_sites = 5;
+    let pop_weights = [0.1, 0.2, 0.3, 0.4];
+    let n_alleles = 3;
+
+    let mut rng = StdRng::seed_from_u64(54321);
+    for n_pops in 2..4 {
+        for ploidy in 1..3 {
+            let pops = (0..n_pops)
+                .map(|_| {
+                    let mut sites = vec![];
+                    for _ in 0..n_sites {
+                        let site = crate::testing::testdata::random_site_rng(
+                            5,
+                            ploidy,
+                            &[0.25, 0.5, 0.25],
+                            Some(RandomSiteOptions {
+                                missing_data_rate: Some(0.1),
+                            }),
+                            &mut rng,
+                        );
+                        sites.push(site);
+                    }
+                    sites
+                })
+                .collect::<Vec<_>>();
+
+            let mut counts = MultiPopulationCounts::of_empty_populations(n_pops);
+            for s in 0..n_sites {
+                counts
+                    .extend_populations_from_site(|pop_i| {
+                        let alleles = pops[pop_i][s]
+                            .iter()
+                            .flat_map(|gts| gts.iter())
+                            .collect::<Vec<_>>();
+                        let mut counts = HashMap::new();
+                        for id in &alleles {
+                            if let Some(present) = id {
+                                *counts.entry(present).or_default() += 1;
+                            }
+                        }
+                        let mut id_counts = counts.into_iter().collect::<Vec<_>>();
+                        id_counts.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+                        let mut counts = id_counts.into_iter().map(|(_id, c)| c).collect::<Vec<_>>();
+                        counts.resize(n_alleles, 0);
+                        (Cow::Owned(counts), alleles.len())
+                    })
+                    .unwrap();
+            }
+
+            let f_st_from_counts = counts.f_st_if(|i| Some(pop_weights[i]));
+            let (pi_T_naive, pi_S_naive, pi_B_naive) = crate::testing::naivecalculations::f_st(
+                &mut pops
+                    .iter()
+                    .zip(pop_weights.iter())
+                    .map(|(p, &w)| (w, p)),
+            );
+            dbg!(f_st_from_counts.pi_B().unwrap());
+            dbg!(pi_B_naive);
+            assert!((1.0 - (f_st_from_counts.pi_B().unwrap() / pi_B_naive)).abs() < 0.001);
+
+        }
+    }
 }
