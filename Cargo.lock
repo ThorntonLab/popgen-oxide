@@ -142,17 +142,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
 
 [[package]]
-name = "delegate"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e018fccbeeb50ff26562ece792ed06659b9c2dae79ece77c4456bb10d9bf79b"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "either"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -606,38 +595,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "thiserror"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "tskit"
-version = "0.15.0-alpha.2"
+version = "0.15.0-alpha.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee1e2926029bf27d2f8c4c5017de4e0f4398d64e49538ccd391892b8002ec63c"
+checksum = "02ee77a27f97b927c14914e5aa4c6fdd9f0f5969efd4ff707a35a7a08726787a"
 dependencies = [
  "bindgen",
  "cc",
- "delegate",
  "libc",
  "pkg-config",
  "streaming-iterator",
- "thiserror",
 ]
 
 [[package]]
