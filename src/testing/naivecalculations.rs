@@ -151,7 +151,7 @@ pub fn f_st<'s, Sites>(
 
         for i in 0..populations.len() {
             for j in 0..i {
-                num += weights[i] * weights[j] * dbg!(pi_ij_computed[i][j].unwrap());
+                num += weights[i] * weights[j] * pi_ij_computed[i][j].unwrap();
                 denom += weights[i] * weights[j];
             }
         }
