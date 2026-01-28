@@ -119,7 +119,10 @@ fn f_st_from_random_data() {
                 .collect::<Vec<_>>();
 
             let mut counts = MultiPopulationCounts::of_empty_populations(n_pops);
-            #[expect(clippy::needless_range_loop, reason = "https://github.com/rust-lang/rust-clippy/issues/16344")]
+            #[expect(
+                clippy::needless_range_loop,
+                reason = "https://github.com/rust-lang/rust-clippy/issues/16344"
+            )]
             for s in 0..n_sites {
                 counts
                     .extend_populations_from_site(|pop_i| {
