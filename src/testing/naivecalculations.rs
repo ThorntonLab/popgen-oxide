@@ -92,9 +92,10 @@ pub fn pi_ij<'s1, 's2>(
 }
 
 // return pi_T, pi_S, pi_B
-pub fn f_st<'s, Sites>(
-    populations: &mut dyn Iterator<Item = (f64, Sites)>,
-) -> (f64, f64, f64) where Sites: IntoIterator<Item = &'s Site> {
+pub fn f_st<'s, Sites>(populations: &mut dyn Iterator<Item = (f64, Sites)>) -> (f64, f64, f64)
+where
+    Sites: IntoIterator<Item = &'s Site>,
+{
     let pops_and_weights: Vec<(f64, Vec<Site>)> = populations
         .map(|(w, pop)| (w, pop.into_iter().cloned().collect()))
         .collect();
@@ -126,7 +127,9 @@ pub fn f_st<'s, Sites>(
 
     // equation 1a
     let pi_T = {
-        let pi_ii_term = (0..populations.len()).map(|i| weights[i] * weights[i] * pi_ii[i]).sum::<f64>();
+        let pi_ii_term = (0..populations.len())
+            .map(|i| weights[i] * weights[i] * pi_ii[i])
+            .sum::<f64>();
         let pi_ij_term = {
             let mut tot = 0f64;
             for i in 0..populations.len() {
@@ -141,8 +144,12 @@ pub fn f_st<'s, Sites>(
     };
 
     // equation 1b
-    let pi_S = ((0..populations.len()).map(|i| weights[i] * weights[i] * pi_ii[i]).sum::<f64>())
-        / (0..populations.len()).map(|i| weights[i] * weights[i]).sum::<f64>();
+    let pi_S = ((0..populations.len())
+        .map(|i| weights[i] * weights[i] * pi_ii[i])
+        .sum::<f64>())
+        / (0..populations.len())
+            .map(|i| weights[i] * weights[i])
+            .sum::<f64>();
 
     // equation 1c
     let pi_B = {

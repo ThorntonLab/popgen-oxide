@@ -1,9 +1,9 @@
-use std::borrow::Cow;
 use crate::stats::FStatisticParts;
 use crate::stats::GlobalPi;
 use crate::stats::GlobalStatistic;
 use crate::testing::testdata::RandomSiteOptions;
 use crate::MultiPopulationCounts;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 #[test]
@@ -144,10 +144,7 @@ fn f_st_from_random_data() {
 
             let f_st_from_counts = counts.f_st_if(|i| Some(pop_weights[i]));
             let (pi_T_naive, pi_S_naive, pi_B_naive) = crate::testing::naivecalculations::f_st(
-                &mut pops
-                    .iter()
-                    .zip(pop_weights.iter())
-                    .map(|(p, &w)| (w, p)),
+                &mut pops.iter().zip(pop_weights.iter()).map(|(p, &w)| (w, p)),
             );
             assert!((1.0 - (f_st_from_counts.pi_T() / pi_T_naive)).abs() < 0.001);
             assert!((1.0 - (f_st_from_counts.pi_S().unwrap() / pi_S_naive)).abs() < 0.001);
