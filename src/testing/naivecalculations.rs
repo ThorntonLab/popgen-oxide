@@ -73,19 +73,19 @@ pub fn pi_ij<'s1, 's2>(
     let mut accum = 0f64;
 
     for (site1, site2) in pop1.zip(pop2) {
-        let mut heterozygous = 0u64;
+        let mut homozygous = 0u64;
         let mut num_comparisons = 0u64;
         for gt1 in site1.iter().flat_map(|gt| gt.iter()) {
             for gt2 in site2.iter().flat_map(|gt| gt.iter()) {
                 if let Some((l, r)) = gt1.zip(gt2) {
                     if l == r {
-                        heterozygous += 1;
+                        homozygous += 1;
                     }
                     num_comparisons += 1;
                 }
             }
         }
-        accum += heterozygous as f64 / num_comparisons as f64;
+        accum += 1.0 - (homozygous as f64 / num_comparisons as f64);
     }
 
     accum
@@ -151,8 +151,8 @@ pub fn f_st<'s, Sites>(
 
         for i in 0..populations.len() {
             for j in 0..i {
-                num += weights[i] * weights[i] * pi_ij_computed[i][j].unwrap();
-                denom += weights[i] * weights[i];
+                num += weights[i] * weights[j] * dbg!(pi_ij_computed[i][j].unwrap());
+                denom += weights[i] * weights[j];
             }
         }
 

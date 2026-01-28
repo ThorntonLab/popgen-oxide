@@ -132,11 +132,12 @@ fn f_st_from_random_data() {
                                 *counts.entry(present).or_default() += 1;
                             }
                         }
-                        let mut id_counts = counts.into_iter().collect::<Vec<_>>();
-                        id_counts.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-                        let mut counts = id_counts.into_iter().map(|(_id, c)| c).collect::<Vec<_>>();
-                        counts.resize(n_alleles, 0);
-                        (Cow::Owned(counts), alleles.len())
+
+                        let counts_vec = (0..n_alleles)
+                            .into_iter()
+                            .map(|allele_id| counts.get(&allele_id).cloned().unwrap_or_default())
+                            .collect::<Vec<_>>();
+                        (Cow::Owned(counts_vec), alleles.len())
                     })
                     .unwrap();
             }
