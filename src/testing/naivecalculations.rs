@@ -126,6 +126,7 @@ where
     }
 
     // equation 1a
+    #[expect(non_snake_case)]
     let pi_T = {
         let pi_ii_term = (0..populations.len())
             .map(|i| weights[i] * weights[i] * pi_ii[i])
@@ -144,6 +145,7 @@ where
     };
 
     // equation 1b
+    #[expect(non_snake_case)]
     let pi_S = ((0..populations.len())
         .map(|i| weights[i] * weights[i] * pi_ii[i])
         .sum::<f64>())
@@ -152,6 +154,7 @@ where
             .sum::<f64>();
 
     // equation 1c
+    #[expect(non_snake_case)]
     let pi_B = {
         let mut num = 0f64;
         let mut denom = 0f64;

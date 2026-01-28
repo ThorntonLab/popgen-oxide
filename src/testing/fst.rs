@@ -119,6 +119,7 @@ fn f_st_from_random_data() {
                 .collect::<Vec<_>>();
 
             let mut counts = MultiPopulationCounts::of_empty_populations(n_pops);
+            #[expect(clippy::needless_range_loop, reason = "https://github.com/rust-lang/rust-clippy/issues/16344")]
             for s in 0..n_sites {
                 counts
                     .extend_populations_from_site(|pop_i| {
@@ -127,14 +128,11 @@ fn f_st_from_random_data() {
                             .flat_map(|gts| gts.iter())
                             .collect::<Vec<_>>();
                         let mut counts = HashMap::new();
-                        for id in &alleles {
-                            if let Some(present) = id {
-                                *counts.entry(present).or_default() += 1;
-                            }
+                        for non_missing_allele_id in alleles.iter().flatten() {
+                            *counts.entry(non_missing_allele_id).or_default() += 1;
                         }
 
                         let counts_vec = (0..n_alleles)
-                            .into_iter()
                             .map(|allele_id| counts.get(&allele_id).cloned().unwrap_or_default())
                             .collect::<Vec<_>>();
                         (Cow::Owned(counts_vec), alleles.len())
@@ -143,6 +141,7 @@ fn f_st_from_random_data() {
             }
 
             let f_st_from_counts = counts.f_st_if(|i| Some(pop_weights[i]));
+            #[expect(non_snake_case)]
             let (pi_T_naive, pi_S_naive, pi_B_naive) = crate::testing::naivecalculations::f_st(
                 &mut pops.iter().zip(pop_weights.iter()).map(|(p, &w)| (w, p)),
             );
