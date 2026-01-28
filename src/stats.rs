@@ -31,7 +31,7 @@ pub trait GlobalStatistic {
 /// A [`GlobalStatistic`], with the following additional guarantees:
 /// - A "component" of the statistic is computable for each site.
 /// - The computation of a component can be done from site data alone and no other context.
-/// - The statistic can be computed over some number sites by performing some composition operation
+/// - The statistic can be computed over some number of sites by performing some composition operation
 ///     over zero or more components.
 /// - This composition remains correct under reordering (commutation and association).
 ///
