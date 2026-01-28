@@ -149,10 +149,9 @@ fn f_st_from_random_data() {
                     .zip(pop_weights.iter())
                     .map(|(p, &w)| (w, p)),
             );
-            dbg!(f_st_from_counts.pi_B().unwrap());
-            dbg!(pi_B_naive);
+            assert!((1.0 - (f_st_from_counts.pi_T() / pi_T_naive)).abs() < 0.001);
+            assert!((1.0 - (f_st_from_counts.pi_S().unwrap() / pi_S_naive)).abs() < 0.001);
             assert!((1.0 - (f_st_from_counts.pi_B().unwrap() / pi_B_naive)).abs() < 0.001);
-
         }
     }
 }
