@@ -32,7 +32,7 @@ pub trait GlobalStatistic {
 /// - A "component" of the statistic is computable for each site.
 /// - The computation of a component can be done from site data alone and no other context.
 /// - The statistic can be computed over some number of sites by performing some composition operation
-///     over zero or more components.
+///   over zero or more components.
 /// - This composition remains correct under reordering (commutation and association).
 ///
 /// It is also possible to implement this trait if a sufficient *portion* of computation can be done
