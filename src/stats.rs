@@ -43,11 +43,32 @@ pub trait GlobalStatistic {
 ///
 /// Types which implement this trait may also use it to easily implement [`GlobalStatistic::add_site`]:
 /// ```
-/// use popgen::stats::GlobalStatistic;
+/// use popgen::iter::SiteCounts;
+/// use popgen::stats::{GlobalStatistic, SiteComposable};
 ///
-/// impl GlobalStatistic for Foo {
+/// // a very simple statistic
+/// #[derive(Default)]  // to define the result over 0 sites
+/// struct NumSites(u64);
+///
+/// impl SiteComposable for NumSites {
+///     type Component = u64;
+///
+///     fn component_from(site: SiteCounts) -> Self::Component {
+///         1
+///     }
+///
+///     fn add_component(&mut self, component: Self::Component) {
+///         self.0 += component;
+///     }
+/// }
+///
+/// impl GlobalStatistic for NumSites {
 ///     fn add_site(&mut self, site: SiteCounts) {
 ///         self.add_component(Self::component_from(site))
+///     }
+///
+///     fn as_raw(&self) -> f64 {
+///         self.0 as f64
 ///     }
 /// }
 /// ```
