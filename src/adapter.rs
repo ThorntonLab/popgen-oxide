@@ -94,7 +94,7 @@ pub mod vcf {
             mapper: W,
         ) -> Result<Self, E>
         where
-            for<'s> &'s W: WhichPopulation<'sample, 'pop, E>,
+            W: WhichPopulation<'sample, 'pop, E> + Clone,
             'h: 'sample,
             'pop: 'sample,
         {
@@ -102,12 +102,10 @@ pub mod vcf {
             let mut sample_to_population = Vec::with_capacity(num_samples);
             let mut population_name_to_idx = HashMap::new();
 
-            let ref_mapper = &mapper;
-
             if let ControlFlow::Break(err) =
                 header.sample_names().iter().try_for_each(|sample_name| {
                     sample_to_population.push({
-                        let pop_name = match ref_mapper.which_population(sample_name) {
+                        let pop_name = match mapper.clone().which_population(sample_name) {
                             Ok(name) => name,
                             Err(e) => return ControlFlow::Break(e),
                         };

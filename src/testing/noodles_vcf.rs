@@ -201,14 +201,8 @@ fn load_vcf_multi_population() {
 
     struct MapBasedMapper(HashMap<String, String>);
 
-    impl WhichPopulation<()> for MapBasedMapper {
-        fn which_population<'sample, 'pop>(
-            &self,
-            sample_name: &'sample str,
-        ) -> Result<Cow<'pop, str>, ()>
-        where
-            'pop: 'sample,
-        {
+    impl<'s, 'sample> WhichPopulation<'sample, 's, ()> for &'s MapBasedMapper {
+        fn which_population(self, sample_name: &'sample str) -> Result<Cow<'s, str>, ()> {
             self.0
                 .get(sample_name)
                 .map(String::as_str)
@@ -223,8 +217,8 @@ fn load_vcf_multi_population() {
 
     let header = vcf_reader.read_header().unwrap();
 
-    let mut mapper = MapBasedMapper(map);
-    let mut adapter = VCFToPopulationsAdapter::new(&header, None, &mut mapper).unwrap();
+    let mapper = MapBasedMapper(map);
+    let mut adapter = VCFToPopulationsAdapter::new(&header, None, &mapper).unwrap();
 
     for record in vcf_reader.records() {
         let record = record.unwrap();
