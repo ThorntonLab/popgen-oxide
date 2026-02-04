@@ -85,6 +85,17 @@ pub mod vcf {
             'b: 'pop;
     }
 
+    impl<'sample, 'pop, E, T> WhichPopulation<'sample, 'pop, E> for T where
+        T: Fn(&'sample str) -> Result<Cow<'pop, str>, E> {
+        fn which_population<'b>(&'b self, sample_name: &'sample str) -> Result<Cow<'pop, str>, E>
+        where
+            Self: 'pop,
+            'b: 'pop
+        {
+            self(sample_name)
+        }
+    }
+
     impl<'h> VCFToPopulationsAdapter<'h> {
         pub fn new<'map, 'sample, 'pop, W, E>(
             header: &'h Header,

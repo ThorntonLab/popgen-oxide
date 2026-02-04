@@ -257,3 +257,34 @@ fn load_vcf_multi_population() {
         assert_eq!(second_site.total_alleles(), 9);
     }
 }
+
+/// this test is mostly a check that this compiles
+#[test]
+fn load_vcf_multi_population_from_closure() {
+    let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+        .build_from_reader(make_vcf().as_bytes())
+        .unwrap();
+
+    let header = vcf_reader.read_header().unwrap();
+
+    let mut adapter = VCFToPopulationsAdapter::new(&header, None, &|sample: &str| {
+        let numeric_part = sample.split_at(1).1;
+        let parsed = numeric_part.parse::<u8>().unwrap();
+        let ret = match parsed % 2 {
+            0 => Cow::Borrowed("A"),
+            1 => Cow::Borrowed("B"),
+            _ => unreachable!("mod 2 is either 0 or 1"),
+        };
+
+        Ok::<_, ()>(ret)
+    }).unwrap();
+
+    for record in vcf_reader.records() {
+        let record = record.unwrap();
+        adapter.add_record(&record).unwrap();
+    }
+
+    let (population_name_to_idx, counts) = adapter.build();
+    assert_eq!(population_name_to_idx.get("A").unwrap(), &0);
+    assert_eq!(population_name_to_idx.get("B").unwrap(), &1);
+}
