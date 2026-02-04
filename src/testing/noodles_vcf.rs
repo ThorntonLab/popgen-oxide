@@ -202,7 +202,13 @@ fn load_vcf_multi_population() {
     struct MapBasedMapper(HashMap<String, String>);
 
     impl WhichPopulation<()> for MapBasedMapper {
-        fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, ()> {
+        fn which_population<'sample, 'pop>(
+            &self,
+            sample_name: &'sample str,
+        ) -> Result<Cow<'pop, str>, ()>
+        where
+            'pop: 'sample,
+        {
             self.0
                 .get(sample_name)
                 .map(String::as_str)

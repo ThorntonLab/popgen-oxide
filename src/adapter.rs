@@ -78,36 +78,36 @@ pub mod vcf {
         buf_num_samples: Box<[usize]>,
     }
 
-    pub trait WhichPopulation<E> {
-        fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, E>;
-    }
-
-    impl<T, E> WhichPopulation<E> for &mut T
-    where
-        T: WhichPopulation<E>,
-    {
-        fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, E> {
-            (*self).which_population(sample_name)
-        }
+    pub trait WhichPopulation<'sample, 'pop, E> {
+        fn which_population<'s>(
+            self,
+            sample_name: &'sample str,
+        ) -> Result<Cow<'pop, str>, E>
+        where
+            'pop: 'sample;
     }
 
     impl<'h> VCFToPopulationsAdapter<'h> {
-        pub fn new<W, E>(
+        pub fn new<'sample, 'pop, W, E>(
             header: &'h Header,
             ploidy: Option<usize>,
-            mut mapper: W,
+            mapper: W,
         ) -> Result<Self, E>
         where
-            W: WhichPopulation<E>,
+            for<'s> &'s W: WhichPopulation<'sample, 'pop, E>,
+            'h: 'sample,
+            'pop: 'sample,
         {
             let num_samples = header.sample_names().len();
             let mut sample_to_population = Vec::with_capacity(num_samples);
             let mut population_name_to_idx = HashMap::new();
 
+            let ref_mapper = &mapper;
+
             if let ControlFlow::Break(err) =
                 header.sample_names().iter().try_for_each(|sample_name| {
                     sample_to_population.push({
-                        let pop_name = match mapper.which_population(sample_name) {
+                        let pop_name = match ref_mapper.which_population(sample_name) {
                             Ok(name) => name,
                             Err(e) => return ControlFlow::Break(e),
                         };
