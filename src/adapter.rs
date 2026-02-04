@@ -79,24 +79,22 @@ pub mod vcf {
     }
 
     pub trait WhichPopulation<'sample, 'pop, E> {
-        fn which_population<'s>(
-            self,
-            sample_name: &'sample str,
-        ) -> Result<Cow<'pop, str>, E>
+        fn which_population<'b>(&'b self, sample_name: &'sample str) -> Result<Cow<'pop, str>, E>
         where
-            'pop: 'sample;
+            Self: 'pop,
+            'b: 'pop;
     }
 
     impl<'h> VCFToPopulationsAdapter<'h> {
-        pub fn new<'sample, 'pop, W, E>(
+        pub fn new<'map, 'sample, 'pop, W, E>(
             header: &'h Header,
             ploidy: Option<usize>,
-            mapper: W,
+            mapper: &'map W,
         ) -> Result<Self, E>
         where
-            W: WhichPopulation<'sample, 'pop, E> + Clone,
+            W: WhichPopulation<'sample, 'pop, E>,
             'h: 'sample,
-            'pop: 'sample,
+            'map: 'pop,
         {
             let num_samples = header.sample_names().len();
             let mut sample_to_population = Vec::with_capacity(num_samples);
@@ -105,7 +103,7 @@ pub mod vcf {
             if let ControlFlow::Break(err) =
                 header.sample_names().iter().try_for_each(|sample_name| {
                     sample_to_population.push({
-                        let pop_name = match mapper.clone().which_population(sample_name) {
+                        let pop_name = match mapper.which_population(sample_name) {
                             Ok(name) => name,
                             Err(e) => return ControlFlow::Break(e),
                         };
