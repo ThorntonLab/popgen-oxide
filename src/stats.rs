@@ -79,6 +79,36 @@ pub trait SiteComposable: Default + GlobalStatistic {
     fn add_component(&mut self, component: Self::Component);
 }
 
+pub fn windowed<Stat, GetWindow, E>(
+    window_size: i32,
+    stride: i32,
+    start_pos: i32,
+    end_pos: i32,
+    mut get_window: GetWindow,
+) -> Result<Vec<Stat>, E>
+where
+    Stat: SiteComposable,
+    <Stat as SiteComposable>::Component: Send,
+    GetWindow: FnMut(i32, i32) -> Result<MultiSiteCounts, E>,
+{
+    let mut ret = Vec::with_capacity(((end_pos - start_pos + 1) / stride + 1) as usize);
+
+    let mut window_start = start_pos;
+    // parallelize this under some condition
+    while window_start < end_pos {
+        let mut accum = Stat::default();
+        let counts = get_window(window_start, (window_size + stride).min(end_pos))?;
+        for count in counts.iter() {
+            accum.add_component(Stat::component_from(count));
+        }
+
+        ret.push(accum);
+        window_start += stride;
+    }
+
+    Ok(ret)
+}
+
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 ///
 /// This is the sum of [`Pi`] over all sites.
