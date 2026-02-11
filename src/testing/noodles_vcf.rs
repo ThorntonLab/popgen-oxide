@@ -204,7 +204,6 @@ fn load_vcf_multi_population() {
     impl<'sample, 'pop> WhichPopulation<'sample, 'pop, ()> for MapBasedMapper {
         fn which_population<'b>(&'b self, sample_name: &'sample str) -> Result<Cow<'pop, str>, ()>
         where
-            Self: 'pop,
             'b: 'pop,
         {
             self.0

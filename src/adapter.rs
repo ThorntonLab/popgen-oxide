@@ -81,7 +81,6 @@ pub mod vcf {
     pub trait WhichPopulation<'sample, 'pop, E> {
         fn which_population<'b>(&'b self, sample_name: &'sample str) -> Result<Cow<'pop, str>, E>
         where
-            Self: 'pop,
             'b: 'pop;
     }
 
@@ -91,7 +90,6 @@ pub mod vcf {
     {
         fn which_population<'b>(&'b self, sample_name: &'sample str) -> Result<Cow<'pop, str>, E>
         where
-            Self: 'pop,
             'b: 'pop,
         {
             self(sample_name)
