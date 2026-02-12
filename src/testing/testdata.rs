@@ -173,7 +173,7 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
 // types defined in the crate.
 fn multinomial(rng: &mut StdRng, n: usize, coefficients: &[f64]) -> Box<[usize]> {
     let sum: f64 = coefficients.iter().sum();
-    assert!(sum > 0.0);
+    assert!(sum > 0.0, "{coefficients:?}");
     let normalized = coefficients
         .iter()
         .cloned()
