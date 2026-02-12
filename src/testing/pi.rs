@@ -25,7 +25,6 @@ fn pi_from_random_data(seed in 0..u64::MAX,
     let freqs = non_normalized_freqs.into_iter().map(|fi|fi/sum).collect::<Vec<_>>();
     let mut sites = vec![];
     // make num_samples random sites.
-    // No missing data, etc..
     let missing_data_rate = if missing_data_rate_raw > 0.0 {
         Some(crate::testing::testdata::RandomSiteOptions{missing_data_rate:Some(missing_data_rate_raw)})
     } else { None };
