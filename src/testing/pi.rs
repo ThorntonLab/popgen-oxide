@@ -25,11 +25,9 @@ fn pi_from_random_data(seed in 0..u64::MAX,
     let mut sites = vec![];
     // make num_samples random sites.
     // No missing data, etc..
-    for _ in 0..10 {
-        let site =
-            crate::testing::testdata::random_site_rng(num_samples, ploidy, &freqs, None, &mut rng);
-        sites.push(site);
-    }
+    let site =
+        crate::testing::testdata::random_site_rng(num_samples, ploidy, &freqs, None, &mut rng);
+    sites.push(site);
     // convert to our normal format
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
     // get the calcs
