@@ -52,7 +52,11 @@ impl GlobalStatistic for GlobalPi {
         let num_homozygous_pairs: Count = site.counts.iter().map(|count| count * (count - 1)).sum();
 
         self.0 += 1f64 - (num_homozygous_pairs as f64 / num_pairs as f64);
-        Ok(())
+        if self.0.is_nan() {
+            Err(PopgenError::CalculationError)
+        } else {
+            Ok(())
+        }
     }
 
     fn as_raw(&self) -> f64 {
