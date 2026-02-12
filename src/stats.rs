@@ -1,6 +1,6 @@
 use crate::iter::SiteCounts;
 use crate::util::UnorderedPair;
-use crate::{Count, MultiSiteCounts};
+use crate::{Count, MultiSiteCounts, PopgenError};
 use std::cmp::max;
 use std::collections::HashMap;
 
@@ -12,19 +12,24 @@ pub trait SiteStatistic {
 
 /// A statistic calculable from and applicable to a collection of sites/loci.
 pub trait GlobalStatistic {
-    fn from_iter_sites<'counts, I>(iter: I) -> Self
+    fn from_iter_sites<'counts, I>(iter: I) -> Result<Self, PopgenError>
     where
         I: Iterator<Item = SiteCounts<'counts>>,
         Self: Default,
     {
-        let mut ret = Self::default();
-        for site in iter {
-            ret.add_site(site)
+        let mut p = iter.peekable();
+        if p.peek().is_some() {
+            let mut ret = Self::default();
+            for site in p {
+                ret.add_site(site)?
+            }
+            Ok(ret)
+        } else {
+            Err(PopgenError::EmptySiteCounts)
         }
-        ret
     }
 
-    fn add_site(&mut self, site: SiteCounts);
+    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError>;
     fn as_raw(&self) -> f64;
 }
 
@@ -36,7 +41,7 @@ pub trait GlobalStatistic {
 pub struct GlobalPi(f64);
 
 impl GlobalStatistic for GlobalPi {
-    fn add_site(&mut self, site: SiteCounts) {
+    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         // technically should divide both by two here and below but it cancels out
         let num_pairs = {
             let count: i64 = site.counts.iter().sum();
@@ -46,7 +51,8 @@ impl GlobalStatistic for GlobalPi {
         // the number of pairs where the two samples are homozygous, summed over every genotype
         let num_homozygous_pairs: Count = site.counts.iter().map(|count| count * (count - 1)).sum();
 
-        self.0 += 1f64 - (num_homozygous_pairs as f64 / num_pairs as f64)
+        self.0 += 1f64 - (num_homozygous_pairs as f64 / num_pairs as f64);
+        Ok(())
     }
 
     fn as_raw(&self) -> f64 {
@@ -54,8 +60,9 @@ impl GlobalStatistic for GlobalPi {
     }
 }
 
-impl From<&MultiSiteCounts> for GlobalPi {
-    fn from(value: &MultiSiteCounts) -> Self {
+impl TryFrom<&MultiSiteCounts> for GlobalPi {
+    type Error = PopgenError;
+    fn try_from(value: &MultiSiteCounts) -> Result<Self, Self::Error> {
         Self::from_iter_sites(value.iter())
     }
 }
@@ -66,7 +73,7 @@ impl From<&MultiSiteCounts> for GlobalPi {
 pub struct WattersonTheta(f64);
 
 impl GlobalStatistic for WattersonTheta {
-    fn add_site(&mut self, site: SiteCounts) {
+    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         // trying our very hardest to encourage optimization and SIMD here
         // also optimizing with the typical two-element slice in mind
         let mut iter = site.counts.chunks_exact(2);
@@ -92,6 +99,7 @@ impl GlobalStatistic for WattersonTheta {
         } else {
             // then this site isn't actually polymorphic; meh
         }
+        Ok(())
     }
 
     fn as_raw(&self) -> f64 {
@@ -110,13 +118,14 @@ pub struct TajimaD {
 }
 
 impl GlobalStatistic for TajimaD {
-    fn add_site(&mut self, site: SiteCounts) {
-        self.k_hat.add_site(site.clone());
-        self.theta.add_site(site.clone());
+    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+        self.k_hat.add_site(site.clone())?;
+        self.theta.add_site(site.clone())?;
 
         self.num_sites += 1;
         // this is not perfect but that's fine
         self.num_samples = max(self.num_samples, site.total_alleles as usize);
+        Ok(())
     }
 
     fn as_raw(&self) -> f64 {
@@ -183,7 +192,8 @@ impl<'m> F_ST<'m> {
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
     pub(crate) fn add_population(&mut self, population: &'m MultiSiteCounts, weight: f64) {
-        let pi_new_site = GlobalPi::from(population).as_raw();
+        // FIXME: should be fallible
+        let pi_new_site = GlobalPi::try_from(population).unwrap().as_raw();
         self.diversity_within.push(pi_new_site);
 
         self.pi_S.0 += weight * weight * pi_new_site;

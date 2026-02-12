@@ -42,6 +42,6 @@ fn tajima_d() {
 
     let allele_counts = MultiSiteCounts::from_tabular(sites);
 
-    let tajima = TajimaD::from_iter_sites(allele_counts.iter());
+    let tajima = TajimaD::from_iter_sites(allele_counts.iter()).unwrap();
     assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
 }
