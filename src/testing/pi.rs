@@ -1,6 +1,10 @@
 use crate::stats::GlobalPi;
 use crate::stats::GlobalStatistic;
 
+use proptest::collection::vec;
+use proptest::prelude::*;
+
+proptest!(
 // The basic logic here is that we should
 // be able to make random data, convert it
 // to our normal format, and get stats
@@ -9,36 +13,36 @@ use crate::stats::GlobalStatistic;
 // If this is not possible then we have bugs
 // in one of several possible places...
 #[test]
-fn pi_from_random_data() {
+fn pi_from_random_data(seed in 0..u64::MAX, ploidy in 1_usize..10, num_samples in 1_usize..50, f in vec(0_f64..1_f64, 1..10)) {
     use rand::prelude::*;
 
-    let mut rng = StdRng::seed_from_u64(54321);
-    for ploidy in [1, 2, 3, 4] {
-        let freqs = [0.25, 0.5, 0.25]; // fixed allele freqs per site
-        let mut sites = vec![];
-        // make 10 random sites.
-        // No missing data, etc..
-        for _ in 0..10 {
-            let site =
-                crate::testing::testdata::random_site_rng(10, ploidy, &freqs, None, &mut rng);
-            sites.push(site);
-        }
-        // convert to our normal format
-        let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-        // get the calcs
-        let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
-        let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
-        // compare
-        if pi_naive.is_nan() {
-            assert!(pi_from_counts.as_raw().is_nan());
-        } else {
-            assert!(
-                (pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10,
-                "{pi_from_counts:?} != {pi_naive}"
-            );
-        }
+    let mut rng = StdRng::seed_from_u64(seed);
+    let sum = f.iter().sum::<f64>();
+    let freqs = f.into_iter().map(|fi|fi/sum).collect::<Vec<_>>();
+    let mut sites = vec![];
+    // make num_samples random sites.
+    // No missing data, etc..
+    for _ in 0..10 {
+        let site =
+            crate::testing::testdata::random_site_rng(num_samples, ploidy, &freqs, None, &mut rng);
+        sites.push(site);
+    }
+    // convert to our normal format
+    let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
+    // get the calcs
+    let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
+    let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
+    // compare
+    if pi_naive.is_nan() {
+        assert!(pi_from_counts.as_raw().is_nan());
+    } else {
+        assert!(
+            (pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10,
+            "{pi_from_counts:?} != {pi_naive}"
+        );
     }
 }
+);
 
 #[test]
 fn pi_from_random_data_with_missing_data() {

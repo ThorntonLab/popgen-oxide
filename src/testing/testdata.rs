@@ -187,12 +187,18 @@ fn multinomial(rng: &mut StdRng, n: usize, coefficients: &[f64]) -> Box<[usize]>
 
     for allele in 0..rv.len() {
         let p = normalized[allele] / cum;
+        // NOTE: our method of repeated division
+        // can lead to numeric issues taking p
+        // and cum (below) slightly outside
+        // of their [0, 1] range.
+        // We .clamp(..) to address this.
+        let p = p.clamp(0., 1.);
         let b = rand_distr::Binomial::new(nremaining as u64, p).unwrap();
         let ni = b.sample(rng);
         rv[allele] = ni.try_into().unwrap();
         nremaining -= ni as usize;
         cum -= normalized[allele];
-        assert!(cum >= 0.0);
+        cum = cum.clamp(0., 1.);
         if nremaining == 0 {
             break;
         }
