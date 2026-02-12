@@ -13,12 +13,15 @@ proptest!(
 // If this is not possible then we have bugs
 // in one of several possible places...
 #[test]
-fn pi_from_random_data(seed in 0..u64::MAX, ploidy in 1_usize..10, num_samples in 1_usize..50, f in vec(0_f64..1_f64, 1..10)) {
+fn pi_from_random_data(seed in 0..u64::MAX,
+                       ploidy in 1_usize..10,
+                       num_samples in 1_usize..50,
+                       non_normalized_freqs in vec(0_f64..1_f64, 1..10)) {
     use rand::prelude::*;
 
     let mut rng = StdRng::seed_from_u64(seed);
-    let sum = f.iter().sum::<f64>();
-    let freqs = f.into_iter().map(|fi|fi/sum).collect::<Vec<_>>();
+    let sum = non_normalized_freqs.iter().sum::<f64>();
+    let freqs = non_normalized_freqs.into_iter().map(|fi|fi/sum).collect::<Vec<_>>();
     let mut sites = vec![];
     // make num_samples random sites.
     // No missing data, etc..
