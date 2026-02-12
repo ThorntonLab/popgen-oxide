@@ -16,6 +16,7 @@ proptest!(
 fn pi_from_random_data(seed in 0..u64::MAX,
                        ploidy in 1_usize..10,
                        num_samples in 1_usize..50,
+                       missing_data_rate_raw in 0_f64..1.0 - f64::EPSILON,
                        non_normalized_freqs in vec(0_f64..1_f64, 1..10)) {
     use rand::prelude::*;
 
@@ -25,8 +26,11 @@ fn pi_from_random_data(seed in 0..u64::MAX,
     let mut sites = vec![];
     // make num_samples random sites.
     // No missing data, etc..
+    let missing_data_rate = if missing_data_rate_raw > 0.0 {
+        Some(crate::testing::testdata::RandomSiteOptions{missing_data_rate:Some(missing_data_rate_raw)})
+    } else { None};
     let site =
-        crate::testing::testdata::random_site_rng(num_samples, ploidy, &freqs, None, &mut rng);
+        crate::testing::testdata::random_site_rng(num_samples, ploidy, &freqs, missing_data_rate, &mut rng);
     sites.push(site);
     // convert to our normal format
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
