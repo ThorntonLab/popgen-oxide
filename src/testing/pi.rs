@@ -39,9 +39,9 @@ fn pi_from_random_data(seed in 0..u64::MAX,
     let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
     // compare
     if pi_naive.is_nan() {
-        assert!(pi_from_counts.as_raw().is_nan(), "{pi_from_counts:?} {counts:?}");
+        prop_assert!(pi_from_counts.as_raw().is_nan(), "{pi_from_counts:?} {counts:?}");
     } else {
-        assert!(
+        prop_assert!(
             (pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10,
             "{pi_from_counts:?} != {pi_naive}"
         );
