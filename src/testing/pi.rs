@@ -28,7 +28,7 @@ fn pi_from_random_data(seed in 0..u64::MAX,
     // No missing data, etc..
     let missing_data_rate = if missing_data_rate_raw > 0.0 {
         Some(crate::testing::testdata::RandomSiteOptions{missing_data_rate:Some(missing_data_rate_raw)})
-    } else { None};
+    } else { None };
     let site =
         crate::testing::testdata::random_site_rng(num_samples, ploidy, &freqs, missing_data_rate, &mut rng);
     sites.push(site);
