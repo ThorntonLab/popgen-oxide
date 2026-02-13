@@ -195,9 +195,13 @@ pub struct F_ST<'m> {
 impl<'m> F_ST<'m> {
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
-    pub(crate) fn add_population(&mut self, population: &'m MultiSiteCounts, weight: f64) {
+    pub(crate) fn add_population(
+        &mut self,
+        population: &'m MultiSiteCounts,
+        weight: f64,
+    ) -> Result<(), PopgenError> {
         // FIXME: should be fallible
-        let pi_new_site = GlobalPi::try_from(population).unwrap().as_raw();
+        let pi_new_site = GlobalPi::try_from(population)?.as_raw();
         self.diversity_within.push(pi_new_site);
 
         self.pi_S.0 += weight * weight * pi_new_site;
@@ -235,6 +239,7 @@ impl<'m> F_ST<'m> {
             self.pi_B.1 += weight * existing_pop_weight;
         }
         self.populations.push((population, weight));
+        Ok(())
     }
 }
 
