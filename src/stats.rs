@@ -200,7 +200,6 @@ impl<'m> F_ST<'m> {
         population: &'m MultiSiteCounts,
         weight: f64,
     ) -> Result<(), PopgenError> {
-        // FIXME: should be fallible
         let pi_new_site = GlobalPi::try_from(population)?.as_raw();
         self.diversity_within.push(pi_new_site);
 
