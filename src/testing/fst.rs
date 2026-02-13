@@ -73,7 +73,7 @@ fn f_st() {
                 .enumerate()
                 .map(|(i, pop)| {
                     // sum of weight * weight * pi within this population
-                    GlobalPi::from_iter_sites(pop.iter()).as_raw() * (weights[i]).powi(2)
+                    GlobalPi::from_iter_sites(pop.iter()).unwrap().as_raw() * (weights[i]).powi(2)
                 })
                 .sum::<f64>())
         .abs()

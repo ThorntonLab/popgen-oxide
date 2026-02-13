@@ -33,6 +33,8 @@ pub enum PopgenError {
     NegativeCount(Count),
     TotalAllelesDeficient,
     MismatchedSliceLength,
+    EmptySiteCounts,
+    CalculationError,
 }
 
 impl std::fmt::Display for PopgenError {
@@ -49,6 +51,8 @@ impl std::fmt::Display for PopgenError {
             PopgenError::MismatchedSliceLength => {
                 write!(f, "slices were expected to be of the same length")
             }
+            PopgenError::EmptySiteCounts => write!(f, "empty site count data"),
+            PopgenError::CalculationError => write!(f, "calculation produced an invalid value"),
             #[cfg(feature = "tskit")]
             PopgenError::Tskit(e) => write!(f, "tskit error: {}", e),
             #[cfg(feature = "noodles")]

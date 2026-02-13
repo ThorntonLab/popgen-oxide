@@ -29,13 +29,12 @@ fn pi_from_random_data() {
         let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
         let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
         // compare
-        if pi_naive.is_nan() {
-            assert!(pi_from_counts.as_raw().is_nan());
-        } else {
-            assert!(
-                (pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10,
+        match pi_from_counts {
+            Err(_) => assert!(pi_naive.is_nan()),
+            Ok(value) => assert!(
+                (value.as_raw() - pi_naive).abs() <= 1e-10,
                 "{pi_from_counts:?} != {pi_naive}"
-            );
+            ),
         }
     }
 }
@@ -71,11 +70,12 @@ fn pi_from_random_data_with_missing_data() {
             let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
             // compare
             if pi_naive.is_nan() {
-                assert!(pi_from_counts.as_raw().is_nan());
+                assert!(pi_from_counts.is_err(), "{pi_from_counts:?}");
             } else {
+                let pi = pi_from_counts.unwrap();
                 assert!(
-                    (pi_from_counts.as_raw() - pi_naive).abs() <= 1e-10,
-                    "{pi_from_counts:?} != {pi_naive}"
+                    (pi.as_raw() - pi_naive).abs() <= 1e-10,
+                    "{pi:?} != {pi_naive}"
                 );
             }
         }
@@ -99,8 +99,20 @@ fn pi_allele_frequency_of_one() {
                 let counts =
                     crate::testing::testdata::single_pop_counts(&mut std::iter::once(&site));
                 let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
-                assert_eq!(pi_from_counts.as_raw(), 0.);
+                assert_eq!(pi_from_counts.unwrap().as_raw(), 0.);
             }
         }
     }
+}
+
+#[test]
+fn pi_try_from_empty_is_err() {
+    let c = crate::MultiSiteCounts::default();
+    assert!(GlobalPi::try_from(&c).is_err());
+}
+
+#[test]
+fn pi_try_from_iter_empty_is_err() {
+    let c = crate::MultiSiteCounts::default();
+    assert!(GlobalPi::try_from(&c).is_err());
 }
