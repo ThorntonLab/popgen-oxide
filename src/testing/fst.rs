@@ -10,7 +10,7 @@ use std::collections::HashMap;
 fn f_st_empty() {
     fn ok(populations: &MultiPopulationCounts) {
         // this is the one case where these fail; let's make sure that is the case
-        let f_st = populations.f_st_if(|_| None);
+        let f_st = populations.f_st_if(|_| None).unwrap();
         assert_eq!(f_st.pi_S(), None);
         assert_eq!(f_st.pi_B(), None);
         assert_eq!(f_st.pi_D(), None);
@@ -32,7 +32,7 @@ fn f_st() {
         .extend_populations_from_site(|i| (&data[i].0, data[i].1))
         .unwrap();
 
-    let f_st = populations.f_st_if(|i| Some(weights[i]));
+    let f_st = populations.f_st_if(|i| Some(weights[i])).unwrap();
 
     #[allow(non_snake_case)]
     let (pi_B_top, pi_B_bottom) = f_st.pi_B_parts();
@@ -143,7 +143,7 @@ fn f_st_from_random_data() {
                     .unwrap();
             }
 
-            let f_st_from_counts = counts.f_st_if(|i| Some(pop_weights[i]));
+            let f_st_from_counts = counts.f_st_if(|i| Some(pop_weights[i])).unwrap();
             let (pi_total_naive, pi_self_naive, pi_between_naive) =
                 crate::testing::naivecalculations::f_st(
                     &mut pops

@@ -233,16 +233,19 @@ impl MultiPopulationCounts {
     ///
     /// Sub-populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
     /// The newly created struct immutably borrows from `self`.
-    pub fn f_st_if(&'_ self, mut pred: impl FnMut(usize) -> Option<f64>) -> F_ST<'_> {
+    pub fn f_st_if(
+        &'_ self,
+        mut pred: impl FnMut(usize) -> Option<f64>,
+    ) -> Result<F_ST<'_>, PopgenError> {
         let mut ret = F_ST::default();
 
         for pop_i in 0..self.populations.len() {
             if let Some(weight) = pred(pop_i) {
-                ret.add_population(&self.populations[pop_i], weight);
+                ret.add_population(&self.populations[pop_i], weight)?;
             }
         }
 
-        ret
+        Ok(ret)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &MultiSiteCounts> {
