@@ -10,7 +10,7 @@ tskit = { version = "0.15.0-alpha.2", optional = true, features=["bindings"] }
 [dev-dependencies]
 rand = "0.9.0"
 noodles-core = "0.16.0"
-noodles = { version = "0.92.0", features = ["vcf", "csi", "tabix"] }
+noodles = { version = "0.92.0", features = ["vcf", "csi", "tabix", "bgzf"] }
 rand_distr = "0.5.1"
 
 [profile.release]

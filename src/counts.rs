@@ -200,14 +200,18 @@ impl MultiPopulationCounts {
     ///
     /// # Errors
     /// This function will fail **without rollback guarantees** if the provided slices do not match in length.
-    pub fn extend_populations_from_site<'c>(
+    pub fn extend_populations_from_site<Counts>(
         &mut self,
-        mut get_counts: impl FnMut(usize) -> (&'c [Count], usize),
-    ) -> PopgenResult<()> {
+        mut get_counts: impl FnMut(usize) -> (Counts, usize),
+    ) -> PopgenResult<()>
+    where
+        Counts: AsRef<[Count]>,
+    {
         let mut inferred_slice_length = None;
 
         for (population_i, population) in self.populations.iter_mut().enumerate() {
             let (allele_counts, num_samples) = get_counts(population_i);
+            let allele_counts = allele_counts.as_ref();
             if inferred_slice_length.is_some_and(|inf| allele_counts.len() != inf) {
                 return Err(PopgenError::MismatchedSliceLength);
             } else {
