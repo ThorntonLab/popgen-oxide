@@ -168,7 +168,9 @@ fn fst_add_site_from_empty_is_err() {
 
 #[test]
 fn fst_try_from_empty_is_err() {
-    todo!()
+    let c = MultiPopulationCounts::default();
+    let result = c.f_st_if(|_| Some(1.0));
+    assert!(result.is_err(), "{result:?}");
 }
 
 #[test]
