@@ -77,6 +77,12 @@ pub trait SiteComposable: Default + GlobalStatistic {
 
     fn component_from(site: SiteCounts) -> Self::Component;
     fn add_component(&mut self, component: Self::Component);
+    fn from_sites_parallel<'cnt>(sites: impl IntoIterator<Item = SiteCounts<'cnt>>) -> Self
+    where
+        Self::Component: Send,
+    {
+        todo!()
+    }
 }
 
 pub fn windowed<Stat, GetWindow, E>(
@@ -91,15 +97,46 @@ where
     <Stat as SiteComposable>::Component: Send,
     GetWindow: FnMut(i32, i32) -> Result<MultiSiteCounts, E>,
 {
+    let use_add_remove = window_size > stride;
+    let mut intersection = None::<MultiSiteCounts>;
+
     let mut ret = Vec::with_capacity(((end_pos - start_pos + 1) / stride + 1) as usize);
 
     let mut window_start = start_pos;
     // parallelize this under some condition
+
     while window_start < end_pos {
         let mut accum = Stat::default();
-        let counts = get_window(window_start, (window_size + stride).min(end_pos))?;
-        for count in counts.iter() {
-            accum.add_component(Stat::component_from(count));
+        if !use_add_remove {
+            let counts = get_window(window_start, (window_start + window_size).min(end_pos))?;
+            for count in counts.iter() {
+                accum.add_component(Stat::component_from(count));
+            }
+        } else {
+            let new_intersection = get_window(
+                window_start + window_size - stride,
+                window_start + window_size,
+            )?;
+
+            if let Some(ref i) = intersection {
+                let new_part = get_window(window_start + stride, window_start + window_size)?;
+                for count in i.iter() {
+                    accum.add_component(Stat::component_from(count));
+                }
+                for count in new_part.iter() {
+                    accum.add_component(Stat::component_from(count));
+                }
+            } else {
+                let first_part = get_window(window_start, window_start + window_size - stride)?;
+                for count in first_part.iter() {
+                    accum.add_component(Stat::component_from(count));
+                }
+                for count in new_intersection.iter() {
+                    accum.add_component(Stat::component_from(count));
+                }
+            }
+
+            intersection = Some(new_intersection);
         }
 
         ret.push(accum);
