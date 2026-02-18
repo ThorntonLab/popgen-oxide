@@ -98,6 +98,7 @@ where
     GetWindow: FnMut(i32, i32) -> Result<MultiSiteCounts, E>,
 {
     let use_add_remove = window_size > stride;
+    // store vec of component instead
     let mut intersection = None::<MultiSiteCounts>;
 
     let mut ret = Vec::with_capacity(((end_pos - start_pos + 1) / stride + 1) as usize);
