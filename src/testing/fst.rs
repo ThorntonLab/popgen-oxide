@@ -158,3 +158,18 @@ fn f_st_from_random_data() {
         }
     }
 }
+
+#[test]
+fn fst_add_site_from_empty_is_err() {
+    todo!()
+}
+
+#[test]
+fn fst_try_from_empty_is_err() {
+    todo!()
+}
+
+#[test]
+fn fst_try_from_iter_empty_is_err() {
+    todo!()
+}
