@@ -86,16 +86,16 @@ pub trait SiteComposable: Default + GlobalStatistic {
 }
 
 pub fn windowed<Stat, GetWindow, E>(
-    window_size: i32,
-    stride: i32,
-    start_pos: i32,
-    end_pos: i32,
+    window_size: i64,
+    stride: i64,
+    start_pos: i64,
+    end_pos: i64,
     mut get_window: GetWindow,
 ) -> Result<Vec<Stat>, E>
 where
     Stat: SiteComposable,
     <Stat as SiteComposable>::Component: Send,
-    GetWindow: FnMut(i32, i32) -> Result<MultiSiteCounts, E>,
+    GetWindow: FnMut(i64, i64) -> Result<MultiSiteCounts, E>,
 {
     let use_add_remove = window_size > stride;
     // store vec of component instead
