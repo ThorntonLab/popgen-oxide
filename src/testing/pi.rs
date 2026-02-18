@@ -26,7 +26,7 @@ fn pi_from_random_data() {
         // convert to our normal format
         let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
         // get the calcs
-        let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
+        let pi_from_counts = GlobalPi::try_from_iter_sites(counts.iter());
         let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
         // compare
         match pi_from_counts {
@@ -66,7 +66,7 @@ fn pi_from_random_data_with_missing_data() {
             // convert to our normal format
             let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
             // get the calcs
-            let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
+            let pi_from_counts = GlobalPi::try_from_iter_sites(counts.iter());
             let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
             // compare
             if pi_naive.is_nan() {
@@ -98,7 +98,7 @@ fn pi_allele_frequency_of_one() {
                 // convert to our normal format
                 let counts =
                     crate::testing::testdata::single_pop_counts(&mut std::iter::once(&site));
-                let pi_from_counts = GlobalPi::from_iter_sites(counts.iter());
+                let pi_from_counts = GlobalPi::try_from_iter_sites(counts.iter());
                 assert_eq!(pi_from_counts.unwrap().as_raw(), 0.);
             }
         }

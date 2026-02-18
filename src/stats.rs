@@ -12,7 +12,7 @@ pub trait SiteStatistic {
 
 /// A statistic calculable from and applicable to a collection of sites/loci.
 pub trait GlobalStatistic {
-    fn from_iter_sites<'counts, I>(iter: I) -> Result<Self, PopgenError>
+    fn try_from_iter_sites<'counts, I>(iter: I) -> Result<Self, PopgenError>
     where
         I: Iterator<Item = SiteCounts<'counts>>,
         Self: Default,
@@ -67,7 +67,7 @@ impl GlobalStatistic for GlobalPi {
 impl TryFrom<&MultiSiteCounts> for GlobalPi {
     type Error = PopgenError;
     fn try_from(value: &MultiSiteCounts) -> Result<Self, Self::Error> {
-        Self::from_iter_sites(value.iter())
+        Self::try_from_iter_sites(value.iter())
     }
 }
 
@@ -116,7 +116,7 @@ impl GlobalStatistic for WattersonTheta {
 impl TryFrom<&MultiSiteCounts> for WattersonTheta {
     type Error = PopgenError;
     fn try_from(value: &MultiSiteCounts) -> Result<Self, Self::Error> {
-        Self::from_iter_sites(value.iter())
+        Self::try_from_iter_sites(value.iter())
     }
 }
 

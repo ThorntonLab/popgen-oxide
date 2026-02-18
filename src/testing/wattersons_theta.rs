@@ -18,7 +18,7 @@ fn watterson_theta_from_random_data() {
         }
         // convert to our normal format
         let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-        let theta = WattersonTheta::from_iter_sites(counts.iter());
+        let theta = WattersonTheta::try_from_iter_sites(counts.iter());
         let theta_naive = crate::testing::naivecalculations::watterson_theta(&mut sites.iter_mut());
         match theta {
             Err(_) => assert!(theta_naive.is_nan()),
@@ -57,7 +57,7 @@ fn watterson_theta_from_random_data_with_missing_data() {
             // convert to our normal format
             let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
             // get the calcs
-            let theta = WattersonTheta::from_iter_sites(counts.iter());
+            let theta = WattersonTheta::try_from_iter_sites(counts.iter());
             let theta_naive =
                 crate::testing::naivecalculations::watterson_theta(&mut sites.iter_mut());
             // compare
