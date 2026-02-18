@@ -111,6 +111,13 @@ impl GlobalStatistic for WattersonTheta {
     }
 }
 
+impl TryFrom<&MultiSiteCounts> for WattersonTheta {
+    type Error = PopgenError;
+    fn try_from(value: &MultiSiteCounts) -> Result<Self, Self::Error> {
+        Self::from_iter_sites(value.iter())
+    }
+}
+
 /// Tajima's D, as proposed in [Tajima 1989](https://academic.oup.com/genetics/article/123/3/585/5998755?login=false).
 /// See also [Wikipedia](https://en.wikipedia.org/wiki/Tajima%27s_D#Mathematical_details) for the equations restated.
 #[derive(Debug, Copy, Clone, Default)]

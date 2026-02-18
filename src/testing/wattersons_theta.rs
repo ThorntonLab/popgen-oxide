@@ -71,3 +71,15 @@ fn watterson_theta_from_random_data_with_missing_data() {
         }
     }
 }
+
+#[test]
+fn wattherson_theta_try_from_empty_is_err() {
+    let c = crate::MultiSiteCounts::default();
+    assert!(WattersonTheta::try_from(&c).is_err());
+}
+
+#[test]
+fn wattherson_theta_try_from_iter_empty_is_err() {
+    let c = crate::MultiSiteCounts::default();
+    assert!(WattersonTheta::try_from(&c).is_err());
+}
