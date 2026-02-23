@@ -237,6 +237,9 @@ impl MultiPopulationCounts {
         &'_ self,
         mut pred: impl FnMut(usize) -> Option<f64>,
     ) -> Result<F_ST<'_>, PopgenError> {
+        if self.populations.is_empty() {
+            return Err(PopgenError::EmptySiteCounts);
+        }
         let mut ret = F_ST::default();
 
         for pop_i in 0..self.populations.len() {

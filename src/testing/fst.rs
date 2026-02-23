@@ -73,7 +73,8 @@ fn f_st() {
                 .enumerate()
                 .map(|(i, pop)| {
                     // sum of weight * weight * pi within this population
-                    GlobalPi::try_from_iter_sites(pop.iter()).unwrap().as_raw() * (weights[i]).powi(2)
+                    GlobalPi::try_from_iter_sites(pop.iter()).unwrap().as_raw()
+                        * (weights[i]).powi(2)
                 })
                 .sum::<f64>())
         .abs()
@@ -161,7 +162,8 @@ fn f_st_from_random_data() {
 
 #[test]
 fn fst_add_site_from_empty_is_err() {
-    todo!()
+    let counts = MultiPopulationCounts::default();
+    assert!(counts.f_st_if(|_| Some(1.0)).is_err());
 }
 
 #[test]
