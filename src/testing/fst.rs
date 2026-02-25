@@ -165,15 +165,3 @@ fn fst_add_site_from_empty_is_err() {
     let counts = MultiPopulationCounts::default();
     assert!(counts.f_st_if(|_| Some(1.0)).is_err());
 }
-
-#[test]
-fn fst_try_from_empty_is_err() {
-    let c = MultiPopulationCounts::default();
-    let result = c.f_st_if(|_| Some(1.0));
-    assert!(result.is_err(), "{result:?}");
-}
-
-#[test]
-fn fst_try_from_iter_empty_is_err() {
-    todo!()
-}
