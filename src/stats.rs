@@ -28,6 +28,127 @@ pub trait GlobalStatistic {
     fn as_raw(&self) -> f64;
 }
 
+/// A [`GlobalStatistic`], with the following additional guarantees:
+/// - A "component" of the statistic is computable for each site.
+/// - The computation of a component can be done from site data alone and no other context.
+/// - The statistic can be computed over some number of sites by performing some composition operation
+///   over zero or more components.
+/// - This composition remains correct under reordering (commutation and association).
+///
+/// It is also possible to implement this trait if a sufficient *portion* of computation can be done
+/// under the above conditions.
+/// Such types can use [`GlobalStatistic::as_raw`] to perform inexpensive finalizing computations
+/// if needed.
+/// For an example of this use case, see [`TajimaD`].
+///
+/// Types which implement this trait may also use it to easily implement [`GlobalStatistic::add_site`]:
+/// ```
+/// use popgen::iter::SiteCounts;
+/// use popgen::stats::{GlobalStatistic, SiteComposable};
+///
+/// // a very simple statistic
+/// #[derive(Default)]  // to define the result over 0 sites
+/// struct NumSites(u64);
+///
+/// impl SiteComposable for NumSites {
+///     type Component = u64;
+///
+///     fn component_from(site: SiteCounts) -> Self::Component {
+///         1
+///     }
+///
+///     fn add_component(&mut self, component: Self::Component) {
+///         self.0 += component;
+///     }
+/// }
+///
+/// impl GlobalStatistic for NumSites {
+///     fn add_site(&mut self, site: SiteCounts) {
+///         self.add_component(Self::component_from(site))
+///     }
+///
+///     fn as_raw(&self) -> f64 {
+///         self.0 as f64
+///     }
+/// }
+/// ```
+pub trait SiteComposable: Default + GlobalStatistic {
+    type Component;
+
+    fn component_from(site: SiteCounts) -> Self::Component;
+    fn add_component(&mut self, component: Self::Component);
+    fn from_sites_parallel<'cnt>(sites: impl IntoIterator<Item = SiteCounts<'cnt>>) -> Self
+    where
+        Self::Component: Send,
+    {
+        todo!()
+    }
+}
+
+pub fn windowed<Stat, GetWindow, E>(
+    window_size: i64,
+    stride: i64,
+    start_pos: i64,
+    end_pos: i64,
+    mut get_window: GetWindow,
+) -> Result<Vec<Stat>, E>
+where
+    Stat: SiteComposable,
+    <Stat as SiteComposable>::Component: Clone + Send,
+    GetWindow: FnMut(i64, i64) -> Result<MultiSiteCounts, E>,
+{
+    let use_add_remove = window_size > stride;
+    let mut intersection_components = None::<Vec<Stat::Component>>;
+
+    let mut ret = Vec::with_capacity(((end_pos - start_pos + 1) / stride + 1) as usize);
+
+    let mut window_start = start_pos;
+    // TODO: parallelize this under some condition
+
+    while window_start < end_pos {
+        let mut accum = Stat::default();
+        if !use_add_remove {
+            let counts = get_window(window_start, (window_start + window_size).min(end_pos))?;
+            for count in counts.iter() {
+                accum.add_component(Stat::component_from(count));
+            }
+        } else {
+            let new_intersection = get_window(
+                window_start + window_size - stride,
+                window_start + window_size,
+            )?
+            .iter()
+            .map(Stat::component_from)
+            .collect::<Vec<_>>();
+
+            if let Some(ref comps) = intersection_components {
+                let new_part = get_window(window_start + stride, window_start + window_size)?;
+                for comp in comps.iter() {
+                    accum.add_component(comp.clone());
+                }
+                for count in new_part.iter() {
+                    accum.add_component(Stat::component_from(count));
+                }
+            } else {
+                let first_part = get_window(window_start, window_start + window_size - stride)?;
+                for count in first_part.iter() {
+                    accum.add_component(Stat::component_from(count));
+                }
+                for comp in new_intersection.iter() {
+                    accum.add_component(comp.clone());
+                }
+            }
+
+            intersection_components = Some(new_intersection);
+        }
+
+        ret.push(accum);
+        window_start += stride;
+    }
+
+    Ok(ret)
+}
+
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 ///
 /// This is the sum of [`Pi`] over all sites.
@@ -37,6 +158,18 @@ pub struct GlobalPi(f64);
 
 impl GlobalStatistic for GlobalPi {
     fn add_site(&mut self, site: SiteCounts) {
+        self.add_component(Self::component_from(site))
+    }
+
+    fn as_raw(&self) -> f64 {
+        self.0
+    }
+}
+
+impl SiteComposable for GlobalPi {
+    type Component = f64;
+
+    fn component_from(site: SiteCounts) -> f64 {
         // technically should divide both by two here and below but it cancels out
         let num_pairs = {
             let count: i64 = site.counts.iter().sum();
@@ -45,12 +178,11 @@ impl GlobalStatistic for GlobalPi {
 
         // the number of pairs where the two samples are homozygous, summed over every genotype
         let num_homozygous_pairs: Count = site.counts.iter().map(|count| count * (count - 1)).sum();
-
-        self.0 += 1f64 - (num_homozygous_pairs as f64 / num_pairs as f64)
+        1f64 - (num_homozygous_pairs as f64 / num_pairs as f64)
     }
 
-    fn as_raw(&self) -> f64 {
-        self.0
+    fn add_component(&mut self, component: Self::Component) {
+        self.0 += component;
     }
 }
 
@@ -67,6 +199,18 @@ pub struct WattersonTheta(f64);
 
 impl GlobalStatistic for WattersonTheta {
     fn add_site(&mut self, site: SiteCounts) {
+        self.add_component(Self::component_from(site))
+    }
+
+    fn as_raw(&self) -> f64 {
+        self.0
+    }
+}
+
+impl SiteComposable for WattersonTheta {
+    type Component = f64;
+
+    fn component_from(site: SiteCounts) -> Self::Component {
         // trying our very hardest to encourage optimization and SIMD here
         // also optimizing with the typical two-element slice in mind
         let mut iter = site.counts.chunks_exact(2);
@@ -88,14 +232,15 @@ impl GlobalStatistic for WattersonTheta {
 
         if num_variants > 1 {
             let harmonic = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
-            self.0 += (num_variants - 1) as f64 / harmonic;
+            (num_variants - 1) as f64 / harmonic
         } else {
             // then this site isn't actually polymorphic; meh
+            0f64
         }
     }
 
-    fn as_raw(&self) -> f64 {
-        self.0
+    fn add_component(&mut self, component: Self::Component) {
+        self.0 += component;
     }
 }
 
@@ -111,12 +256,7 @@ pub struct TajimaD {
 
 impl GlobalStatistic for TajimaD {
     fn add_site(&mut self, site: SiteCounts) {
-        self.k_hat.add_site(site.clone());
-        self.theta.add_site(site.clone());
-
-        self.num_sites += 1;
-        // this is not perfect but that's fine
-        self.num_samples = max(self.num_samples, site.total_alleles as usize);
+        self.add_component(Self::component_from(site))
     }
 
     fn as_raw(&self) -> f64 {
@@ -156,6 +296,32 @@ impl GlobalStatistic for TajimaD {
         #[allow(non_snake_case)]
         let D = d / (e_1 * S + e_2 * S * (S - 1.)).sqrt();
         D
+    }
+}
+
+impl SiteComposable for TajimaD {
+    // (k_hat, theta, total_alleles)
+    type Component = (f64, f64, usize);
+
+    fn component_from(site: SiteCounts) -> Self::Component {
+        let k_hat_component = GlobalPi::component_from(site.clone());
+        let theta_component = WattersonTheta::component_from(site.clone());
+
+        (
+            k_hat_component,
+            theta_component,
+            site.total_alleles() as usize,
+        )
+    }
+
+    fn add_component(&mut self, component: Self::Component) {
+        let (k_hat_component, theta_component, total_alleles) = component;
+        self.k_hat.add_component(k_hat_component);
+        self.theta.add_component(theta_component);
+
+        self.num_sites += 1;
+        // this is not perfect but that's fine
+        self.num_samples = max(self.num_samples, total_alleles);
     }
 }
 
