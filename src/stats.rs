@@ -103,7 +103,7 @@ where
     let mut ret = Vec::with_capacity(((end_pos - start_pos + 1) / stride + 1) as usize);
 
     let mut window_start = start_pos;
-    // parallelize this under some condition
+    // TODO: parallelize this under some condition
 
     while window_start < end_pos {
         let mut accum = Stat::default();
