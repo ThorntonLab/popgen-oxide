@@ -94,12 +94,11 @@ pub fn windowed<Stat, GetWindow, E>(
 ) -> Result<Vec<Stat>, E>
 where
     Stat: SiteComposable,
-    <Stat as SiteComposable>::Component: Send,
+    <Stat as SiteComposable>::Component: Clone + Send,
     GetWindow: FnMut(i64, i64) -> Result<MultiSiteCounts, E>,
 {
     let use_add_remove = window_size > stride;
-    // store vec of component instead
-    let mut intersection = None::<MultiSiteCounts>;
+    let mut intersection_components = None::<Vec<Stat::Component>>;
 
     let mut ret = Vec::with_capacity(((end_pos - start_pos + 1) / stride + 1) as usize);
 
@@ -117,12 +116,15 @@ where
             let new_intersection = get_window(
                 window_start + window_size - stride,
                 window_start + window_size,
-            )?;
+            )?
+            .iter()
+            .map(Stat::component_from)
+            .collect::<Vec<_>>();
 
-            if let Some(ref i) = intersection {
+            if let Some(ref comps) = intersection_components {
                 let new_part = get_window(window_start + stride, window_start + window_size)?;
-                for count in i.iter() {
-                    accum.add_component(Stat::component_from(count));
+                for comp in comps.iter() {
+                    accum.add_component(comp.clone());
                 }
                 for count in new_part.iter() {
                     accum.add_component(Stat::component_from(count));
@@ -132,12 +134,12 @@ where
                 for count in first_part.iter() {
                     accum.add_component(Stat::component_from(count));
                 }
-                for count in new_intersection.iter() {
-                    accum.add_component(Stat::component_from(count));
+                for comp in new_intersection.iter() {
+                    accum.add_component(comp.clone());
                 }
             }
 
-            intersection = Some(new_intersection);
+            intersection_components = Some(new_intersection);
         }
 
         ret.push(accum);
