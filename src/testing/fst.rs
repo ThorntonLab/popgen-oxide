@@ -16,7 +16,8 @@ fn f_st_empty() {
         assert_eq!(f_st.pi_D(), None);
     }
 
-    ok(&MultiPopulationCounts::of_empty_populations(0));
+    // NOTE: we don't test 0 here because that is an
+    // Err and is tested elsewhere
     ok(&MultiPopulationCounts::of_empty_populations(1));
     ok(&MultiPopulationCounts::of_empty_populations(5));
 }
