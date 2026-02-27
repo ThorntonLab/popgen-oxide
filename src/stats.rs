@@ -12,6 +12,14 @@ pub trait SiteStatistic {
 
 /// A statistic calculable from and applicable to a collection of sites/loci.
 pub trait GlobalStatistic {
+    /// Instantiate a `Self` from an iterator over [`SiteCounts`].
+    ///
+    /// The implementation depends on [`GlobalStatistic::add_site`].
+    ///
+    /// # Error
+    ///
+    /// * If the iterator is empty, return [`PopgenError::EmptySiteCounts`]
+    /// * See [`GlobalStatistic::add_site`] for other error conditions.
     fn try_from_iter_sites<'counts, I>(iter: I) -> Result<Self, PopgenError>
     where
         I: Iterator<Item = SiteCounts<'counts>>,
@@ -29,6 +37,17 @@ pub trait GlobalStatistic {
         }
     }
 
+    /// Update the value of a statistic from a [`SiteCounts`]
+    ///
+    /// # Error
+    ///
+    /// * Implementations should return [`PopgenError::CalculationError`]
+    ///   if updating results in an invalid value.
+    ///
+    /// # Notes
+    ///
+    /// In general, one cannot assume that an update can be rolled
+    /// back in the event of an error.
     fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError>;
     fn as_raw(&self) -> f64;
 }
