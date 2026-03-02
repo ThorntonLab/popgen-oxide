@@ -116,10 +116,6 @@ impl GlobalStatistic for WattersonTheta {
             total_samples += c;
         });
 
-        if num_variants == 0 {
-            return Err(PopgenError::EmptySiteCounts);
-        }
-
         if num_variants != 1 {
             let harmonic = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
             self.0 += (num_variants - 1) as f64 / harmonic;
