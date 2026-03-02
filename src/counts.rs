@@ -90,6 +90,7 @@ impl MultiSiteCounts {
     /// # Errors
     /// - If any element in `counts` is negative.
     /// - If `total_alleles` is less than the sum of elements of `counts`.
+    /// - If `counts` is empty.
     ///
     /// If either error occurs, the underlying struct has not been modified.
     pub fn add_site_from_counts(
