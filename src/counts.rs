@@ -98,6 +98,9 @@ impl MultiSiteCounts {
         total_alleles: i32,
     ) -> PopgenResult<()> {
         let counts = counts.as_ref();
+        if counts.is_empty() {
+            return Err(PopgenError::EmptySiteCounts);
+        }
 
         if let Some(bad) = counts.iter().find(|&c| c < &0) {
             return Err(PopgenError::NegativeCount(*bad));
