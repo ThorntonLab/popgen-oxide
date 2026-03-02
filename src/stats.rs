@@ -48,6 +48,13 @@ pub trait GlobalStatistic {
     ///
     /// In general, one cannot assume that an update can be rolled
     /// back in the event of an error.
+    ///
+    /// [`MultiSiteCounts`] and [`crate::MultiPopulationCounts`] are designed
+    /// such that `site` cannot contain empty data. However, it is valuable
+    /// for implementations of this function to at least do the following:
+    /// ```rust
+    /// debug_assert!(!site.counts().is_empty());
+    /// ```
     fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError>;
     fn as_raw(&self) -> f64;
 }
