@@ -61,6 +61,7 @@ pub struct GlobalPi(f64);
 
 impl GlobalStatistic for GlobalPi {
     fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+        debug_assert!(!site.counts().is_empty());
         // technically should divide both by two here and below but it cancels out
         let num_pairs = {
             let count: i64 = site.counts.iter().sum();
@@ -97,6 +98,7 @@ pub struct WattersonTheta(f64);
 
 impl GlobalStatistic for WattersonTheta {
     fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+        debug_assert!(!site.counts().is_empty());
         // trying our very hardest to encourage optimization and SIMD here
         // also optimizing with the typical two-element slice in mind
         let mut iter = site.counts.chunks_exact(2);
@@ -147,6 +149,7 @@ pub struct TajimaD {
 
 impl GlobalStatistic for TajimaD {
     fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+        debug_assert!(!site.counts().is_empty());
         self.k_hat.add_site(site.clone())?;
         self.theta.add_site(site.clone())?;
 
