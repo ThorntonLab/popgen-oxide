@@ -90,6 +90,7 @@ impl MultiSiteCounts {
     /// # Errors
     /// - If any element in `counts` is negative.
     /// - If `total_alleles` is less than the sum of elements of `counts`.
+    /// - If `counts` is empty.
     ///
     /// If either error occurs, the underlying struct has not been modified.
     pub fn add_site_from_counts(
@@ -98,6 +99,9 @@ impl MultiSiteCounts {
         total_alleles: i32,
     ) -> PopgenResult<()> {
         let counts = counts.as_ref();
+        if counts.is_empty() || total_alleles == 0 {
+            return Err(PopgenError::EmptySiteCounts);
+        }
 
         if let Some(bad) = counts.iter().find(|&c| c < &0) {
             return Err(PopgenError::NegativeCount(*bad));
@@ -233,16 +237,22 @@ impl MultiPopulationCounts {
     ///
     /// Sub-populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
     /// The newly created struct immutably borrows from `self`.
-    pub fn f_st_if(&'_ self, mut pred: impl FnMut(usize) -> Option<f64>) -> F_ST<'_> {
+    pub fn f_st_if(
+        &'_ self,
+        mut pred: impl FnMut(usize) -> Option<f64>,
+    ) -> Result<F_ST<'_>, PopgenError> {
+        if self.populations.is_empty() {
+            return Err(PopgenError::EmptySiteCounts);
+        }
         let mut ret = F_ST::default();
 
         for pop_i in 0..self.populations.len() {
             if let Some(weight) = pred(pop_i) {
-                ret.add_population(&self.populations[pop_i], weight);
+                ret.add_population(&self.populations[pop_i], weight)?;
             }
         }
 
-        ret
+        Ok(ret)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &MultiSiteCounts> {

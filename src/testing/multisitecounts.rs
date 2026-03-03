@@ -82,6 +82,13 @@ fn bad_site_negative_count() {
 
 #[test]
 #[should_panic]
+fn bad_site_empty_count() {
+    let mut counts = MultiSiteCounts::default();
+    counts.add_site_from_counts([], 100).unwrap();
+}
+
+#[test]
+#[should_panic]
 fn bad_site_deficient_total() {
     let mut counts = MultiSiteCounts::default();
 
