@@ -17,20 +17,23 @@ fn pi_from_random_data(seed in 0..u64::MAX,
                        ploidy in 1_usize..10,
                        num_samples in 1_usize..50,
                        missing_data_rate_raw in 0_f64..1.0 - f64::EPSILON,
-                       non_normalized_freqs in vec(f64::EPSILON..1_f64, 1..10)) {
+                       num_sites in 1_usize..10,
+                       non_normalized_freqs in vec(vec(f64::EPSILON..1_f64, 1..10), 10)) {
     use rand::prelude::*;
 
     let mut rng = StdRng::seed_from_u64(seed);
-    let sum = non_normalized_freqs.iter().sum::<f64>();
-    let freqs = non_normalized_freqs.into_iter().map(|fi|fi/sum).collect::<Vec<_>>();
     let mut sites = vec![];
     // make num_samples random sites.
-    let missing_data_rate = if missing_data_rate_raw > 0.0 {
-        Some(crate::testing::testdata::RandomSiteOptions{missing_data_rate:Some(missing_data_rate_raw)})
-    } else { None };
-    let site =
-        crate::testing::testdata::random_site_rng(num_samples, ploidy, &freqs, missing_data_rate, &mut rng);
-    sites.push(site);
+    for site_index in 0..num_sites{
+    let sum = non_normalized_freqs[site_index].iter().sum::<f64>();
+    let freqs = non_normalized_freqs[site_index].iter().map(|fi|fi/sum).collect::<Vec<_>>();
+        let missing_data_rate = if missing_data_rate_raw > 0.0 {
+            Some(crate::testing::testdata::RandomSiteOptions{missing_data_rate:Some(missing_data_rate_raw)})
+        } else { None };
+        let site =
+            crate::testing::testdata::random_site_rng(num_samples, ploidy, &freqs, missing_data_rate, &mut rng);
+        sites.push(site);
+    }
     // convert to our normal format
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
     // get the calcs
@@ -41,7 +44,7 @@ fn pi_from_random_data(seed in 0..u64::MAX,
        Err(_) => assert!(pi_naive.is_nan()),
        Ok(value) => assert!(
            (value.as_raw() - pi_naive).abs() <= 1e-10,
-           "{pi_from_counts:?} != {pi_naive}"
+           "{pi_from_counts:?} != {pi_naive} {counts:?}"
        ),
     }
 }
