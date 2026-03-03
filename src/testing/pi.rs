@@ -24,9 +24,10 @@ fn pi_from_random_data(seed in 0..u64::MAX,
     let mut rng = StdRng::seed_from_u64(seed);
     let mut sites = vec![];
     // make num_samples random sites.
-    for site_index in 0..num_sites{
-    let sum = non_normalized_freqs[site_index].iter().sum::<f64>();
-    let freqs = non_normalized_freqs[site_index].iter().map(|fi|fi/sum).collect::<Vec<_>>();
+    for nnf in non_normalized_freqs.iter().take(num_sites) {
+
+    let sum = nnf.iter().sum::<f64>();
+    let freqs = nnf.iter().map(|fi|fi/sum).collect::<Vec<_>>();
         let missing_data_rate = if missing_data_rate_raw > 0.0 {
             Some(crate::testing::testdata::RandomSiteOptions{missing_data_rate:Some(missing_data_rate_raw)})
         } else { None };
@@ -45,6 +46,7 @@ fn pi_from_random_data(seed in 0..u64::MAX,
         if !all_empty{
         sites.push(site);
         }
+
     }
     // convert to our normal format
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
