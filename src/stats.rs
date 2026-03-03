@@ -92,13 +92,6 @@ impl GlobalStatistic for GlobalPi {
     }
 }
 
-impl TryFrom<&MultiSiteCounts> for GlobalPi {
-    type Error = PopgenError;
-    fn try_from(value: &MultiSiteCounts) -> Result<Self, Self::Error> {
-        Self::try_from_iter_sites(value.iter())
-    }
-}
-
 /// Watterson's theta: see [Watterson's article](https://doi.org/10.1016%2F0040-5809%2875%2990020-9) and [Wikipedia](https://en.wikipedia.org/wiki/Watterson_estimator)
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
@@ -135,13 +128,6 @@ impl GlobalStatistic for WattersonTheta {
 
     fn as_raw(&self) -> f64 {
         self.0
-    }
-}
-
-impl TryFrom<&MultiSiteCounts> for WattersonTheta {
-    type Error = PopgenError;
-    fn try_from(value: &MultiSiteCounts) -> Result<Self, Self::Error> {
-        Self::try_from_iter_sites(value.iter())
     }
 }
 
@@ -235,7 +221,7 @@ impl<'m> F_ST<'m> {
         population: &'m MultiSiteCounts,
         weight: f64,
     ) -> Result<(), PopgenError> {
-        let pi_new_site = GlobalPi::try_from(population)?.as_raw();
+        let pi_new_site = GlobalPi::try_from_iter_sites(population.iter())?.as_raw();
         self.diversity_within.push(pi_new_site);
 
         self.pi_S.0 += weight * weight * pi_new_site;
