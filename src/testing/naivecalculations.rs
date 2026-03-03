@@ -39,15 +39,10 @@ fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
 
 // O(N^2) implementation of the Nei/Tajima diversity measure.
 pub fn pi<'s>(sites: impl Iterator<Item = &'s Site>) -> f64 {
-    let mut num_sites = 0;
-    let rv = sites
-        .map(|s| {
-            num_sites += 1;
-            pi_site(&mut s.iter().cloned())
-        })
-        .sum::<f64>();
-    if num_sites > 0 {
-        rv
+    let sites = sites.cloned();
+    let mut sites = sites.peekable();
+    if sites.peek().is_some() {
+        sites.map(|s| pi_site(&mut s.iter().cloned())).sum::<f64>()
     } else {
         f64::NAN
     }
