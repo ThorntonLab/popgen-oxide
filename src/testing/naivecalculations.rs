@@ -22,6 +22,7 @@ fn pairwise_diffs(alleles: &[usize]) -> (i64, i64) {
             num_comparisons += 1;
         }
     }
+    println!("{num_differences} {num_comparisons} {alleles:?}");
     if !alleles.is_empty() {
         assert_eq!(
             num_comparisons as usize,
