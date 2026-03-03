@@ -22,7 +22,6 @@ fn pairwise_diffs(alleles: &[usize]) -> (i64, i64) {
             num_comparisons += 1;
         }
     }
-    println!("{num_differences} {num_comparisons} {alleles:?}");
     if !alleles.is_empty() {
         assert_eq!(
             num_comparisons as usize,
@@ -40,7 +39,18 @@ fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
 
 // O(N^2) implementation of the Nei/Tajima diversity measure.
 pub fn pi<'s>(sites: &'s mut dyn Iterator<Item = &'s mut Site>) -> f64 {
-    sites.map(|s| pi_site(&mut s.iter().cloned())).sum::<f64>()
+    let mut num_sites = 0;
+    let rv = sites
+        .map(|s| {
+            num_sites += 1;
+            pi_site(&mut s.iter().cloned())
+        })
+        .sum::<f64>();
+    if num_sites > 0 {
+        rv
+    } else {
+        f64::NAN
+    }
 }
 
 fn watterson_theta_denominator(n: usize) -> f64 {
