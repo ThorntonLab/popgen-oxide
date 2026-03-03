@@ -99,7 +99,7 @@ impl MultiSiteCounts {
         total_alleles: i32,
     ) -> PopgenResult<()> {
         let counts = counts.as_ref();
-        if counts.is_empty() {
+        if counts.is_empty() || total_alleles == 0 {
             return Err(PopgenError::EmptySiteCounts);
         }
 
