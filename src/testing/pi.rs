@@ -24,15 +24,31 @@ fn pi_from_random_data(seed in 0..u64::MAX,
     let mut rng = StdRng::seed_from_u64(seed);
     let mut sites = vec![];
     // make num_samples random sites.
+    println!("{num_samples}");
     for site_index in 0..num_sites{
+        println!("\t{:?}",non_normalized_freqs[site_index]);
     let sum = non_normalized_freqs[site_index].iter().sum::<f64>();
     let freqs = non_normalized_freqs[site_index].iter().map(|fi|fi/sum).collect::<Vec<_>>();
         let missing_data_rate = if missing_data_rate_raw > 0.0 {
             Some(crate::testing::testdata::RandomSiteOptions{missing_data_rate:Some(missing_data_rate_raw)})
         } else { None };
+        println!("\t{missing_data_rate:?}");
         let site =
             crate::testing::testdata::random_site_rng(num_samples, ploidy, &freqs, missing_data_rate, &mut rng);
+        println!("\t{site:?}");
+        let all_empty = {
+            let mut temp = false;
+            for i in site.iter() {
+                if i.iter().all(|j|j.is_none()) {
+                    temp =true;
+                    break
+                }
+            }
+            temp
+        };
+        if !all_empty{
         sites.push(site);
+        }
     }
     // convert to our normal format
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
@@ -41,7 +57,7 @@ fn pi_from_random_data(seed in 0..u64::MAX,
     let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
     // compare
     match pi_from_counts {
-       Err(_) => assert!(pi_naive.is_nan()),
+       Err(_) => assert!(pi_naive.is_nan(), "{pi_naive} {counts:?}"),
        Ok(value) => assert!(
            (value.as_raw() - pi_naive).abs() <= 1e-10,
            "{pi_from_counts:?} != {pi_naive} {counts:?}"

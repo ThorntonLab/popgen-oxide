@@ -87,7 +87,7 @@ impl Site {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct RandomSiteOptions {
     pub(super) missing_data_rate: Option<f64>,
 }
