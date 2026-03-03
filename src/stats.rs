@@ -16,10 +16,11 @@ pub trait GlobalStatistic {
     ///
     /// The implementation depends on [`GlobalStatistic::add_site`].
     ///
-    /// # Error
+    /// # Errors
     ///
-    /// * If the iterator is empty, return [`PopgenError::EmptySiteCounts`]
-    /// * See [`GlobalStatistic::add_site`] for other error conditions.
+    /// * If the iterator is empty, implementors may return [`PopgenError::EmptySiteCounts`],
+    /// because many statistics are not meaningfully defined over 0 sites.
+    /// * Any error resulting from adding a single site ([`Self::add_site`]) may also be raised.
     fn try_from_iter_sites<'counts, I>(iter: I) -> Result<Self, PopgenError>
     where
         I: Iterator<Item = SiteCounts<'counts>>,
@@ -39,7 +40,7 @@ pub trait GlobalStatistic {
 
     /// Update the value of a statistic from a [`SiteCounts`]
     ///
-    /// # Error
+    /// # Errors
     ///
     /// * Implementations should return [`PopgenError::CalculationError`]
     ///   if updating results in an invalid value.
