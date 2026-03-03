@@ -38,7 +38,7 @@ fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
 }
 
 // O(N^2) implementation of the Nei/Tajima diversity measure.
-pub fn pi<'s>(sites: &'s mut dyn Iterator<Item = &'s mut Site>) -> f64 {
+pub fn pi<'s>(sites: impl Iterator<Item = &'s Site>) -> f64 {
     let mut num_sites = 0;
     let rv = sites
         .map(|s| {
@@ -119,7 +119,7 @@ where
 
     let pi_ii = populations
         .iter_mut()
-        .map(|pop| pi(&mut pop.iter_mut()))
+        .map(|pop| pi(pop.iter()))
         .collect::<Vec<_>>();
 
     let mut pi_ij_computed = vec![vec![None; populations.len()]; populations.len()];

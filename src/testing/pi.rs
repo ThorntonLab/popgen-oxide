@@ -50,7 +50,7 @@ fn pi_from_random_data(seed in 0..u64::MAX,
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
     // get the calcs
     let pi_from_counts = GlobalPi::try_from_iter_sites(counts.iter());
-    let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
+    let pi_naive = crate::testing::naivecalculations::pi(sites.iter());
     // compare
     match pi_from_counts {
        Err(_) => assert!(pi_naive.is_nan(), "{pi_naive} {counts:?}"),
@@ -90,7 +90,7 @@ fn pi_from_random_data_with_missing_data() {
             let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
             // get the calcs
             let pi_from_counts = GlobalPi::try_from_iter_sites(counts.iter());
-            let pi_naive = crate::testing::naivecalculations::pi(&mut sites.iter_mut());
+            let pi_naive = crate::testing::naivecalculations::pi(sites.iter());
             // compare
             if pi_naive.is_nan() {
                 assert!(pi_from_counts.is_err(), "{pi_from_counts:?}");
