@@ -106,13 +106,7 @@ fn pi_allele_frequency_of_one() {
 }
 
 #[test]
-fn pi_try_from_empty_is_err() {
-    let c = crate::MultiSiteCounts::default();
-    assert!(GlobalPi::try_from(&c).is_err());
-}
-
-#[test]
 fn pi_try_from_iter_empty_is_err() {
     let c = crate::MultiSiteCounts::default();
-    assert!(GlobalPi::try_from(&c).is_err());
+    assert!(GlobalPi::try_from_iter_sites(c.iter()).is_err());
 }
