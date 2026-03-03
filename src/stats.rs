@@ -19,7 +19,7 @@ pub trait GlobalStatistic {
     /// # Errors
     ///
     /// * If the iterator is empty, implementors may return [`PopgenError::EmptySiteCounts`],
-    /// because many statistics are not meaningfully defined over 0 sites.
+    ///   because many statistics are not meaningfully defined over 0 sites.
     /// * Any error resulting from adding a single site ([`Self::add_site`]) may also be raised.
     fn try_from_iter_sites<'counts, I>(iter: I) -> Result<Self, PopgenError>
     where
