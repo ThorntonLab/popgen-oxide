@@ -32,18 +32,8 @@ fn pi_from_random_data(seed in 0..u64::MAX,
         } else { None };
         let site =
             crate::testing::testdata::random_site_rng(num_samples, ploidy, &freqs, missing_data_rate, &mut rng);
-        let all_empty = {
-            let mut temp = false;
-            for i in site.iter() {
-                if i.iter().all(|j|j.is_none()) {
-                    temp =true;
-                    break
-                }
-            }
-            temp
-        };
-        if !all_empty{
-        sites.push(site);
+        if !site.iter().flat_map(|i|i.iter()).all(|i|i.is_none()){
+            sites.push(site);
         }
     }
     // convert to our normal format
