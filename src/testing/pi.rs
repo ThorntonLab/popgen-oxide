@@ -25,7 +25,6 @@ fn pi_from_random_data(
 
     let mut rng = StdRng::seed_from_u64(seed);
     let mut sites = vec![];
-    // make num_samples random sites.
     for nnf in non_normalized_freqs.iter().take(num_sites) {
         let sum = nnf.iter().sum::<f64>();
         let freqs = nnf.iter().map(|fi| fi / sum).collect::<Vec<_>>();
