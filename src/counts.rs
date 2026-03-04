@@ -85,8 +85,8 @@ impl MultiSiteCounts {
             counts_this_site[allele_id_under] += 1;
         }
 
-        // this is still panic-safe because counts formed from actual data in this way
-        // are always sound
+        // we should not get NegativeCount or TotalAllelesDeficient here (could check that),
+        // but we certainly could get other error variants
         self.add_site_from_counts(counts_this_site, total_alleles)
     }
 
