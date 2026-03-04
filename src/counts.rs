@@ -58,7 +58,11 @@ impl MultiSiteCounts {
         from_tree_sequence::try_from_tree_sequence(ts, options)
     }
 
-    pub fn add_site<Samples>(&mut self, samples: Samples)
+    /// Add a site from an iterator of potentially missing allele IDs.
+    /// # Errors
+    /// - If `samples` is empty.
+    /// - If `samples` contains no present data (i.e. only ever yields `None`).
+    pub fn add_site<Samples>(&mut self, samples: Samples) -> PopgenResult<()>
     where
         Samples: IntoIterator<Item = Option<AlleleID>>,
     {
@@ -81,7 +85,6 @@ impl MultiSiteCounts {
         // this is still panic-safe because counts formed from actual data in this way
         // are always sound
         self.add_site_from_counts(counts_this_site, total_alleles)
-            .unwrap();
     }
 
     /// Add a site with counts of present alleles as described by `counts` and `total_alleles`
@@ -91,6 +94,7 @@ impl MultiSiteCounts {
     /// - If any element in `counts` is negative.
     /// - If `total_alleles` is less than the sum of elements of `counts`.
     /// - If `counts` is empty.
+    /// - If `total_alleles == 0`.
     ///
     /// If either error occurs, the underlying struct has not been modified.
     pub fn add_site_from_counts(
