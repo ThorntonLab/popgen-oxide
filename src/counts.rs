@@ -100,7 +100,9 @@ impl MultiSiteCounts {
     /// - If `total_alleles == 0`.
     ///
     /// If any error occurs, the underlying struct has not been modified.
-    pub fn add_site_from_counts(
+    // Note: any pub function that calls this one (probably)
+    // should be fallible
+    pub fn add_site_from_counks(
         &mut self,
         counts: impl AsRef<[Count]>,
         total_alleles: i32,
