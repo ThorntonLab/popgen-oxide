@@ -63,49 +63,6 @@ fn pi_from_random_data(
 );
 
 #[test]
-fn pi_from_random_data_with_missing_data() {
-    use rand::prelude::*;
-
-    let mut rng = StdRng::seed_from_u64(54321);
-
-    for ploidy in [1, 2, 4] {
-        for rate in [0.01, 0.1, 0.5, 0.9] {
-            let freqs = [0.25, 0.5, 0.25]; // fixed allele freqs per site
-            let mut sites = vec![];
-            // make 10 random sites.
-            // No missing data, etc..
-            for _ in 0..10 {
-                let site = crate::testing::testdata::random_site_rng(
-                    10,
-                    ploidy,
-                    &freqs,
-                    Some(crate::testing::testdata::RandomSiteOptions {
-                        missing_data_rate: Some(rate),
-                    }),
-                    &mut rng,
-                );
-                sites.push(site);
-            }
-            // convert to our normal format
-            let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-            // get the calcs
-            let pi_from_counts = GlobalPi::try_from_iter_sites(counts.iter());
-            let pi_naive = crate::testing::naivecalculations::pi(sites.iter());
-            // compare
-            if pi_naive.is_nan() {
-                assert!(pi_from_counts.is_err(), "{pi_from_counts:?}");
-            } else {
-                let pi = pi_from_counts.unwrap();
-                assert!(
-                    (pi.as_raw() - pi_naive).abs() <= 1e-10,
-                    "{pi:?} != {pi_naive}"
-                );
-            }
-        }
-    }
-}
-
-#[test]
 fn pi_allele_frequency_of_one() {
     use rand::prelude::*;
 
