@@ -191,7 +191,7 @@ impl Index<usize> for MultiPopulationCounts {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.populations[index]
-    }a
+    }
 }
 
 impl MultiPopulationCounts {
