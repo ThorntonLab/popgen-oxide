@@ -151,7 +151,7 @@ fn counts_from_vcf(vcf_buf: &str, ploidy: usize) -> (Vec<Vec<Option<AlleleID>>>,
         .map(|rec| record_to_genotypes_adapter(&header, rec, ploidy))
         .collect::<PopgenResult<Vec<_>>>()
         .unwrap();
-    let counts = MultiSiteCounts::from_tabular(all_alleles.iter().cloned());
+    let counts = MultiSiteCounts::try_from_tabular(all_alleles.iter().cloned()).unwrap();
     (all_alleles, counts)
 }
 

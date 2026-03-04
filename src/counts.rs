@@ -20,7 +20,7 @@ pub struct MultiSiteCounts {
 }
 
 impl MultiSiteCounts {
-    pub fn from_tabular<Sites, Samples>(sites: Sites) -> Self
+    pub fn try_from_tabular<Sites, Samples>(sites: Sites) -> PopgenResult<Self>
     where
         Sites: IntoIterator<Item = Samples>,
         Samples: IntoIterator<Item = Option<AlleleID>>,
@@ -28,10 +28,10 @@ impl MultiSiteCounts {
         let mut ret = Self::default();
 
         for site in sites {
-            ret.add_site(site);
+            ret.add_site(site)?;
         }
 
-        ret
+        Ok(ret)
     }
 
     /// Obtain site counts from a [`tskit::TreeSequence`].
@@ -191,7 +191,7 @@ impl Index<usize> for MultiPopulationCounts {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.populations[index]
-    }
+    }a
 }
 
 impl MultiPopulationCounts {
