@@ -99,7 +99,7 @@ impl MultiSiteCounts {
     /// - If `counts` is empty.
     /// - If `total_alleles == 0`.
     ///
-    /// If either error occurs, the underlying struct has not been modified.
+    /// If any error occurs, the underlying struct has not been modified.
     pub fn add_site_from_counts(
         &mut self,
         counts: impl AsRef<[Count]>,
