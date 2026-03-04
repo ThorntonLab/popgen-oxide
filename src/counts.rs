@@ -20,6 +20,9 @@ pub struct MultiSiteCounts {
 }
 
 impl MultiSiteCounts {
+    /// Convenience wrapper which repeatedly invokes [`Self::add_site`].
+    /// # Errors
+    /// The error conditions from [`Self::add_site`] apply here.
     pub fn try_from_tabular<Sites, Samples>(sites: Sites) -> PopgenResult<Self>
     where
         Sites: IntoIterator<Item = Samples>,
