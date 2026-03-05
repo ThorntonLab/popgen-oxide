@@ -30,7 +30,7 @@ pub trait GlobalStatistic {
         if p.peek().is_some() {
             let mut ret = Self::default();
             for site in p {
-                ret.add_site(site)?
+                ret.try_add_site(site)?
             }
             Ok(ret)
         } else {
@@ -56,7 +56,7 @@ pub trait GlobalStatistic {
     /// ```no_compile
     /// debug_assert!(!site.counts().is_empty());
     /// ```
-    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError>;
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError>;
     fn as_raw(&self) -> f64;
 }
 
@@ -68,7 +68,7 @@ pub trait GlobalStatistic {
 pub struct GlobalPi(f64);
 
 impl GlobalStatistic for GlobalPi {
-    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // technically should divide both by two here and below but it cancels out
         let num_pairs = {
@@ -98,7 +98,7 @@ impl GlobalStatistic for GlobalPi {
 pub struct WattersonTheta(f64);
 
 impl GlobalStatistic for WattersonTheta {
-    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // trying our very hardest to encourage optimization and SIMD here
         // also optimizing with the typical two-element slice in mind
@@ -142,10 +142,10 @@ pub struct TajimaD {
 }
 
 impl GlobalStatistic for TajimaD {
-    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
-        self.k_hat.add_site(site.clone())?;
-        self.theta.add_site(site.clone())?;
+        self.k_hat.try_add_site(site.clone())?;
+        self.theta.try_add_site(site.clone())?;
 
         self.num_sites += 1;
         // this is not perfect but that's fine
@@ -216,7 +216,10 @@ pub struct F_ST<'m> {
 impl<'m> F_ST<'m> {
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
-    pub(crate) fn add_population(
+    ///
+    /// # Errors
+    /// See [`crate::stats::GlobalPi`].
+    pub(crate) fn try_add_population(
         &mut self,
         population: &'m MultiSiteCounts,
         weight: f64,
