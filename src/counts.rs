@@ -264,7 +264,7 @@ impl MultiPopulationCounts {
         }
 
         if !any {
-            return Err(PopgenError::CalculationError)
+            return Err(PopgenError::CalculationError);
         }
 
         Ok(ret)

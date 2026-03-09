@@ -11,7 +11,10 @@ fn f_st_no_pops() {
     // equivalently, could have populations but exclude them all...
     // but this is simpler
     let counts = MultiPopulationCounts::default();
-    assert!(matches!(counts.try_f_st_if(|_| Some(1.0)), Err(PopgenError::CalculationError)));
+    assert!(matches!(
+        counts.try_f_st_if(|_| Some(1.0)),
+        Err(PopgenError::CalculationError)
+    ));
 }
 
 #[test]
