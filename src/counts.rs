@@ -242,27 +242,29 @@ impl MultiPopulationCounts {
         self.populations.len()
     }
 
-    /// Stream selected sub-populations of this [`Self`] into a computation of [`F_ST`].
+    /// Stream selected populations of this [`Self`] into a computation of [`F_ST`].
     ///
-    /// Sub-populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
+    /// Populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
     /// The newly created struct immutably borrows from `self`.
     /// # Errors
-    /// - If underlying [`crate::stats::GlobalPi`] fails; i.e. if any population has no sites
-    ///   (which will also apply to all others in `self`) or if any population has zero total
-    ///   alleles.
+    /// - If no sites are selected for inclusion.
+    /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
     pub fn try_f_st_if(
         &self,
         mut pred: impl FnMut(usize) -> Option<f64>,
     ) -> Result<F_ST<'_>, PopgenError> {
-        if self.populations.is_empty() {
-            return Err(PopgenError::EmptySiteCounts);
-        }
         let mut ret = F_ST::default();
 
+        let mut any = false;
         for pop_i in 0..self.populations.len() {
             if let Some(weight) = pred(pop_i) {
                 ret.try_add_population(&self.populations[pop_i], weight)?;
+                any = true;
             }
+        }
+
+        if !any {
+            return Err(PopgenError::CalculationError)
         }
 
         Ok(ret)

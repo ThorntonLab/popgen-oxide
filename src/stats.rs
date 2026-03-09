@@ -236,8 +236,19 @@ impl<'m> F_ST<'m> {
                 .iter()
                 .zip(population.iter())
                 .map(|(s1, s2)| {
+                    if s1.total_alleles == 0 || s2.total_alleles == 0 {
+                        return Err(PopgenError::EmptySiteCounts);
+                    }
+
                     // do complement of diversity, i.e. expected homozygosity
-                    // for each variant...
+
+                    let total_comparisons = (s1.counts().iter().sum::<Count>()
+                        * s2.counts().iter().sum::<Count>())
+                        as i32;
+                    if total_comparisons == 0 {
+                        return Err(PopgenError::EmptySiteCounts);
+                    }
+
                     let num_homozygous = (0..max(s1.counts.len(), s2.counts.len()))
                         .map(|variant_num| {
                             // how many homozygous pairs?
@@ -246,13 +257,9 @@ impl<'m> F_ST<'m> {
                         })
                         .sum::<i64>();
 
-                    let total_comparisons = (s1.counts().iter().sum::<Count>()
-                        * s2.counts().iter().sum::<Count>())
-                        as i32;
-
-                    1. - num_homozygous as f64 / (total_comparisons as f64)
+                    Ok(1. - num_homozygous as f64 / (total_comparisons as f64))
                 })
-                .sum();
+                .sum::<Result<f64, PopgenError>>()?;
 
             // TODO: just use a linear vector?
             self.diversity_between
