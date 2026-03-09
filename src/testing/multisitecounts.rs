@@ -41,7 +41,7 @@ fn load_raw() {
         ),
     ];
 
-    let counts = MultiSiteCounts::from_tabular(sites);
+    let counts = MultiSiteCounts::try_from_tabular(sites).unwrap();
 
     assert_eq!(counts.len(), 2);
     assert!(!counts.is_empty());

@@ -30,7 +30,7 @@ pub trait GlobalStatistic {
         if p.peek().is_some() {
             let mut ret = Self::default();
             for site in p {
-                ret.add_site(site)?
+                ret.try_add_site(site)?
             }
             Ok(ret)
         } else {
@@ -56,7 +56,7 @@ pub trait GlobalStatistic {
     /// ```no_compile
     /// debug_assert!(!site.counts().is_empty());
     /// ```
-    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError>;
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError>;
     fn as_raw(&self) -> f64;
 }
 
@@ -68,7 +68,7 @@ pub trait GlobalStatistic {
 pub struct GlobalPi(f64);
 
 impl GlobalStatistic for GlobalPi {
-    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // technically should divide both by two here and below but it cancels out
         let num_pairs = {
@@ -98,7 +98,7 @@ impl GlobalStatistic for GlobalPi {
 pub struct WattersonTheta(f64);
 
 impl GlobalStatistic for WattersonTheta {
-    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // trying our very hardest to encourage optimization and SIMD here
         // also optimizing with the typical two-element slice in mind
@@ -142,10 +142,10 @@ pub struct TajimaD {
 }
 
 impl GlobalStatistic for TajimaD {
-    fn add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
-        self.k_hat.add_site(site.clone())?;
-        self.theta.add_site(site.clone())?;
+        self.k_hat.try_add_site(site.clone())?;
+        self.theta.try_add_site(site.clone())?;
 
         self.num_sites += 1;
         // this is not perfect but that's fine
@@ -216,7 +216,10 @@ pub struct F_ST<'m> {
 impl<'m> F_ST<'m> {
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
-    pub(crate) fn add_population(
+    ///
+    /// # Errors
+    /// See [`crate::stats::GlobalPi`].
+    pub(crate) fn try_add_population(
         &mut self,
         population: &'m MultiSiteCounts,
         weight: f64,
@@ -233,8 +236,19 @@ impl<'m> F_ST<'m> {
                 .iter()
                 .zip(population.iter())
                 .map(|(s1, s2)| {
+                    if s1.total_alleles == 0 || s2.total_alleles == 0 {
+                        return Err(PopgenError::EmptySiteCounts);
+                    }
+
                     // do complement of diversity, i.e. expected homozygosity
-                    // for each variant...
+
+                    let total_comparisons = (s1.counts().iter().sum::<Count>()
+                        * s2.counts().iter().sum::<Count>())
+                        as i32;
+                    if total_comparisons == 0 {
+                        return Err(PopgenError::EmptySiteCounts);
+                    }
+
                     let num_homozygous = (0..max(s1.counts.len(), s2.counts.len()))
                         .map(|variant_num| {
                             // how many homozygous pairs?
@@ -243,13 +257,9 @@ impl<'m> F_ST<'m> {
                         })
                         .sum::<i64>();
 
-                    let total_comparisons = (s1.counts().iter().sum::<Count>()
-                        * s2.counts().iter().sum::<Count>())
-                        as i32;
-
-                    1. - num_homozygous as f64 / (total_comparisons as f64)
+                    Ok(1. - num_homozygous as f64 / (total_comparisons as f64))
                 })
-                .sum();
+                .sum::<Result<f64, PopgenError>>()?;
 
             // TODO: just use a linear vector?
             self.diversity_between

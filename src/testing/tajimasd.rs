@@ -40,7 +40,7 @@ fn tajima_d() {
     .map(|site| shuffled_site(site.into_iter(), &mut rng))
     .collect::<Vec<_>>();
 
-    let allele_counts = MultiSiteCounts::from_tabular(sites);
+    let allele_counts = MultiSiteCounts::try_from_tabular(sites).unwrap();
 
     let tajima = TajimaD::try_from_iter_sites(allele_counts.iter()).unwrap();
     assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
