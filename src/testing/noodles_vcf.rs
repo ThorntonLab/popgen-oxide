@@ -1,4 +1,4 @@
-use crate::adapter::vcf::{record_to_genotypes_adapter, VCFToPopulationsAdapter, WhichPopulation};
+use crate::adapter::vcf::{record_to_genotypes_adapter, VCFToPopulationsAdapter};
 use crate::counts::MultiSiteCounts;
 use crate::{AlleleID, PopgenResult};
 use noodles::vcf::header::record::value::map::{Contig, Format};
@@ -14,7 +14,6 @@ use noodles::vcf::variant::record_buf::{AlternateBases, Samples};
 use noodles::vcf::variant::RecordBuf;
 use rand::prelude::SliceRandom;
 use rand::rng;
-use std::borrow::Cow;
 use std::collections::HashMap;
 
 // SiteVariant is to be a slice like ["A", "AG"] for a sample with these two genotypes
@@ -196,20 +195,8 @@ fn load_vcf() {
 fn load_vcf_multi_population() {
     // use this overly verbose and inefficient map to verify lifetime correctness
     let map = (0..18)
-        .map(|n| (format!("s{}", n), ["A", "B"][n % 2].to_owned()))
+        .map(|n| (format!("s{}", n), (n % 2) as usize))
         .collect::<HashMap<_, _>>();
-
-    struct MapBasedMapper(HashMap<String, String>);
-
-    impl WhichPopulation<()> for MapBasedMapper {
-        fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, ()> {
-            self.0
-                .get(sample_name)
-                .map(String::as_str)
-                .map(Cow::Borrowed)
-                .ok_or(())
-        }
-    }
 
     let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
         .build_from_reader(make_vcf().as_bytes())
@@ -217,17 +204,17 @@ fn load_vcf_multi_population() {
 
     let header = vcf_reader.read_header().unwrap();
 
-    let mut mapper = MapBasedMapper(map);
-    let mut adapter = VCFToPopulationsAdapter::new(&header, None, &mut mapper).unwrap();
+    let mut adapter = VCFToPopulationsAdapter::new(&header, None, 2, |sample_name| {
+        map.get(sample_name).copied().ok_or(())
+    })
+    .unwrap();
 
     for record in vcf_reader.records() {
         let record = record.unwrap();
         adapter.add_record(&record).unwrap();
     }
 
-    let (population_name_to_idx, counts) = adapter.build();
-    assert_eq!(population_name_to_idx.get("A").unwrap(), &0);
-    assert_eq!(population_name_to_idx.get("B").unwrap(), &1);
+    let counts = adapter.build();
 
     {
         let first_pop = &counts[0];
