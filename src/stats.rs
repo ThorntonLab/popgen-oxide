@@ -318,7 +318,7 @@ impl<'m> F_ST<'m> {
     /// Calculate F4(deme1, deme2; deme3, deme4).
     ///
     /// We follow Equation 24b from
-    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/),
+    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
     ///
     /// Originally due to Reich 2009 (as cited in Peters).
     ///
