@@ -272,7 +272,14 @@ impl<'m> F_ST<'m> {
         Ok(())
     }
 
-    // Equation 17 from Peters
+    /// Calculate F2(deme1, deme2).
+    ///
+    /// We follow Equation 17 from
+    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
+    ///
+    /// # Errors
+    ///
+    /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
     pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
         let pi_12 = self
             .diversity_between
@@ -289,9 +296,18 @@ impl<'m> F_ST<'m> {
         Ok(pi_12 - (pi_11 + pi_22) / 2.)
     }
 
-    // This is F3(deme1; deme2, deme3), borrowing notation from Eq 20b of Peters,
-    // with slight modification
-    // Originally due to Reich 2009 (as cited in Peters).
+    /// Calculate F3(deme1; deme2, deme3).
+    ///
+    /// We follow Equation 20b from
+    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/),
+    /// with some change of notation.
+    /// He writes F3(deme X; deme 1, deme2).
+    ///
+    /// Originally due to Reich 2009 (as cited in Peters).
+    ///
+    /// # Errors
+    ///
+    /// * If any deme index is out of range, return [`PopgenError::InvalidDeme`]
     pub fn f3(&self, deme1: usize, deme2: usize, deme3: usize) -> Result<f64, PopgenError> {
         let a = self.f2(deme1, deme2)?;
         let b = self.f2(deme1, deme3)?;
@@ -299,8 +315,16 @@ impl<'m> F_ST<'m> {
         Ok((a + b - c) / 2.)
     }
 
-    // This if F4(deme1, deme2; deme3, deme4), borrowing notation from Eq 24b of Peters,
-    // with slight modification
+    /// Calculate F4(deme1, deme2; deme3, deme4).
+    ///
+    /// We follow Equation 24b from
+    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/),
+    ///
+    /// Originally due to Reich 2009 (as cited in Peters).
+    ///
+    /// # Errors
+    ///
+    /// * If any deme index is out of range, return [`PopgenError::InvalidDeme`]
     pub fn f4(
         &self,
         deme1: usize,
