@@ -273,34 +273,46 @@ impl<'m> F_ST<'m> {
     }
 
     // Equation 17 from Peters
-    // Will PANIC if demeX out of range...
-    pub fn f2(&self, deme1: usize, deme2: usize) -> f64 {
-        let pi_12 = self.diversity_between[&UnorderedPair(deme1, deme2)];
-        let pi_11 = self.diversity_within[deme1];
-        let pi_22 = self.diversity_within[deme2];
-        pi_12 - (pi_11 + pi_22) / 2.
+    pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
+        let pi_12 = self
+            .diversity_between
+            .get(&UnorderedPair(deme1, deme2))
+            .ok_or(PopgenError::InvalidDeme)?;
+        let pi_11 = self
+            .diversity_within
+            .get(deme1)
+            .ok_or(PopgenError::InvalidDeme)?;
+        let pi_22 = self
+            .diversity_within
+            .get(deme2)
+            .ok_or(PopgenError::InvalidDeme)?;
+        Ok(pi_12 - (pi_11 + pi_22) / 2.)
     }
 
     // This is F3(deme1; deme2, deme3), borrowing notation from Eq 20b of Peters,
     // with slight modification
     // Originally due to Reich 2009 (as cited in Peters).
-    // Will PANIC if demeX out of range...
-    pub fn f3(&self, deme1: usize, deme2: usize, deme3: usize) -> f64 {
-        let a = self.f2(deme1, deme2);
-        let b = self.f2(deme1, deme3);
-        let c = self.f2(deme2, deme3);
-        (a + b - c) / 2.
+    pub fn f3(&self, deme1: usize, deme2: usize, deme3: usize) -> Result<f64, PopgenError> {
+        let a = self.f2(deme1, deme2)?;
+        let b = self.f2(deme1, deme3)?;
+        let c = self.f2(deme2, deme3)?;
+        Ok((a + b - c) / 2.)
     }
 
     // This if F4(deme1, deme2; deme3, deme4), borrowing notation from Eq 24b of Peters,
     // with slight modification
-    // Will PANIC if demeX out of range...
-    pub fn f4(&self, deme1: usize, deme2: usize, deme3: usize, deme4: usize) -> f64 {
-        let a = self.f2(deme1, deme4);
-        let b = self.f2(deme2, deme3);
-        let c = self.f2(deme1, deme3);
-        let d = self.f2(deme2, deme4);
-        (a + b - c - d)/2.
+    pub fn f4(
+        &self,
+        deme1: usize,
+        deme2: usize,
+        deme3: usize,
+        deme4: usize,
+    ) -> Result<f64, PopgenError> {
+        let a = self.f2(deme1, deme4)?;
+        let b = self.f2(deme2, deme3)?;
+        let c = self.f2(deme1, deme3)?;
+        let d = self.f2(deme2, deme4)?;
+        Ok((a + b - c - d) / 2.)
     }
 }
 
