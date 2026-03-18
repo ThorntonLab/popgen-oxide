@@ -1,8 +1,20 @@
+use std::io::Write;
+
 use rust_htslib::bcf;
 use rust_htslib::bcf::Read;
 
+static VCF_FILE: &str = r#"##fileformat=VCFv4.6
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
+chr0	1	.	A	C	.	.	.	GT	0/0	0/1	0/1	0/0	0/1	0/0	0/1	0/0	0/0	0/0	0/0	1/1	1/0	0/1	0/0	./.	0/1	0/0
+chr0	1	.	G	A	.	.	.	GT	0/0	./.	0/1	0/0	0/1	0/1	0/0	0/0	0/0	0/0	0/0	0/0	0/1	./.	0/1	0/1	0/0	0/0"#;
+
 fn main() {
-    let mut bcf = bcf::Reader::from_path("foo.vcf").expect("Error opening file.");
+    let mut vcf_out = std::fs::File::create_new("htslib_example.vcf").unwrap();
+    vcf_out.write_all(VCF_FILE.as_bytes()).unwrap();
+    let mut bcf = bcf::Reader::from_path("htslib_example.vcf").expect("Error opening file.");
+    std::fs::remove_file("htslib_example.vcf").unwrap();
     let mut counts = popgen::MultiSiteCounts::default();
     let mut site_counts_from_record = Vec::<popgen::Count>::default();
     for record_result in bcf.records() {
@@ -30,4 +42,5 @@ fn main() {
             .add_site_from_counts(site_counts_from_record.as_slice(), total_alleles)
             .unwrap();
     }
+    println!("{counts:?}");
 }
