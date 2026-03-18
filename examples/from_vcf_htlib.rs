@@ -1,4 +1,5 @@
 use rust_htslib::bcf;
+use rust_htslib::bcf::record::Numeric;
 use rust_htslib::bcf::Read;
 
 fn main() {
@@ -16,8 +17,17 @@ fn main() {
         for sample_index in 0..sample_count {
             // for each sample
             for gta in gts.get(sample_index).iter() {
-                site_counts_from_record[gta.index().unwrap() as usize] += 1;
-                total_alleles += 1; // FIXME: this is wrong...
+                match gta {
+                    bcf::record::GenotypeAllele::Phased(_) => {
+                        site_counts_from_record[gta.index().unwrap() as usize] += 1;
+                        total_alleles += 1;
+                    }
+                    bcf::record::GenotypeAllele::Unphased(_) => {
+                        site_counts_from_record[gta.index().unwrap() as usize] += 1;
+                        total_alleles += 1;
+                    }
+                    _ => {}
+                }
             }
         }
         counts
