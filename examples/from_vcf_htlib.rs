@@ -17,16 +17,12 @@ fn main() {
         for sample_index in 0..sample_count {
             // for each sample
             for gta in gts.get(sample_index).iter() {
-                match gta {
-                    bcf::record::GenotypeAllele::Phased(_) => {
-                        site_counts_from_record[gta.index().unwrap() as usize] += 1;
-                        total_alleles += 1;
-                    }
-                    bcf::record::GenotypeAllele::Unphased(_) => {
-                        site_counts_from_record[gta.index().unwrap() as usize] += 1;
-                        total_alleles += 1;
-                    }
-                    _ => {}
+                // Filter out missing genotypes
+                if !matches!(gta, bcf::record::GenotypeAllele::PhasedMissing)
+                    && !matches!(gta, bcf::record::GenotypeAllele::UnphasedMissing)
+                {
+                    site_counts_from_record[gta.index().unwrap() as usize] += 1;
+                    total_alleles += 1;
                 }
             }
         }
