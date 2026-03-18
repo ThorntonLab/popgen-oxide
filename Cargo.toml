@@ -13,6 +13,7 @@ noodles-core = "0.16.0"
 noodles = { version = "0.92.0", features = ["vcf", "csi", "tabix", "bgzf"] }
 rand_distr = "0.5.1"
 proptest = "1.10.0"
+rust-htslib = "1.0.0"
 
 [profile.release]
 lto = "fat"
