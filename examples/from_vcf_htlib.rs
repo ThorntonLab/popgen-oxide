@@ -1,5 +1,4 @@
 use rust_htslib::bcf;
-use rust_htslib::bcf::record::Numeric;
 use rust_htslib::bcf::Read;
 
 fn main() {
