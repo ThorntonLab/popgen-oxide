@@ -8,6 +8,7 @@ fn main() {
     for record_result in bcf.records() {
         let record = record_result.unwrap();
         let num_alleles = record.alleles().len();
+        site_counts_from_record.fill(0);
         site_counts_from_record.resize(num_alleles, 0);
         let gts = record.genotypes().expect("Error reading genotypes");
         // number of sample in the vcf
