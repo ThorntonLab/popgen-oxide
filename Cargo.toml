@@ -12,7 +12,7 @@ rand = "0.9.0"
 noodles = { version = "*", features = ["vcf", "csi", "tabix", "bgzf", "core"] }
 rand_distr = "0.5.1"
 proptest = "1.10.0"
-rust-htslib = "1.0.0"
+rust-htslib = { version = "1.0.0", default-features = false}
 
 [profile.release]
 lto = "fat"
