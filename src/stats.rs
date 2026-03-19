@@ -281,16 +281,10 @@ impl<'m> F_ST<'m> {
     ///
     /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
     pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
-        let pi_12 = {
-            let (demei, demej) = if deme2 > deme1 {
-                (deme1, deme2)
-            } else {
-                (deme2, deme1)
-            };
-            self.diversity_between
-                .get(&UnorderedPair(demei, demej))
-                .ok_or(PopgenError::InvalidDeme)?
-        };
+        let pi_12 = self
+            .diversity_between
+            .get(&UnorderedPair::new(deme1, deme2))
+            .ok_or(PopgenError::InvalidDeme)?;
         let pi_11 = self
             .diversity_within
             .get(deme1)
