@@ -283,7 +283,10 @@ impl<'m> F_ST<'m> {
     pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
         let pi_12 = self
             .diversity_between
-            .get(&UnorderedPair(deme1, deme2))
+            .get(&UnorderedPair(
+                std::cmp::min(deme1, deme2),
+                std::cmp::max(deme1, deme2),
+            ))
             .ok_or(PopgenError::InvalidDeme)?;
         let pi_11 = self
             .diversity_within
