@@ -171,3 +171,14 @@ where
 
     (pi_total, pi_self, pi_between)
 }
+
+pub fn f2<Sites>(deme1: usize, deme2: usize, populations: &mut dyn Iterator<Item = Sites>) -> f64
+where
+    Sites: IntoIterator<Item = Site>,
+{
+    let freq_data: Vec<Vec<Site>> = populations.map(|pop| pop.into_iter().collect()).collect();
+    assert!(deme1 < freq_data.len());
+    assert!(deme2 < freq_data.len());
+    todo!();
+    f64::NAN
+}
