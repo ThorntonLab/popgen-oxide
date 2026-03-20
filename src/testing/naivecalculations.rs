@@ -177,8 +177,8 @@ where
     Sites: IntoIterator<Item = Site>,
 {
     let freq_data: Vec<Vec<Site>> = populations.map(|pop| pop.into_iter().collect()).collect();
-    assert!(deme1 < freq_data.len());
-    assert!(deme2 < freq_data.len());
-    todo!();
+    for (d1, d2) in freq_data[deme1].iter().zip(freq_data[deme2].iter()) {
+        todo!();
+    }
     f64::NAN
 }
