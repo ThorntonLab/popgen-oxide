@@ -171,3 +171,22 @@ where
 
     (pi_total, pi_self, pi_between)
 }
+
+// TODO: note that there is another way of writing the estimator from, e.g. early Reich papers.
+// The details are in Peters.
+// The implementation below is essentially re-testing that we are correctly calculating bits of Fst.
+// It may be useful to have and "f2_alt" approach based more explicitly on other way to write it
+// down?
+pub fn f2<Sites>(deme1: usize, deme2: usize, populations: &mut dyn Iterator<Item = Sites>) -> f64
+where
+    Sites: IntoIterator<Item = Site>,
+{
+    let freq_data: Vec<Vec<Site>> = populations.map(|pop| pop.into_iter().collect()).collect();
+    let pi_deme1 = pi(freq_data[deme1].iter());
+    let pi_deme2 = pi(freq_data[deme2].iter());
+    let pi_ij = pi_ij(
+        &mut freq_data[deme1].iter().cloned(),
+        &mut freq_data[deme2].iter().cloned(),
+    );
+    pi_ij - (pi_deme1 + pi_deme2) / 2.
+}
