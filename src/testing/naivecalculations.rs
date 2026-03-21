@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::testing::testdata::GenotypeData;
 use crate::testing::testdata::Site;
 
@@ -9,6 +11,21 @@ fn flatten_to_alleles(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> Vec<
         }
     }
     alleles
+}
+
+fn flatten_to_allele_counts(
+    genotypes: &mut dyn Iterator<Item = GenotypeData>,
+) -> HashMap<usize, i64> {
+    let alleles = flatten_to_alleles(genotypes);
+    let mut counts: HashMap<usize, i64> = HashMap::new();
+    for a in alleles {
+        if let Some(c) = counts.get_mut(&a) {
+            *c += 1
+        } else {
+            counts.insert(a, 1);
+        }
+    }
+    counts
 }
 
 fn pairwise_diffs(alleles: &[usize]) -> (i64, i64) {
@@ -170,4 +187,43 @@ where
     };
 
     (pi_total, pi_self, pi_between)
+}
+
+pub fn f2<Sites>(deme1: usize, deme2: usize, populations: &mut dyn Iterator<Item = Sites>) -> f64
+where
+    Sites: IntoIterator<Item = Site>,
+{
+    let mut naive = 0.0;
+    let mut n = 0_usize;
+    let freq_data: Vec<Vec<Site>> = populations.map(|pop| pop.into_iter().collect()).collect();
+    for (d1, d2) in freq_data[deme1].iter().zip(freq_data[deme2].iter()) {
+        let allele_counts1 = flatten_to_allele_counts(&mut d1.iter().cloned());
+        let allele_counts2 = flatten_to_allele_counts(&mut d2.iter().cloned());
+        let unique_allele_labels = {
+            let mut temp = allele_counts1.keys().cloned().collect::<Vec<_>>();
+            temp.extend(allele_counts2.keys().cloned());
+            temp.sort_unstable();
+            temp.dedup();
+            temp
+        };
+        let nsam1 = allele_counts1.values().sum::<i64>() as f64;
+        let nsam2 = allele_counts2.values().sum::<i64>() as f64;
+        for u in unique_allele_labels {
+            let c1 = if let Some(c) = allele_counts1.get(&u) {
+                *c
+            } else {
+                0
+            };
+            let c2 = if let Some(c) = allele_counts2.get(&u) {
+                *c
+            } else {
+                0
+            };
+            let p1 = (c1 as f64) / nsam1;
+            let p2 = (c2 as f64) / nsam2;
+            naive += (p1 - p2) * (p1 - p2);
+            n += 1;
+        }
+    }
+    naive / (n as f64)
 }
