@@ -45,7 +45,7 @@ fn main() {
     let query = reader.query(&header, &region).unwrap();
     let alleles = query
         .map(Result::unwrap)
-        .map(|rec| record_to_genotypes_adapter(&header, rec, ploidy).unwrap());
+        .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy).unwrap());
     let counts = MultiSiteCounts::from_tabular(alleles);
     counts.iter().for_each(|c| println!("{c:?}"));
 
