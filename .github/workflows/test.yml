@@ -49,6 +49,7 @@ jobs:
           cargo run --example from_vcf --features=noodles
           cargo run --example from_vcf_indexed --features=noodles
           cargo run --example from_tskit --features=tskit
+          cargo run --example concurrent --features=noodles
 
   fmt:
     name: rustfmt
