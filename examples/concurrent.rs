@@ -6,7 +6,7 @@ use popgen::stats::{GlobalPi, GlobalStatistic, SiteComposable};
 use popgen::MultiSiteCounts;
 use rayon::iter::ParallelBridge;
 use rayon::iter::ParallelIterator;
-use std::io::{BufReader, Cursor};
+use std::io::Cursor;
 
 static VCF_FILE: &str = r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
