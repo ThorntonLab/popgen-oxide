@@ -1,6 +1,6 @@
 use crate::iter::SiteCounts;
 use crate::util::UnorderedPair;
-use crate::{Count, MultiSiteCounts};
+use crate::{Count, MultiSiteCounts, PopgenError, PopgenResult};
 use std::cmp::max;
 use std::collections::HashMap;
 
@@ -12,19 +12,51 @@ pub trait SiteStatistic {
 
 /// A statistic calculable from and applicable to a collection of sites/loci.
 pub trait GlobalStatistic {
-    fn from_iter_sites<'counts, I>(iter: I) -> Self
+    /// Instantiate a `Self` from an iterator over [`SiteCounts`].
+    ///
+    /// The implementation depends on [`GlobalStatistic::add_site`].
+    ///
+    /// # Errors
+    ///
+    /// * If the iterator is empty, implementors may return [`PopgenError::EmptySiteCounts`],
+    ///   because many statistics are not meaningfully defined over 0 sites.
+    /// * Any error resulting from adding a single site ([`Self::add_site`]) may also be raised.
+    fn try_from_iter_sites<'counts, I>(iter: I) -> Result<Self, PopgenError>
     where
         I: Iterator<Item = SiteCounts<'counts>>,
         Self: Default,
     {
-        let mut ret = Self::default();
-        for site in iter {
-            ret.add_site(site)
+        let mut p = iter.peekable();
+        if p.peek().is_some() {
+            let mut ret = Self::default();
+            for site in p {
+                ret.try_add_site(site)?
+            }
+            Ok(ret)
+        } else {
+            Err(PopgenError::EmptySiteCounts)
         }
-        ret
     }
 
-    fn add_site(&mut self, site: SiteCounts);
+    /// Update the value of a statistic from a [`SiteCounts`]
+    ///
+    /// # Errors
+    ///
+    /// * Implementations should return [`PopgenError::CalculationError`]
+    ///   if updating results in an invalid value.
+    ///
+    /// # Notes
+    ///
+    /// In general, one cannot assume that an update can be rolled
+    /// back in the event of an error.
+    ///
+    /// [`MultiSiteCounts`] and [`crate::MultiPopulationCounts`] are designed
+    /// such that `site` cannot contain empty data. However, it is valuable
+    /// for implementations of this function to at least do the following:
+    /// ```no_compile
+    /// debug_assert!(!site.counts().is_empty());
+    /// ```
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError>;
     fn as_raw(&self) -> f64;
 }
 
@@ -76,8 +108,10 @@ pub trait SiteComposable: Default + GlobalStatistic {
     type Component;
 
     fn component_from(site: SiteCounts) -> Self::Component;
-    fn add_component(&mut self, component: Self::Component);
-    fn from_sites_parallel<'cnt>(sites: impl IntoIterator<Item = SiteCounts<'cnt>>) -> Self
+    fn try_add_component(&mut self, component: Self::Component) -> crate::PopgenResult<()>;
+    fn from_sites_parallel<'cnt>(
+        sites: impl IntoIterator<Item = SiteCounts<'cnt>>,
+    ) -> crate::PopgenResult<Self>
     where
         Self::Component: Send,
     {
@@ -91,7 +125,7 @@ pub fn windowed<Stat, GetWindow, E>(
     start_pos: i64,
     end_pos: i64,
     mut get_window: GetWindow,
-) -> Result<Vec<Stat>, E>
+) -> PopgenResult<Result<Vec<Stat>, E>>
 where
     Stat: SiteComposable,
     <Stat as SiteComposable>::Component: Clone + Send,
@@ -108,45 +142,58 @@ where
     while window_start < end_pos {
         let mut accum = Stat::default();
         if !use_add_remove {
-            let counts = get_window(window_start, (window_start + window_size).min(end_pos))?;
+            let counts = match get_window(window_start, (window_start + window_size).min(end_pos)) {
+                Ok(window) => window,
+                Err(e) => return Ok(Err(e)),
+            };
             for count in counts.iter() {
-                accum.add_component(Stat::component_from(count));
+                accum.try_add_component(Stat::component_from(count))?;
             }
         } else {
-            let new_intersection = get_window(
+            let new_intersection = match get_window(
                 window_start + window_size - stride,
                 window_start + window_size,
-            )?
+            ) {
+                Ok(window) => window,
+                Err(e) => return Ok(Err(e)),
+            }
             .iter()
             .map(Stat::component_from)
             .collect::<Vec<_>>();
 
             if let Some(ref comps) = intersection_components {
-                let new_part = get_window(window_start + stride, window_start + window_size)?;
+                let new_part = match get_window(window_start + stride, window_start + window_size) {
+                    Ok(window) => window,
+                    Err(e) => return Ok(Err(e)),
+                };
                 for comp in comps.iter() {
-                    accum.add_component(comp.clone());
+                    accum.try_add_component(comp.clone())?;
                 }
                 for count in new_part.iter() {
-                    accum.add_component(Stat::component_from(count));
+                    accum.try_add_component(Stat::component_from(count))?;
                 }
             } else {
-                let first_part = get_window(window_start, window_start + window_size - stride)?;
+                let first_part = match get_window(window_start, window_start + window_size - stride)
+                {
+                    Ok(window) => window,
+                    Err(e) => return Ok(Err(e)),
+                };
                 for count in first_part.iter() {
-                    accum.add_component(Stat::component_from(count));
+                    accum.try_add_component(Stat::component_from(count))?;
                 }
                 for comp in new_intersection.iter() {
-                    accum.add_component(comp.clone());
+                    accum.try_add_component(comp.clone())?;
                 }
+
+                intersection_components = Some(new_intersection);
             }
 
-            intersection_components = Some(new_intersection);
+            ret.push(accum);
+            window_start += stride;
         }
-
-        ret.push(accum);
-        window_start += stride;
     }
 
-    Ok(ret)
+    Ok(Ok(ret))
 }
 
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
@@ -157,8 +204,23 @@ where
 pub struct GlobalPi(f64);
 
 impl GlobalStatistic for GlobalPi {
-    fn add_site(&mut self, site: SiteCounts) {
-        self.add_component(Self::component_from(site))
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+        debug_assert!(!site.counts().is_empty());
+        // technically should divide both by two here and below but it cancels out
+        let num_pairs = {
+            let count: i64 = site.counts.iter().sum();
+            count * (count - 1)
+        };
+
+        // the number of pairs where the two samples are homozygous, summed over every genotype
+        let num_homozygous_pairs: Count = site.counts.iter().map(|count| count * (count - 1)).sum();
+
+        self.0 += 1f64 - (num_homozygous_pairs as f64 / num_pairs as f64);
+        if self.0.is_nan() {
+            Err(PopgenError::CalculationError)
+        } else {
+            Ok(())
+        }
     }
 
     fn as_raw(&self) -> f64 {
@@ -170,6 +232,7 @@ impl SiteComposable for GlobalPi {
     type Component = f64;
 
     fn component_from(site: SiteCounts) -> f64 {
+        debug_assert!(!site.counts().is_empty());
         // technically should divide both by two here and below but it cancels out
         let num_pairs = {
             let count: i64 = site.counts.iter().sum();
@@ -178,17 +241,17 @@ impl SiteComposable for GlobalPi {
 
         // the number of pairs where the two samples are homozygous, summed over every genotype
         let num_homozygous_pairs: Count = site.counts.iter().map(|count| count * (count - 1)).sum();
+
         1f64 - (num_homozygous_pairs as f64 / num_pairs as f64)
     }
 
-    fn add_component(&mut self, component: Self::Component) {
+    fn try_add_component(&mut self, component: Self::Component) -> PopgenResult<()> {
         self.0 += component;
-    }
-}
-
-impl From<&MultiSiteCounts> for GlobalPi {
-    fn from(value: &MultiSiteCounts) -> Self {
-        Self::from_iter_sites(value.iter())
+        if self.0.is_nan() {
+            Err(PopgenError::CalculationError)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -198,8 +261,9 @@ impl From<&MultiSiteCounts> for GlobalPi {
 pub struct WattersonTheta(f64);
 
 impl GlobalStatistic for WattersonTheta {
-    fn add_site(&mut self, site: SiteCounts) {
-        self.add_component(Self::component_from(site))
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+        self.0 += Self::component_from(site);
+        Ok(())
     }
 
     fn as_raw(&self) -> f64 {
@@ -211,6 +275,7 @@ impl SiteComposable for WattersonTheta {
     type Component = f64;
 
     fn component_from(site: SiteCounts) -> Self::Component {
+        debug_assert!(!site.counts().is_empty());
         // trying our very hardest to encourage optimization and SIMD here
         // also optimizing with the typical two-element slice in mind
         let mut iter = site.counts.chunks_exact(2);
@@ -230,17 +295,17 @@ impl SiteComposable for WattersonTheta {
             total_samples += c;
         });
 
-        if num_variants > 1 {
+        if num_variants != 1 {
             let harmonic = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
             (num_variants - 1) as f64 / harmonic
         } else {
-            // then this site isn't actually polymorphic; meh
             0f64
         }
     }
 
-    fn add_component(&mut self, component: Self::Component) {
+    fn try_add_component(&mut self, component: Self::Component) -> PopgenResult<()> {
         self.0 += component;
+        Ok(())
     }
 }
 
@@ -255,8 +320,15 @@ pub struct TajimaD {
 }
 
 impl GlobalStatistic for TajimaD {
-    fn add_site(&mut self, site: SiteCounts) {
-        self.add_component(Self::component_from(site))
+    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+        debug_assert!(!site.counts().is_empty());
+        self.k_hat.try_add_site(site.clone())?;
+        self.theta.try_add_site(site.clone())?;
+
+        self.num_sites += 1;
+        // this is not perfect but that's fine
+        self.num_samples = max(self.num_samples, site.total_alleles as usize);
+        Ok(())
     }
 
     fn as_raw(&self) -> f64 {
@@ -314,14 +386,15 @@ impl SiteComposable for TajimaD {
         )
     }
 
-    fn add_component(&mut self, component: Self::Component) {
+    fn try_add_component(&mut self, component: Self::Component) -> PopgenResult<()> {
         let (k_hat_component, theta_component, total_alleles) = component;
-        self.k_hat.add_component(k_hat_component);
-        self.theta.add_component(theta_component);
+        self.k_hat.try_add_component(k_hat_component)?;
+        self.theta.try_add_component(theta_component)?;
 
         self.num_sites += 1;
         // this is not perfect but that's fine
         self.num_samples = max(self.num_samples, total_alleles);
+        Ok(())
     }
 }
 
@@ -348,8 +421,15 @@ pub struct F_ST<'m> {
 impl<'m> F_ST<'m> {
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
-    pub(crate) fn add_population(&mut self, population: &'m MultiSiteCounts, weight: f64) {
-        let pi_new_site = GlobalPi::from(population).as_raw();
+    ///
+    /// # Errors
+    /// See [`crate::stats::GlobalPi`].
+    pub(crate) fn try_add_population(
+        &mut self,
+        population: &'m MultiSiteCounts,
+        weight: f64,
+    ) -> Result<(), PopgenError> {
+        let pi_new_site = GlobalPi::try_from_iter_sites(population.iter())?.as_raw();
         self.diversity_within.push(pi_new_site);
 
         self.pi_S.0 += weight * weight * pi_new_site;
@@ -361,8 +441,19 @@ impl<'m> F_ST<'m> {
                 .iter()
                 .zip(population.iter())
                 .map(|(s1, s2)| {
+                    if s1.total_alleles == 0 || s2.total_alleles == 0 {
+                        return Err(PopgenError::EmptySiteCounts);
+                    }
+
                     // do complement of diversity, i.e. expected homozygosity
-                    // for each variant...
+
+                    let total_comparisons = (s1.counts().iter().sum::<Count>()
+                        * s2.counts().iter().sum::<Count>())
+                        as i32;
+                    if total_comparisons == 0 {
+                        return Err(PopgenError::EmptySiteCounts);
+                    }
+
                     let num_homozygous = (0..max(s1.counts.len(), s2.counts.len()))
                         .map(|variant_num| {
                             // how many homozygous pairs?
@@ -371,13 +462,9 @@ impl<'m> F_ST<'m> {
                         })
                         .sum::<i64>();
 
-                    let total_comparisons = (s1.counts().iter().sum::<Count>()
-                        * s2.counts().iter().sum::<Count>())
-                        as i32;
-
-                    1. - num_homozygous as f64 / (total_comparisons as f64)
+                    Ok(1. - num_homozygous as f64 / (total_comparisons as f64))
                 })
-                .sum();
+                .sum::<Result<f64, PopgenError>>()?;
 
             // TODO: just use a linear vector?
             self.diversity_between
@@ -387,6 +474,74 @@ impl<'m> F_ST<'m> {
             self.pi_B.1 += weight * existing_pop_weight;
         }
         self.populations.push((population, weight));
+        Ok(())
+    }
+
+    /// Calculate F2(deme1, deme2).
+    ///
+    /// We follow Equation 17 from
+    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
+    ///
+    /// # Errors
+    ///
+    /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
+    pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
+        let pi_12 = self
+            .diversity_between
+            .get(&UnorderedPair::new(deme1, deme2))
+            .ok_or(PopgenError::InvalidDeme)?;
+        let pi_11 = self
+            .diversity_within
+            .get(deme1)
+            .ok_or(PopgenError::InvalidDeme)?;
+        let pi_22 = self
+            .diversity_within
+            .get(deme2)
+            .ok_or(PopgenError::InvalidDeme)?;
+        Ok(pi_12 - (pi_11 + pi_22) / 2.)
+    }
+
+    /// Calculate F3(deme1; deme2, deme3).
+    ///
+    /// We follow Equation 20b from
+    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/),
+    /// with some change of notation.
+    /// He writes F3(deme X; deme 1, deme2).
+    ///
+    /// Originally due to Reich 2009 (as cited in Peters).
+    ///
+    /// # Errors
+    ///
+    /// * If any deme index is out of range, return [`PopgenError::InvalidDeme`]
+    pub fn f3(&self, deme1: usize, deme2: usize, deme3: usize) -> Result<f64, PopgenError> {
+        let a = self.f2(deme1, deme2)?;
+        let b = self.f2(deme1, deme3)?;
+        let c = self.f2(deme2, deme3)?;
+        Ok((a + b - c) / 2.)
+    }
+
+    /// Calculate F4(deme1, deme2; deme3, deme4).
+    ///
+    /// We follow Equation 24b from
+    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
+    ///
+    /// Originally due to Reich 2009 (as cited in Peters).
+    ///
+    /// # Errors
+    ///
+    /// * If any deme index is out of range, return [`PopgenError::InvalidDeme`]
+    pub fn f4(
+        &self,
+        deme1: usize,
+        deme2: usize,
+        deme3: usize,
+        deme4: usize,
+    ) -> Result<f64, PopgenError> {
+        let a = self.f2(deme1, deme4)?;
+        let b = self.f2(deme2, deme3)?;
+        let c = self.f2(deme1, deme3)?;
+        let d = self.f2(deme2, deme4)?;
+        Ok((a + b - c - d) / 2.)
     }
 }
 

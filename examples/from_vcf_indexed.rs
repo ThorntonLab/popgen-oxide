@@ -46,7 +46,7 @@ fn main() {
     let alleles = query
         .map(Result::unwrap)
         .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy).unwrap());
-    let counts = MultiSiteCounts::from_tabular(alleles);
+    let counts = MultiSiteCounts::try_from_tabular(alleles);
     counts.iter().for_each(|c| println!("{c:?}"));
 
     // clean up our file

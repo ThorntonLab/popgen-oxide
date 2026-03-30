@@ -8,8 +8,6 @@ pub mod vcf {
     use noodles::vcf::variant::record::samples::Sample;
     use noodles::vcf::variant::record::AlternateBases;
     use noodles::vcf::{Header, Record};
-    use std::borrow::Cow;
-    use std::collections::HashMap;
     use std::ops::ControlFlow;
 
     pub fn record_to_genotypes_adapter(
@@ -70,7 +68,6 @@ pub mod vcf {
     pub struct VCFToPopulationsAdapter<'h> {
         header: &'h Header,
         ploidy: Option<usize>,
-        population_name_to_idx: HashMap<String, usize>,
         sample_to_population: Vec<usize>,
         populations: MultiPopulationCounts,
         // buffers for add_record
@@ -78,47 +75,40 @@ pub mod vcf {
         buf_num_samples: Box<[usize]>,
     }
 
-    pub trait WhichPopulation<E> {
-        fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, E>;
-    }
-
-    impl<T, E> WhichPopulation<E> for &mut T
-    where
-        T: WhichPopulation<E>,
-    {
-        fn which_population<'s>(&'s mut self, sample_name: &'_ str) -> Result<Cow<'s, str>, E> {
-            (*self).which_population(sample_name)
-        }
-    }
-
     impl<'h> VCFToPopulationsAdapter<'h> {
-        pub fn new<W, E>(
+        /// Build a new adapter.
+        /// Requires:
+        /// - `header`: A VCF header.
+        /// - `ploidy`: The ploidy in the data, or `None` to attempt to infer it from the first sample seen.
+        /// - `num_populations`: The number of populations in the set.
+        /// - `mapper`: An [`Fn`] from sample name (as `&str`) to a zero-based population ID.
+        ///
+        /// # Errors
+        /// Any error from `mapper` will be propagated to the caller.
+        ///
+        /// # Panics
+        /// If `mapper` produces a population ID greater than or equal to `num_populations` (which is out-of-bounds in a zero-based ID system).
+        pub fn new<'sample, M, E>(
             header: &'h Header,
             ploidy: Option<usize>,
-            mut mapper: W,
+            num_populations: usize,
+            mapper: M,
         ) -> Result<Self, E>
         where
-            W: WhichPopulation<E>,
+            'h: 'sample,
+            M: Fn(&'sample str) -> Result<usize, E>,
         {
             let num_samples = header.sample_names().len();
             let mut sample_to_population = Vec::with_capacity(num_samples);
-            let mut population_name_to_idx = HashMap::new();
 
             if let ControlFlow::Break(err) =
                 header.sample_names().iter().try_for_each(|sample_name| {
-                    sample_to_population.push({
-                        let pop_name = match mapper.which_population(sample_name) {
-                            Ok(name) => name,
-                            Err(e) => return ControlFlow::Break(e),
-                        };
-
-                        if !population_name_to_idx.contains_key(&*pop_name) {
-                            let population_id = population_name_to_idx.len();
-                            population_name_to_idx.insert(pop_name.into_owned(), population_id);
-                            population_id
-                        } else {
-                            *population_name_to_idx.get(&*pop_name).unwrap()
+                    sample_to_population.push(match mapper(sample_name) {
+                        Ok(pop_id) if pop_id >= num_populations => {
+                            panic!("sample {sample_name} mapped to population ID {pop_id}, which is out of bounds for num_populations {num_populations}");
                         }
+                        Ok(pop_id) => pop_id,
+                        Err(e) => return ControlFlow::Break(e),
                     });
 
                     ControlFlow::Continue(())
@@ -127,13 +117,10 @@ pub mod vcf {
                 return Err(err);
             };
 
-            let num_populations = population_name_to_idx.len();
-
             Ok(Self {
                 header,
                 ploidy,
                 sample_to_population,
-                population_name_to_idx,
                 populations: MultiPopulationCounts::of_empty_populations(num_populations),
                 // we'll resize if we ever get a record with more variants
                 buf_counts: vec![0; num_populations * 2],
@@ -199,8 +186,8 @@ pub mod vcf {
             Ok(())
         }
 
-        pub fn build(self) -> (HashMap<String, usize>, MultiPopulationCounts) {
-            (self.population_name_to_idx, self.populations)
+        pub fn build(self) -> MultiPopulationCounts {
+            self.populations
         }
     }
 }

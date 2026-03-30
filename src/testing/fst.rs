@@ -2,23 +2,29 @@ use crate::stats::FStatisticParts;
 use crate::stats::GlobalPi;
 use crate::stats::GlobalStatistic;
 use crate::testing::testdata::RandomSiteOptions;
-use crate::MultiPopulationCounts;
+use crate::{MultiPopulationCounts, PopgenError};
 use std::borrow::Cow;
 use std::collections::HashMap;
 
 #[test]
-fn f_st_empty() {
-    fn ok(populations: &MultiPopulationCounts) {
-        // this is the one case where these fail; let's make sure that is the case
-        let f_st = populations.f_st_if(|_| None);
-        assert_eq!(f_st.pi_S(), None);
-        assert_eq!(f_st.pi_B(), None);
-        assert_eq!(f_st.pi_D(), None);
-    }
+fn f_st_no_pops() {
+    // equivalently, could have populations but exclude them all...
+    // but this is simpler
+    let counts = MultiPopulationCounts::default();
+    assert!(matches!(
+        counts.try_f_st_if(|_| Some(1.0)),
+        Err(PopgenError::CalculationError)
+    ));
+}
 
-    ok(&MultiPopulationCounts::of_empty_populations(0));
-    ok(&MultiPopulationCounts::of_empty_populations(1));
-    ok(&MultiPopulationCounts::of_empty_populations(5));
+#[test]
+fn f_st_empty_pops() {
+    for n_pops in [1, 2, 5] {
+        assert!(matches!(
+            MultiPopulationCounts::of_empty_populations(n_pops).try_f_st_if(|_| Some(1.0)),
+            Err(PopgenError::EmptySiteCounts)
+        ));
+    }
 }
 
 #[test]
@@ -32,7 +38,7 @@ fn f_st() {
         .extend_populations_from_site(|i| (&data[i].0, data[i].1))
         .unwrap();
 
-    let f_st = populations.f_st_if(|i| Some(weights[i]));
+    let f_st = populations.try_f_st_if(|i| Some(weights[i])).unwrap();
 
     #[allow(non_snake_case)]
     let (pi_B_top, pi_B_bottom) = f_st.pi_B_parts();
@@ -73,7 +79,8 @@ fn f_st() {
                 .enumerate()
                 .map(|(i, pop)| {
                     // sum of weight * weight * pi within this population
-                    GlobalPi::from_iter_sites(pop.iter()).as_raw() * (weights[i]).powi(2)
+                    GlobalPi::try_from_iter_sites(pop.iter()).unwrap().as_raw()
+                        * (weights[i]).powi(2)
                 })
                 .sum::<f64>())
         .abs()
@@ -143,7 +150,7 @@ fn f_st_from_random_data() {
                     .unwrap();
             }
 
-            let f_st_from_counts = counts.f_st_if(|i| Some(pop_weights[i]));
+            let f_st_from_counts = counts.try_f_st_if(|i| Some(pop_weights[i])).unwrap();
             let (pi_total_naive, pi_self_naive, pi_between_naive) =
                 crate::testing::naivecalculations::f_st(
                     &mut pops

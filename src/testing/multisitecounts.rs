@@ -41,7 +41,7 @@ fn load_raw() {
         ),
     ];
 
-    let counts = MultiSiteCounts::from_tabular(sites);
+    let counts = MultiSiteCounts::try_from_tabular(sites).unwrap();
 
     assert_eq!(counts.len(), 2);
     assert!(!counts.is_empty());
@@ -78,6 +78,13 @@ fn bad_site_negative_count() {
     let mut counts = MultiSiteCounts::default();
 
     counts.add_site_from_counts([-1, -2, -3], 100).unwrap();
+}
+
+#[test]
+#[should_panic]
+fn bad_site_empty_count() {
+    let mut counts = MultiSiteCounts::default();
+    counts.add_site_from_counts([], 100).unwrap();
 }
 
 #[test]

@@ -20,7 +20,10 @@ pub struct MultiSiteCounts {
 }
 
 impl MultiSiteCounts {
-    pub fn from_tabular<Sites, Samples>(sites: Sites) -> Self
+    /// Convenience wrapper which repeatedly invokes [`Self::add_site`].
+    /// # Errors
+    /// The error conditions from [`Self::add_site`] apply here.
+    pub fn try_from_tabular<Sites, Samples>(sites: Sites) -> PopgenResult<Self>
     where
         Sites: IntoIterator<Item = Samples>,
         Samples: IntoIterator<Item = Option<AlleleID>>,
@@ -28,10 +31,10 @@ impl MultiSiteCounts {
         let mut ret = Self::default();
 
         for site in sites {
-            ret.add_site(site);
+            ret.add_site(site)?;
         }
 
-        ret
+        Ok(ret)
     }
 
     /// Obtain site counts from a [`tskit::TreeSequence`].
@@ -58,7 +61,11 @@ impl MultiSiteCounts {
         from_tree_sequence::try_from_tree_sequence(ts, options)
     }
 
-    pub fn add_site<Samples>(&mut self, samples: Samples)
+    /// Add a site from an iterator of potentially missing allele IDs.
+    /// # Errors
+    /// - If `samples` is empty.
+    /// - If `samples` contains no present data (i.e. only ever yields `None`).
+    pub fn add_site<Samples>(&mut self, samples: Samples) -> PopgenResult<()>
     where
         Samples: IntoIterator<Item = Option<AlleleID>>,
     {
@@ -78,10 +85,9 @@ impl MultiSiteCounts {
             counts_this_site[allele_id_under] += 1;
         }
 
-        // this is still panic-safe because counts formed from actual data in this way
-        // are always sound
+        // we should not get NegativeCount or TotalAllelesDeficient here (could check that),
+        // but we certainly could get other error variants
         self.add_site_from_counts(counts_this_site, total_alleles)
-            .unwrap();
     }
 
     /// Add a site with counts of present alleles as described by `counts` and `total_alleles`
@@ -90,14 +96,21 @@ impl MultiSiteCounts {
     /// # Errors
     /// - If any element in `counts` is negative.
     /// - If `total_alleles` is less than the sum of elements of `counts`.
+    /// - If `counts` is empty.
+    /// - If `total_alleles == 0`.
     ///
-    /// If either error occurs, the underlying struct has not been modified.
+    /// If any error occurs, the underlying struct has not been modified.
+    // NOTE: any pub function that calls this one (probably)
+    // should be fallible
     pub fn add_site_from_counts(
         &mut self,
         counts: impl AsRef<[Count]>,
         total_alleles: i32,
     ) -> PopgenResult<()> {
         let counts = counts.as_ref();
+        if counts.is_empty() || total_alleles == 0 {
+            return Err(PopgenError::EmptySiteCounts);
+        }
 
         if let Some(bad) = counts.iter().find(|&c| c < &0) {
             return Err(PopgenError::NegativeCount(*bad));
@@ -200,6 +213,8 @@ impl MultiPopulationCounts {
     ///
     /// # Errors
     /// This function will fail **without rollback guarantees** if the provided slices do not match in length.
+    /// Also see [`MultiSiteCounts::add_site_from_counts`] for additional error cases.
+    /// Such an underlying error also does not provide rollback guarantees.
     pub fn extend_populations_from_site<Counts>(
         &mut self,
         mut get_counts: impl FnMut(usize) -> (Counts, usize),
@@ -229,20 +244,32 @@ impl MultiPopulationCounts {
         self.populations.len()
     }
 
-    /// Stream selected sub-populations of this [`Self`] into a computation of [`F_ST`].
+    /// Stream selected populations of this [`Self`] into a computation of [`F_ST`].
     ///
-    /// Sub-populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
+    /// Populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
     /// The newly created struct immutably borrows from `self`.
-    pub fn f_st_if(&'_ self, mut pred: impl FnMut(usize) -> Option<f64>) -> F_ST<'_> {
+    /// # Errors
+    /// - If no sites are selected for inclusion.
+    /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
+    pub fn try_f_st_if(
+        &self,
+        mut pred: impl FnMut(usize) -> Option<f64>,
+    ) -> Result<F_ST<'_>, PopgenError> {
         let mut ret = F_ST::default();
 
+        let mut any = false;
         for pop_i in 0..self.populations.len() {
             if let Some(weight) = pred(pop_i) {
-                ret.add_population(&self.populations[pop_i], weight);
+                ret.try_add_population(&self.populations[pop_i], weight)?;
+                any = true;
             }
         }
 
-        ret
+        if !any {
+            return Err(PopgenError::CalculationError);
+        }
+
+        Ok(ret)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &MultiSiteCounts> {

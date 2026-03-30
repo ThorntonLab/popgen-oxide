@@ -38,8 +38,14 @@ fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
 }
 
 // O(N^2) implementation of the Nei/Tajima diversity measure.
-pub fn pi<'s>(sites: &'s mut dyn Iterator<Item = &'s mut Site>) -> f64 {
-    sites.map(|s| pi_site(&mut s.iter().cloned())).sum::<f64>()
+pub fn pi<'s>(sites: impl Iterator<Item = &'s Site>) -> f64 {
+    let sites = sites.cloned();
+    let mut sites = sites.peekable();
+    if sites.peek().is_some() {
+        sites.map(|s| pi_site(&mut s.iter().cloned())).sum::<f64>()
+    } else {
+        f64::NAN
+    }
 }
 
 fn watterson_theta_denominator(n: usize) -> f64 {
@@ -108,7 +114,7 @@ where
 
     let pi_ii = populations
         .iter_mut()
-        .map(|pop| pi(&mut pop.iter_mut()))
+        .map(|pop| pi(pop.iter()))
         .collect::<Vec<_>>();
 
     let mut pi_ij_computed = vec![vec![None; populations.len()]; populations.len()];
