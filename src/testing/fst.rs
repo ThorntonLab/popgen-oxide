@@ -161,11 +161,15 @@ fn f_st_from_random_data() {
                             .zip(pop_weights.iter())
                             .map(|(p, &w)| (w, p)),
                     );
-                assert!((1.0 - (f_st_from_counts.pi_T() / pi_total_naive)).abs() < 0.00001);
-                assert!((1.0 - (f_st_from_counts.pi_S().unwrap() / pi_self_naive)).abs() < 0.00001);
+                let pit = f_st_from_counts.pi_T();
+                let pis = f_st_from_counts.pi_S().unwrap();
+                let pib = f_st_from_counts.pi_B().unwrap();
                 assert!(
-                    (1.0 - (f_st_from_counts.pi_B().unwrap() / pi_between_naive)).abs() < 0.00001
+                    (1.0 - (pit / pi_total_naive)).abs() < 0.00001,
+                    "{pit}, {pis}, {pib} | {pi_total_naive} {pi_self_naive} {pi_between_naive}"
                 );
+                assert!((1.0 - (pis / pi_self_naive)).abs() < 0.00001);
+                assert!((1.0 - (pib / pi_between_naive)).abs() < 0.00001);
             }
         }
     }
