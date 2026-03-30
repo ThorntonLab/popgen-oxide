@@ -12,6 +12,7 @@ rand = "0.9.0"
 noodles-core = "0.16.0"
 noodles = { version = "0.92.0", features = ["vcf", "csi", "tabix", "bgzf"] }
 rand_distr = "0.5.1"
+rayon = "1.11.0"
 proptest = "1.10.0"
 
 [profile.release]
@@ -34,3 +35,6 @@ required-features = ["noodles"]
 name = "from_tskit"
 required-features = ["tskit"]
 
+[[example]]
+name = "concurrent"
+required-features = ["noodles"]
