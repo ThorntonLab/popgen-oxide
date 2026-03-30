@@ -112,8 +112,8 @@ pub trait SiteComposable: Default + GlobalStatistic {
     fn component_from(site: SiteCounts) -> Self::Component;
     fn try_add_component(&mut self, component: Self::Component) -> crate::PopgenResult<()>;
     fn from_sites_parallel<'cnt>(
-        sites: impl IntoIterator<Item = SiteCounts<'cnt>>,
-    ) -> crate::PopgenResult<Self>
+        _sites: impl IntoIterator<Item = SiteCounts<'cnt>>,
+    ) -> PopgenResult<Self>
     where
         Self::Component: Send,
     {
