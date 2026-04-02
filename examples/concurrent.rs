@@ -28,10 +28,11 @@ fn main() {
     let out = iter
         .par_bridge()
         .map(|rec| record_to_genotypes_adapter(&header, &rec, 1).unwrap())
-        .try_fold(GlobalPi::default, |mut a, b| {
-            let multi = MultiSiteCounts::try_from_tabular(std::iter::once(b)).unwrap();
-            a.try_add_site(multi.get(0).unwrap())?;
-            Ok::<_, PopgenError>(a)
+        .try_fold(GlobalPi::default, |mut pi, alleles| {
+            let mut multi = MultiSiteCounts::default();
+            multi.add_site(alleles).unwrap();
+            pi.try_add_site(multi.get(0).unwrap())?;
+            Ok::<_, PopgenError>(pi)
         })
         .try_reduce(GlobalPi::default, |mut a, b| {
             a.try_combine(&b)?;
