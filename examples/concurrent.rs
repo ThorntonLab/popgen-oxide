@@ -25,19 +25,19 @@ fn main() {
         _ => Some(record.clone()),
     });
 
-    let all_alleles = iter
+    let out = iter
         .par_bridge()
         .map(|rec| record_to_genotypes_adapter(&header, &rec, 1).unwrap())
-        .map(|genotypes| MultiSiteCounts::try_from_tabular(std::iter::once(genotypes)).unwrap())
-        .map(|site| <GlobalPi as SiteComposable>::component_from(site.get(0).unwrap()))
-        .try_fold(GlobalPi::default, |mut pi, c| {
-            pi.try_add_component(c)?;
-            Ok::<_, PopgenError>(pi)
+        .try_fold(GlobalPi::default, |mut a, b| {
+            let multi = MultiSiteCounts::try_from_tabular(std::iter::once(b)).unwrap();
+            a.try_add_site(multi.get(0).unwrap())?;
+            Ok::<_, PopgenError>(a)
         })
-        // TODO: this is ugly
-        .map(|pi| pi.map(|p| p.as_raw()))
-        .try_reduce(f64::default, |a, b| Ok(a + b))
+        .try_reduce(GlobalPi::default, |mut a, b| {
+            a.try_combine(&b)?;
+            Ok::<_, PopgenError>(a)
+        })
         .unwrap();
 
-    dbg!(all_alleles);
+    dbg!(out);
 }
