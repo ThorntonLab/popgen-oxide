@@ -25,6 +25,6 @@ fn main() {
         .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy).unwrap());
 
     // this constructor is iterator-based
-    let counts = MultiSiteCounts::try_from_tabular(all_alleles);
+    let counts = MultiSiteCounts::try_from_tabular(all_alleles).unwrap();
     counts.iter().for_each(|c| println!("{c:?}"));
 }
