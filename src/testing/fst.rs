@@ -75,7 +75,6 @@ fn f_st() {
     assert!(
         (pi_S_top
             - (0..populations.num_populations())
-                .into_iter()
                 .map(|pop_i| {
                     // sum of weight * weight * pi within this population
                     GlobalPi::try_from_iter_sites(populations.iter_sites_in(pop_i))
