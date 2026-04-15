@@ -295,7 +295,7 @@ impl MultiPopulationCounts {
     /// Convenience method to produce an iterator over [`SiteCounts`] in one population.
     /// Empty if `population_num` is out of bounds.
     pub fn iter_sites_in(&self, population_num: usize) -> impl Iterator<Item = SiteCounts<'_>> {
-        (0..self.num_sites()).flat_map(move |site_n| self.get(population_num, site_n))
+        (0..self.num_sites()).flat_map(move |site_n| self.get(site_n, population_num))
     }
 
     /// Stream selected populations of this [`Self`] into a computation of [`F_ST`].
