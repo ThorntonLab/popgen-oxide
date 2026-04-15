@@ -246,7 +246,9 @@ impl<'backing> F_ST<'backing> {
 
         // there are more possible pairs of populations now
         for (i, (existing_pop, existing_pop_weight)) in self.populations.iter().enumerate() {
-            let pi_ij = self.backing.iter_sites_in(*existing_pop)
+            let pi_ij = self
+                .backing
+                .iter_sites_in(*existing_pop)
                 .zip(self.backing.iter_sites_in(population_num))
                 .map(|(s1, s2)| {
                     if s1.total_alleles == 0 || s2.total_alleles == 0 {
