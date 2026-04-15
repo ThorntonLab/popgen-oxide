@@ -1,6 +1,6 @@
 use crate::iter::SiteCounts;
 use crate::util::UnorderedPair;
-use crate::{Count, MultiSiteCounts, PopgenError};
+use crate::{Count, MultiPopulationCounts, PopgenError};
 use std::cmp::max;
 use std::collections::HashMap;
 
@@ -199,10 +199,11 @@ impl GlobalStatistic for TajimaD {
 /// because the invariant of [`crate::counts::MultiPopulationCounts`] is required.
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
-#[derive(Clone, Default, Debug)]
-pub struct F_ST<'m> {
-    /// (population, weight) pairs
-    populations: Vec<(&'m MultiSiteCounts, f64)>,
+#[derive(Clone, Debug)]
+pub struct F_ST<'backing> {
+    backing: &'backing MultiPopulationCounts,
+    /// (population number, weight) pairs
+    populations: Vec<(usize, f64)>,
     // total pi_T derivable from other terms, no need to store anything new
     /// for pi_S
     diversity_within: Vec<f64>,
@@ -213,7 +214,18 @@ pub struct F_ST<'m> {
     pi_B: (f64, f64),
 }
 
-impl<'m> F_ST<'m> {
+impl<'backing> F_ST<'backing> {
+    pub(crate) fn new_viewing(populations: &'backing MultiPopulationCounts) -> Self {
+        Self {
+            backing: populations,
+            populations: vec![],
+            diversity_within: vec![],
+            pi_S: (0.0, 0.0),
+            diversity_between: Default::default(),
+            pi_B: (0.0, 0.0),
+        }
+    }
+
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
     ///
@@ -221,10 +233,12 @@ impl<'m> F_ST<'m> {
     /// See [`crate::stats::GlobalPi`].
     pub(crate) fn try_add_population(
         &mut self,
-        population: &'m MultiSiteCounts,
+        population_num: usize,
         weight: f64,
     ) -> Result<(), PopgenError> {
-        let pi_new_site = GlobalPi::try_from_iter_sites(population.iter())?.as_raw();
+        let pi_new_site =
+            GlobalPi::try_from_iter_sites(self.backing.iter_sites_in(population_num))?.as_raw();
+
         self.diversity_within.push(pi_new_site);
 
         self.pi_S.0 += weight * weight * pi_new_site;
@@ -232,9 +246,8 @@ impl<'m> F_ST<'m> {
 
         // there are more possible pairs of populations now
         for (i, (existing_pop, existing_pop_weight)) in self.populations.iter().enumerate() {
-            let pi_ij = existing_pop
-                .iter()
-                .zip(population.iter())
+            let pi_ij = self.backing.iter_sites_in(*existing_pop)
+                .zip(self.backing.iter_sites_in(population_num))
                 .map(|(s1, s2)| {
                     if s1.total_alleles == 0 || s2.total_alleles == 0 {
                         return Err(PopgenError::EmptySiteCounts);
@@ -268,7 +281,7 @@ impl<'m> F_ST<'m> {
             self.pi_B.0 += weight * existing_pop_weight * pi_ij;
             self.pi_B.1 += weight * existing_pop_weight;
         }
-        self.populations.push((population, weight));
+        self.populations.push((population_num, weight));
         Ok(())
     }
 

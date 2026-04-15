@@ -4,7 +4,6 @@ use crate::stats::F_ST;
 use crate::{from_tree_sequence, FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
 use std::cmp::max;
-use std::ops::Index;
 
 pub type Count = i64;
 
@@ -179,31 +178,32 @@ impl MultiSiteCounts {
     }
 }
 
-/// A collection of [`MultiSiteCounts`], with an added invariant.
+/// Counts of present allele variants and of all alleles, including missing ones.
+/// The data layout is by site, then population.
 ///
-/// A naive collection of such counts does not necessarily form a meaningful collection of populations with comparable counts.
-/// This is because each implicitly encodes the mapping from actual allele to a position in the array describing the count of each allele.
-/// This mapping may not be the same between independent [`MultiSiteCounts`] structs.
-///
-/// This struct remedies this by building these [`MultiSiteCounts`] such that they all respect the same mapping.
+/// It is guaranteed that counts for the same site in multiple populations are meaningfully related,
+/// particularly, e.g., that the allele assigned ID 0 in one population has also been assigned ID 0 in another population.
+/// Alleles which appear in one population but not the other will have a count of 0 in that other population.
 #[derive(Debug, Default, Clone)]
 pub struct MultiPopulationCounts {
-    populations: Vec<MultiSiteCounts>,
-}
-
-impl Index<usize> for MultiPopulationCounts {
-    type Output = MultiSiteCounts;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.populations[index]
-    }
+    // positions: Vec<usize>
+    // ragged array (site, population) -> some collection of counts
+    counts: Vec<Count>,
+    // shape (site, population) -> index into counts
+    count_starts: Vec<usize>,
+    // (site, population) -> number of alleles, present or missing, at this site
+    total_alleles: Vec<i32>,
+    num_populations: usize,
 }
 
 impl MultiPopulationCounts {
     /// Create a new [`Self`] containing `how_many` populations, but containing no data.
     pub fn of_empty_populations(how_many: usize) -> Self {
         Self {
-            populations: vec![MultiSiteCounts::default(); how_many],
+            counts: vec![],
+            count_starts: vec![],
+            total_alleles: vec![],
+            num_populations: how_many,
         }
     }
 
@@ -217,23 +217,43 @@ impl MultiPopulationCounts {
     /// Such an underlying error also does not provide rollback guarantees.
     pub fn extend_populations_from_site<Counts>(
         &mut self,
-        mut get_counts: impl FnMut(usize) -> (Counts, usize),
+        mut get_counts: impl FnMut(usize) -> (Counts, i32),
     ) -> PopgenResult<()>
     where
         Counts: AsRef<[Count]>,
     {
         let mut inferred_slice_length = None;
+        self.count_starts.push(self.counts.len());
 
-        for (population_i, population) in self.populations.iter_mut().enumerate() {
-            let (allele_counts, num_samples) = get_counts(population_i);
-            let allele_counts = allele_counts.as_ref();
-            if inferred_slice_length.is_some_and(|inf| allele_counts.len() != inf) {
-                return Err(PopgenError::MismatchedSliceLength);
-            } else {
-                inferred_slice_length = Some(allele_counts.len());
+        for population_i in 0..self.num_populations {
+            let (allele_counts, total_alleles) = get_counts(population_i);
+            let counts = allele_counts.as_ref();
+            match inferred_slice_length {
+                None => {
+                    inferred_slice_length = Some(counts.len());
+                    self.counts
+                        .reserve(self.num_populations * inferred_slice_length.unwrap_or_default());
+                }
+                Some(stored) if stored != counts.len() => {
+                    return Err(PopgenError::MismatchedSliceLength);
+                }
+                Some(_) => {}
             }
 
-            population.add_site_from_counts(allele_counts, num_samples as i32)?;
+            if counts.is_empty() || total_alleles == 0 {
+                return Err(PopgenError::EmptySiteCounts);
+            }
+
+            if let Some(bad) = counts.iter().find(|&c| c < &0) {
+                return Err(PopgenError::NegativeCount(*bad));
+            }
+
+            if counts.iter().sum::<Count>() as i32 > total_alleles {
+                return Err(PopgenError::TotalAllelesDeficient);
+            }
+
+            self.counts.extend(counts);
+            self.total_alleles.push(total_alleles);
         }
 
         Ok(())
@@ -241,7 +261,41 @@ impl MultiPopulationCounts {
 
     /// Return the number of populations contained in [`Self`].
     pub fn num_populations(&self) -> usize {
-        self.populations.len()
+        self.num_populations
+    }
+
+    /// Return the number of sites contained in `Self`.
+    pub fn num_sites(&self) -> usize {
+        self.count_starts
+            .len()
+            .checked_div(self.num_populations)
+            .unwrap_or(0)
+    }
+
+    /// Attempt to get a [`SiteCounts`] from `Self`.
+    ///
+    /// # Errors
+    /// If any index is out of bounds.
+    pub fn get(&self, site_num: usize, population_num: usize) -> Option<SiteCounts<'_>> {
+        let counts_start = *self.count_starts.get(site_num)?;
+        let counts = match self.count_starts.get(site_num + 1) {
+            None => &self.counts[counts_start..],
+            Some(&next) => &self.counts[counts_start..next],
+        };
+        let total_alleles = *self
+            .total_alleles
+            .get(site_num * population_num + population_num)?;
+
+        Some(SiteCounts {
+            counts,
+            total_alleles,
+        })
+    }
+
+    /// Convenience method to produce an iterator over [`SiteCounts`] in one population.
+    /// Empty if `population_num` is out of bounds.
+    pub fn iter_sites_in(&self, population_num: usize) -> impl Iterator<Item = SiteCounts<'_>> {
+        (0..self.num_sites()).flat_map(move |site_n| self.get(population_num, site_n))
     }
 
     /// Stream selected populations of this [`Self`] into a computation of [`F_ST`].
@@ -255,12 +309,12 @@ impl MultiPopulationCounts {
         &self,
         mut pred: impl FnMut(usize) -> Option<f64>,
     ) -> Result<F_ST<'_>, PopgenError> {
-        let mut ret = F_ST::default();
+        let mut ret = F_ST::new_viewing(self);
 
         let mut any = false;
-        for pop_i in 0..self.populations.len() {
+        for pop_i in 0..self.num_populations() {
             if let Some(weight) = pred(pop_i) {
-                ret.try_add_population(&self.populations[pop_i], weight)?;
+                ret.try_add_population(pop_i, weight)?;
                 any = true;
             }
         }
@@ -270,9 +324,5 @@ impl MultiPopulationCounts {
         }
 
         Ok(ret)
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &MultiSiteCounts> {
-        self.populations.iter()
     }
 }
