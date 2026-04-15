@@ -266,7 +266,7 @@ impl MultiPopulationCounts {
 
     /// Return the number of sites contained in `Self`.
     pub fn num_sites(&self) -> usize {
-        self.count_starts
+        self.total_alleles
             .len()
             .checked_div(self.num_populations)
             .unwrap_or(0)
@@ -278,16 +278,20 @@ impl MultiPopulationCounts {
     /// If any index is out of bounds.
     pub fn get(&self, site_num: usize, population_num: usize) -> Option<SiteCounts<'_>> {
         let counts_start = *self.count_starts.get(site_num)?;
-        let counts = match self.count_starts.get(site_num + 1) {
+        let counts_all_pops = match self.count_starts.get(site_num + 1) {
             None => &self.counts[counts_start..],
             Some(&next) => &self.counts[counts_start..next],
         };
+        let counts_per_site = counts_all_pops.len().checked_div(self.num_populations())?;
+        let counts_this_pop = &counts_all_pops
+            [counts_per_site * population_num..counts_per_site * population_num + counts_per_site];
+
         let total_alleles = *self
             .total_alleles
             .get(site_num * population_num + population_num)?;
 
         Some(SiteCounts {
-            counts,
+            counts: counts_this_pop,
             total_alleles,
         })
     }
