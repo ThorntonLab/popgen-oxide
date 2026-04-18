@@ -74,13 +74,13 @@ fn f_st() {
 
     assert!(
         (pi_S_top
-            - populations
-                .iter()
-                .enumerate()
-                .map(|(i, pop)| {
+            - (0..populations.num_populations())
+                .map(|pop_i| {
                     // sum of weight * weight * pi within this population
-                    GlobalPi::try_from_iter_sites(pop.iter()).unwrap().as_raw()
-                        * (weights[i]).powi(2)
+                    GlobalPi::try_from_iter_sites(populations.iter_sites_in(pop_i))
+                        .unwrap()
+                        .as_raw()
+                        * weights[pop_i].powi(2)
                 })
                 .sum::<f64>())
         .abs()
@@ -145,7 +145,7 @@ fn f_st_from_random_data() {
                         let counts_vec = (0..n_alleles)
                             .map(|allele_id| counts.get(&allele_id).cloned().unwrap_or_default())
                             .collect::<Vec<_>>();
-                        (Cow::Owned(counts_vec), alleles.len())
+                        (Cow::Owned(counts_vec), alleles.len() as i32)
                     })
                     .unwrap();
             }
