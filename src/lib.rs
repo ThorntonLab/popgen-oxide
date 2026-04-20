@@ -17,9 +17,6 @@ pub use counts::*;
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
 #[cfg(feature = "tskit")]
-pub use tskit;
-
-#[cfg(feature = "tskit")]
 pub use from_tree_sequence::FromTreeSequenceOptions;
 
 #[non_exhaustive]

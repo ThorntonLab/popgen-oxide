@@ -1,8 +1,7 @@
 // NOTE: these tests require compiling
 // with the tskit feature
 
-use popgen::tskit;
-use popgen::tskit::prelude::StreamingIterator;
+use tskit::prelude::StreamingIterator;
 
 #[cfg(test)]
 struct MutationData {

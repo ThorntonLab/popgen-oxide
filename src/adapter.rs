@@ -2,7 +2,6 @@
 pub mod vcf {
     use crate::counts::MultiPopulationCounts;
     use crate::{AlleleID, PopgenResult};
-    pub use noodles::vcf as noodles_vcf;
     use noodles::vcf::variant::record::samples::keys::key;
     use noodles::vcf::variant::record::samples::series::Value;
     use noodles::vcf::variant::record::samples::Sample;
