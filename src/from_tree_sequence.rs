@@ -15,10 +15,23 @@ use crate::{MultiSiteCounts, PopgenResult};
 //    In rust, dealing w/3rd party libs like this has
 //    poor ergonomics
 
-#[derive(Default)]
+#[derive(Debug)]
+pub enum TskitSamplesList<'samples> {
+    /// Define samples by **node** identifiers
+    Node(&'samples [tskit::NodeId]),
+    /// Define samples by **individual** identifiers
+    Individual(&'samples [tskit::IndividualId]),
+}
+
+#[derive(Debug, Default)]
 /// Options affecting the behavior of
 /// [crate::MultiSiteCounts::try_from_tree_sequence]
-pub struct FromTreeSequenceOptions {}
+pub struct FromTreeSequenceOptions<'samples> {
+    /// Instead of defaulting to the defined sample nodes
+    /// in a tree sequence, extract data with respect
+    /// to nodes in this field.
+    pub samples: Option<TskitSamplesList<'samples>>,
+}
 
 fn update_right(
     right: f64,
@@ -38,9 +51,91 @@ fn update_right(
     }
 }
 
+fn setup_samples_from_node_ids<I>(ts: &tskit::TreeSequence, iter: I) -> (Vec<i64>, i32)
+where
+    I: Iterator<Item = tskit::NodeId>,
+{
+    let num_nodes = ts.tables().nodes().num_rows().as_usize();
+    let mut num_sample_descendants = vec![0_i64; num_nodes];
+    let mut num_sampled_genomes = 0;
+    for node_id in iter {
+        // Should be an Err condition!
+        assert!(node_id != tskit::NodeId::NULL);
+        // Should be an Err condition!
+        assert!(node_id.as_usize() < num_nodes);
+        num_sample_descendants[node_id.as_usize()] += 1;
+        num_sampled_genomes += 1;
+    }
+    (num_sample_descendants, num_sampled_genomes)
+}
+
+fn setup_samples(
+    ts: &tskit::TreeSequence,
+    parameters: Option<&FromTreeSequenceOptions>,
+) -> (Vec<i64>, i32) {
+    if let Some(options) = parameters {
+        if let Some(samples_list) = &options.samples {
+            match samples_list {
+                TskitSamplesList::Node(nodes) => {
+                    setup_samples_from_node_ids(ts, nodes.iter().cloned())
+                }
+                TskitSamplesList::Individual(individuals) => {
+                    // TODO: we could/should Err here if the individual table
+                    // is empty?
+                    // NOTE: tskit-rust does not have an "easy" API
+                    // for individual to node mapping, so we require an allocation here
+                    let ind_map = ts.nodes().individual_slice();
+                    let mut ind_needed = vec![0; ind_map.len()];
+                    for i in individuals.iter() {
+                        // NOTE: we could skip this case or Err
+                        assert!(i != tskit::IndividualId::NULL);
+                        // NOTE: we could more gracefully catch i>=len here
+                        ind_needed[i.as_usize()] = 1;
+                    }
+                    setup_samples_from_node_ids(
+                        ts,
+                        ts.nodes_iter().filter_map(|n| {
+                            if n.individual != tskit::IndividualId::NULL
+                                && ind_needed[n.individual.as_usize()] != 0
+                            {
+                                Some(n.id)
+                            } else {
+                                None
+                            }
+                        }),
+                    )
+                }
+            }
+        } else {
+            // FIXME: this repeats what is below
+            setup_samples_from_node_ids(
+                ts,
+                ts.nodes().iter().filter_map(|i| {
+                    if i.flags.is_sample() {
+                        Some(i.id)
+                    } else {
+                        None
+                    }
+                }),
+            )
+        }
+    } else {
+        setup_samples_from_node_ids(
+            ts,
+            ts.nodes().iter().filter_map(|i| {
+                if i.flags.is_sample() {
+                    Some(i.id)
+                } else {
+                    None
+                }
+            }),
+        )
+    }
+}
+
 pub fn try_from_tree_sequence(
     ts: &tskit::TreeSequence,
-    _parameters: Option<FromTreeSequenceOptions>,
+    parameters: Option<&FromTreeSequenceOptions>,
 ) -> PopgenResult<MultiSiteCounts> {
     let mut counts = MultiSiteCounts::default();
     let mut left = 0.0;
@@ -64,14 +159,9 @@ pub fn try_from_tree_sequence(
     let mut j = 0_usize;
 
     let mut num_trees = 0;
-    let mut num_sample_descendants = vec![0_i64; ts.nodes().num_rows().as_usize()];
     let mut num_mutated_sample_descendants = vec![0_i64; ts.mutations().num_rows().as_usize()];
     let mut parent = vec![tskit::NodeId::NULL; ts.nodes().num_rows().as_usize()];
-    let mut num_sampled_genomes = 0_i32;
-    for s in ts.nodes().iter().filter(|i| i.flags.is_sample()) {
-        num_sample_descendants[s.id.as_usize()] = 1;
-        num_sampled_genomes += 1;
-    }
+    let (mut num_sample_descendants, num_sampled_genomes) = setup_samples(ts, parameters);
     let mut current_site_index = 0;
     let mut current_mutation_index = 0;
     let mut alleles_at_site = vec![];
@@ -170,11 +260,11 @@ pub fn try_from_tree_sequence(
             }
             // Easier way?
             allele_counts[0] =
-                (u64::from(ts.num_samples()) as i64) - allele_counts.iter().skip(1).sum::<i64>();
+                (num_sampled_genomes as i64) - allele_counts.iter().skip(1).sum::<i64>();
             assert!(allele_counts[0] >= 0);
             if allele_counts
                 .iter()
-                .filter(|&&i| i > 0 && (i as u64) < ts.num_samples())
+                .filter(|&&i| i > 0 && i < num_sampled_genomes as i64)
                 .count()
                 > 1
             {
