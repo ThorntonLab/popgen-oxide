@@ -888,7 +888,6 @@ fn test_13() {
         for x in 2..samples.len() - 1 {
             let options = popgen::FromTreeSequenceOptions {
                 samples: Some(popgen::TskitSamplesList::Node(&samples[0..x])),
-                ..Default::default()
             };
             generate_counts_and_validate(&ts, Some(&options));
         }
@@ -918,7 +917,6 @@ mod with_ancient_samples {
         for x in 2..samples.len() - 1 {
             let options = popgen::FromTreeSequenceOptions {
                 samples: Some(popgen::TskitSamplesList::Node(&samples[0..x])),
-                ..Default::default()
             };
             generate_counts_and_validate(&ts, Some(&options));
         }
@@ -944,7 +942,6 @@ mod with_ancient_samples {
         for x in 2..samples.len() - 1 {
             let options = popgen::FromTreeSequenceOptions {
                 samples: Some(popgen::TskitSamplesList::Node(&samples[0..x])),
-                ..Default::default()
             };
             generate_counts_and_validate(&ts, Some(&options));
         }
@@ -970,7 +967,6 @@ mod with_ancient_samples {
         for x in 2..samples.len() - 1 {
             let options = popgen::FromTreeSequenceOptions {
                 samples: Some(popgen::TskitSamplesList::Node(&samples[0..x])),
-                ..Default::default()
             };
             generate_counts_and_validate(&ts, Some(&options));
         }
@@ -995,16 +991,19 @@ mod with_ancient_samples {
         let samples = ts.sample_nodes();
         let options = popgen::FromTreeSequenceOptions {
             samples: Some(popgen::TskitSamplesList::Node(samples)),
-            ..Default::default()
         };
         generate_counts_and_validate(&ts, Some(&options));
 
         for x in 2..samples.len() - 1 {
             let options = popgen::FromTreeSequenceOptions {
                 samples: Some(popgen::TskitSamplesList::Node(&samples[0..x])),
-                ..Default::default()
             };
             generate_counts_and_validate(&ts, Some(&options));
         }
     }
+}
+
+#[test]
+fn test_individual_list() {
+    todo!()
 }
