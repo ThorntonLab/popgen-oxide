@@ -3,6 +3,8 @@ mod testdata;
 
 // tests of TYPES go below
 mod multisitecounts;
+#[cfg(feature = "tskit")]
+mod test_try_from_tree_sequence;
 
 // tests of CALCULATIONS go below
 
