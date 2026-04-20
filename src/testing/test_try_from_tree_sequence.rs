@@ -287,13 +287,18 @@ fn make_two_sample_tree() -> tskit::TableCollection {
 fn make_four_sample_tree() -> tskit::TableCollection {
     let mut tables = tskit::TableCollection::new(100.0).unwrap();
 
-    for _ in 0..4 {
+    let i0 = tables.add_individual(0, None, None).unwrap();
+    let i1 = tables.add_individual(0, None, None).unwrap();
+
+    let individuals = [i0, i1];
+
+    for i in 0_usize..4 {
         tables
             .add_node(
                 tskit::NodeFlags::new_sample(),
                 0.0,
                 tskit::PopulationId::NULL,
-                tskit::IndividualId::NULL,
+                individuals[i / 2],
             )
             .unwrap();
     }
@@ -1005,5 +1010,22 @@ mod with_ancient_samples {
 
 #[test]
 fn test_individual_list() {
-    todo!()
+    let ts = make_test_data(
+        make_four_sample_tree_with_one_inline_ancient_sample,
+        vec![SiteData::new(
+            5.,
+            "G",
+            vec![
+                MutationData::new(5, 21.0, "A"),
+                MutationData::new(4, 10.1, "G"),
+                MutationData::new(7, 10.1, "A"),
+                MutationData::new(1, 0.1, "C"),
+            ],
+        )],
+    );
+    let individual_ids = ts.individuals_iter().map(|i| i.id).collect::<Vec<_>>();
+    let options = popgen::FromTreeSequenceOptions {
+        samples: Some(popgen::TskitSamplesList::Individual(&individual_ids)),
+    };
+    generate_counts_and_validate(&ts, Some(&options));
 }
