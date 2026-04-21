@@ -608,7 +608,6 @@ fn generate_counts_and_validate(
     options: Option<&popgen::FromTreeSequenceOptions>,
 ) {
     let counts = popgen::MultiSiteCounts::try_from_tree_sequence(ts, options).unwrap();
-    println!("{counts:?}");
     // Instead of relying on the internal node sample-ness status,
     // we define our set of "sample/focal" nodes externally from
     // the tree sequence.
