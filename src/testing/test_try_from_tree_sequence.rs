@@ -633,10 +633,10 @@ fn generate_counts_and_validate(
                             ind_needed[i.as_usize()] = 1;
                         }
                         for n in ts.nodes_iter() {
-                            if n.individual != tskit::IndividualId::NULL {
-                                if ind_needed[n.individual.as_usize()] != 0 {
-                                    focal_nodes[n.id.as_usize()] = true;
-                                }
+                            if n.individual != tskit::IndividualId::NULL
+                                && ind_needed[n.individual.as_usize()] != 0
+                            {
+                                focal_nodes[n.id.as_usize()] = true;
                             }
                         }
                     }
