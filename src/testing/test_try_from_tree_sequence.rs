@@ -1042,4 +1042,8 @@ fn test_individual_list() {
         samples: Some(popgen::TskitSamplesList::Individual(&individual_ids)),
     };
     generate_counts_and_validate(&ts, Some(&options));
+    let options = popgen::FromTreeSequenceOptions {
+        samples: Some(popgen::TskitSamplesList::Individual(&individual_ids[0..1])),
+    };
+    generate_counts_and_validate(&ts, Some(&options));
 }
