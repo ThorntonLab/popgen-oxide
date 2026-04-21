@@ -623,7 +623,23 @@ fn generate_counts_and_validate(
                             focal_nodes[n] = true;
                         }
                     }
-                    popgen::TskitSamplesList::Individual(_) => todo!(),
+                    popgen::TskitSamplesList::Individual(individuals) => {
+                        let ind_map = ts.nodes().individual_slice();
+                        let mut ind_needed = vec![0; ind_map.len()];
+                        for i in individuals.iter() {
+                            // NOTE: we could skip this case or Err
+                            assert!(i != tskit::IndividualId::NULL);
+                            // NOTE: we could more gracefully catch i>=len here
+                            ind_needed[i.as_usize()] = 1;
+                        }
+                        for n in ts.nodes_iter() {
+                            if n.individual != tskit::IndividualId::NULL {
+                                if ind_needed[n.individual.as_usize()] != 0 {
+                                    focal_nodes[n.id.as_usize()] = true;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         } else {
