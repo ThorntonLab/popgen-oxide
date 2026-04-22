@@ -364,6 +364,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4876a9caa25647b9ddc09883263b61fd6500ec7a4394f31daa5428026d5eb415"
 dependencies = [
  "noodles-bgzf",
+ "noodles-core",
  "noodles-csi",
  "noodles-tabix",
  "noodles-vcf",
@@ -463,7 +464,6 @@ name = "popgen"
 version = "0.1.0"
 dependencies = [
  "noodles",
- "noodles-core",
  "proptest",
  "rand",
  "rand_distr",

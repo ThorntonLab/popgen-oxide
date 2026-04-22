@@ -50,7 +50,7 @@ where
     Some(
         RecordBuf::builder()
             .set_reference_sequence_name(seq_name)
-            .set_variant_start(noodles_core::Position::MIN)
+            .set_variant_start(noodles::core::Position::MIN)
             .set_reference_bases(alleles_seen[0])
             .set_alternate_bases(AlternateBases::from(
                 alleles_seen[1..]
