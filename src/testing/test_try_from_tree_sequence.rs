@@ -666,11 +666,14 @@ fn test_subsets_of_sample_nodes(ts: &tskit::TreeSequence) {
     let options = crate::FromTreeSequenceOptions {
         samples: Some(crate::TskitSamplesList::Node(samples)),
     };
+    println!("testing entire sample list generated from ts.sample_nodes()");
     generate_counts_and_validate(ts, Some(&options));
 
     for x in 2..samples.len() {
+        let subsamples = &samples[..x];
+        println!("testing {subsamples:?} from {samples:?}");
         let options = crate::FromTreeSequenceOptions {
-            samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
+            samples: Some(crate::TskitSamplesList::Node(subsamples)),
         };
         generate_counts_and_validate(ts, Some(&options));
     }
