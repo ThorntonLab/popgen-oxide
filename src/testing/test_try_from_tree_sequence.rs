@@ -687,6 +687,25 @@ fn test_subsets_of_sample_nodes(ts: &tskit::TreeSequence) {
     }
 }
 
+#[cfg(test)]
+fn test_non_sample_nodes_and_subsets(ts: &tskit::TreeSequence) {
+    let samples = ts.nodes_iter().find_map(|n| (!n.flags.is_sample()).then(n.id)).collect::<Vec<_>>();
+    let options = crate::FromTreeSequenceOptions {
+        samples: Some(crate::TskitSamplesList::Node(samples)),
+    };
+    println!("testing entire sample list generated from ts.sample_nodes()");
+    generate_counts_and_validate(ts, Some(&options));
+
+    for x in 2..samples.len() {
+        let subsamples = &samples[..x];
+        println!("testing {subsamples:?} from {samples:?}");
+        let options = crate::FromTreeSequenceOptions {
+            samples: Some(crate::TskitSamplesList::Node(subsamples)),
+        };
+        generate_counts_and_validate(ts, Some(&options));
+    }
+}
+
 #[test]
 fn test_0() {
     let ts = make_test_data(make_two_sample_tree, vec![]);
