@@ -146,6 +146,7 @@ pub fn try_from_tree_sequence(
     ts: &tskit::TreeSequence,
     parameters: Option<&FromTreeSequenceOptions>,
 ) -> PopgenResult<MultiSiteCounts> {
+    let (mut num_sample_descendants, num_sampled_genomes) = setup_samples(ts, parameters)?;
     let mut counts = MultiSiteCounts::default();
     let mut left = 0.0;
     // NOTE: we need TreeSequence to be able to provide these
@@ -170,7 +171,6 @@ pub fn try_from_tree_sequence(
     let mut num_trees = 0;
     let mut num_mutated_sample_descendants = vec![0_i64; ts.mutations().num_rows().as_usize()];
     let mut parent = vec![tskit::NodeId::NULL; ts.nodes().num_rows().as_usize()];
-    let (mut num_sample_descendants, num_sampled_genomes) = setup_samples(ts, parameters)?;
     let mut current_site_index = 0;
     let mut current_mutation_index = 0;
     let mut alleles_at_site = vec![];
