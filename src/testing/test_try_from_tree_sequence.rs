@@ -172,29 +172,35 @@ mod naive_details {
             unique_focal_node_derived_states.dedup();
             unique_focal_node_derived_states
         };
-        let num_derived_counts = {
-            let mut num_derived_counts = vec![0; focal_node_state.len() + 1];
-            for u in unique_focal_node_derived_states {
-                let count = focal_node_state.iter().filter(|&i| i == &u).count();
-                num_derived_counts[count] += 1;
+        let number_of_alleles: i32 = {
+            let mut n = 0;
+            if num_ancestral > 0 {
+                n += 1
             }
-            num_derived_counts
+            n += unique_focal_node_derived_states.len() as i32;
+
+            n
         };
-        let derived = num_derived_counts
-            .iter()
-            .cloned()
-            .enumerate()
-            .filter(|(_, num_sites)| num_sites > &0)
-            .map(|(count, number_of_sites)| super::DerivedCounts {
-                count: count as i64,
-                number_of_sites,
-            })
-            .collect::<Vec<_>>();
-        println!("{ancestral_state:?}");
-        println!("{focal_node_state:?}");
-        println!("{derived:?}");
-        todo!("we are not correctly checking that the site is polymoprhic");
-        if !derived.is_empty() {
+        // NOTE: we filter out monomorphic sites!
+        if number_of_alleles > 1 {
+            let num_derived_counts = {
+                let mut num_derived_counts = vec![0; focal_node_state.len() + 1];
+                for u in unique_focal_node_derived_states {
+                    let count = focal_node_state.iter().filter(|&i| i == &u).count();
+                    num_derived_counts[count] += 1;
+                }
+                num_derived_counts
+            };
+            let derived = num_derived_counts
+                .iter()
+                .cloned()
+                .enumerate()
+                .filter(|(_, num_sites)| num_sites > &0)
+                .map(|(count, number_of_sites)| super::DerivedCounts {
+                    count: count as i64,
+                    number_of_sites,
+                })
+                .collect::<Vec<_>>();
             expected.push(SiteCountContents {
                 num_ancestral,
                 derived,
