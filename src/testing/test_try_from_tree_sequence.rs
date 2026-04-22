@@ -193,6 +193,7 @@ mod naive_details {
         println!("{ancestral_state:?}");
         println!("{focal_node_state:?}");
         println!("{derived:?}");
+        todo!("we are not correctly checking that the site is polymoprhic");
         if !derived.is_empty() {
             expected.push(SiteCountContents {
                 num_ancestral,
