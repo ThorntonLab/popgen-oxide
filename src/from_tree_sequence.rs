@@ -92,7 +92,9 @@ fn setup_samples(
                 }
                 TskitSamplesList::Individual(individuals) => {
                     if ts.individuals().num_rows() == 0 {
-                        return Err(crate::PopgenError::LibraryError("tskit::IndividualIds passed for sample list but tree sequence has an empty individuals table".to_owned()));
+                        let msg = "tskit::IndividualIds passed for sample list".to_owned()
+                            + " but tree sequence has an empty individuals table";
+                        return Err(crate::PopgenError::LibraryError(msg));
                     }
                     // NOTE: tskit-rust does not have an "easy" API
                     // for individual to node mapping, so we require an allocation here
