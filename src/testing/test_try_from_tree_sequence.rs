@@ -137,7 +137,7 @@ mod naive_details {
                 .iter()
                 .cloned()
                 .enumerate()
-                .filter_map(|(n, f)| if f { Some(n) } else { None })
+                .filter_map(|(n, f)| f.then_some(n))
             {
                 let mut p = tskit::NodeId::from(node as i32);
                 while p != tskit::NodeId::NULL {
@@ -156,7 +156,7 @@ mod naive_details {
             .iter()
             .cloned()
             .enumerate()
-            .filter_map(|(n, f)| if f { Some(node_state[n].clone()) } else { None })
+            .filter_map(|(n, f)| f.then_some(node_state[n].clone()))
             .collect::<Vec<_>>();
         let num_ancestral = focal_node_state
             .iter()
@@ -648,13 +648,10 @@ fn generate_counts_and_validate(
             }
         } else {
             // Get the nodes from the tree sequence sample map
-            for n in ts.nodes_iter().filter_map(|n| {
-                if n.flags.is_sample() {
-                    Some(n.id)
-                } else {
-                    None
-                }
-            }) {
+            for n in ts
+                .nodes_iter()
+                .filter_map(|n| n.flags.is_sample().then_some(n.id))
+            {
                 assert!(!focal_nodes[n.as_usize()]);
                 focal_nodes[n.as_usize()] = true;
             }
@@ -689,7 +686,10 @@ fn test_subsets_of_sample_nodes(ts: &tskit::TreeSequence) {
 
 #[cfg(test)]
 fn test_non_sample_nodes_and_subsets(ts: &tskit::TreeSequence) {
-    let samples = ts.nodes_iter().find_map(|n| (!n.flags.is_sample()).then(n.id)).collect::<Vec<_>>();
+    let samples = ts
+        .nodes_iter()
+        .find_map(|n| (!n.flags.is_sample()).then(n.id))
+        .collect::<Vec<_>>();
     let options = crate::FromTreeSequenceOptions {
         samples: Some(crate::TskitSamplesList::Node(samples)),
     };
