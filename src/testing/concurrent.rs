@@ -40,14 +40,17 @@ fn pi_equivalent_parallel(
         }
     }
     let counts = dbg!(crate::testing::testdata::single_pop_counts(&mut sites.iter()));
-    let pi = GlobalPi::try_from_iter_sites(counts.iter());
+    let pi = counts.iter().try_fold(GlobalPi::default(), |mut pi, s| {
+        pi.try_add_site(s)?;
+        Ok::<_, PopgenError>(pi)
+    });
 
     let parallel = counts.iter().map(|s| {
         let mut pi = GlobalPi::default();
         pi.try_add_site(s)?;
         Ok::<_, PopgenError>(pi)
-    }).try_fold(GlobalPi::default(), |mut pi, o| {
-        pi.try_combine(&(o?))?;
+    }).try_fold(GlobalPi::default(), |mut pi, part| {
+        pi.try_combine(&(part?))?;
         Ok::<_, PopgenError>(pi)
     });
 
@@ -59,8 +62,7 @@ fn pi_equivalent_parallel(
         Ok(pi) => {
             let pi_raw = pi.as_raw();
             let parallel_raw = parallel.unwrap().as_raw();
-
-            assert!((pi_raw - parallel_raw).abs() / pi_raw < 0.001)
+            assert!((pi_raw - parallel_raw).abs() < 0.00001)
         },
     }
 }
