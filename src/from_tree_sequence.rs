@@ -72,16 +72,16 @@ where
 fn setup_samples(
     ts: &tskit::TreeSequence,
     parameters: Option<&FromTreeSequenceOptions>,
-) -> (Vec<i64>, i32) {
+) -> Result<(Vec<i64>, i32), crate::PopgenError> {
     if let Some(options) = parameters {
         if let Some(samples_list) = &options.samples {
             match samples_list {
                 TskitSamplesList::Node(nodes) => {
-                    setup_samples_from_node_ids(ts, nodes.iter().cloned())
+                    Ok(setup_samples_from_node_ids(ts, nodes.iter().cloned()))
                 }
                 TskitSamplesList::Individual(individuals) => {
                     if ts.individuals().num_rows() == 0 {
-                        panic!()
+                        return Err(crate::PopgenError::LibraryError("tskit::IndividualIds passed for sample list but tree sequence has an empty individuals table".to_owned()));
                     }
                     // NOTE: tskit-rust does not have an "easy" API
                     // for individual to node mapping, so we require an allocation here
@@ -93,7 +93,7 @@ fn setup_samples(
                         // NOTE: we could more gracefully catch i>=len here
                         ind_needed[i.as_usize()] = 1;
                     }
-                    setup_samples_from_node_ids(
+                    Ok(setup_samples_from_node_ids(
                         ts,
                         ts.nodes_iter().filter_map(|n| {
                             if n.individual != tskit::IndividualId::NULL
@@ -104,12 +104,12 @@ fn setup_samples(
                                 None
                             }
                         }),
-                    )
+                    ))
                 }
             }
         } else {
             // FIXME: this repeats what is below
-            setup_samples_from_node_ids(
+            Ok(setup_samples_from_node_ids(
                 ts,
                 ts.nodes().iter().filter_map(|i| {
                     if i.flags.is_sample() {
@@ -118,10 +118,10 @@ fn setup_samples(
                         None
                     }
                 }),
-            )
+            ))
         }
     } else {
-        setup_samples_from_node_ids(
+        Ok(setup_samples_from_node_ids(
             ts,
             ts.nodes().iter().filter_map(|i| {
                 if i.flags.is_sample() {
@@ -130,7 +130,7 @@ fn setup_samples(
                     None
                 }
             }),
-        )
+        ))
     }
 }
 
@@ -162,7 +162,7 @@ pub fn try_from_tree_sequence(
     let mut num_trees = 0;
     let mut num_mutated_sample_descendants = vec![0_i64; ts.mutations().num_rows().as_usize()];
     let mut parent = vec![tskit::NodeId::NULL; ts.nodes().num_rows().as_usize()];
-    let (mut num_sample_descendants, num_sampled_genomes) = setup_samples(ts, parameters);
+    let (mut num_sample_descendants, num_sampled_genomes) = setup_samples(ts, parameters)?;
     let mut current_site_index = 0;
     let mut current_mutation_index = 0;
     let mut alleles_at_site = vec![];
