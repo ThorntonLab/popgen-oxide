@@ -660,6 +660,22 @@ fn generate_counts_and_validate(
     }
 }
 
+#[cfg(test)]
+fn test_subsets_of_sample_nodes(ts: &tskit::TreeSequence) {
+    let samples = ts.sample_nodes();
+    let options = crate::FromTreeSequenceOptions {
+        samples: Some(crate::TskitSamplesList::Node(samples)),
+    };
+    generate_counts_and_validate(ts, Some(&options));
+
+    for x in 2..samples.len() {
+        let options = crate::FromTreeSequenceOptions {
+            samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
+        };
+        generate_counts_and_validate(ts, Some(&options));
+    }
+}
+
 #[test]
 fn test_0() {
     let ts = make_test_data(make_two_sample_tree, vec![]);
@@ -901,13 +917,7 @@ fn test_13() {
             )],
         );
         generate_counts_and_validate(&ts, None);
-        let samples = ts.sample_nodes();
-        for x in 2..samples.len() - 1 {
-            let options = crate::FromTreeSequenceOptions {
-                samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
-            };
-            generate_counts_and_validate(&ts, Some(&options));
-        }
+        test_subsets_of_sample_nodes(&ts);
     }
 }
 
@@ -930,13 +940,7 @@ mod with_ancient_samples {
             )],
         );
         generate_counts_and_validate(&ts, None);
-        let samples = ts.sample_nodes();
-        for x in 2..samples.len() - 1 {
-            let options = crate::FromTreeSequenceOptions {
-                samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
-            };
-            generate_counts_and_validate(&ts, Some(&options));
-        }
+        test_subsets_of_sample_nodes(&ts);
     }
 
     #[test]
@@ -955,13 +959,7 @@ mod with_ancient_samples {
             )],
         );
         generate_counts_and_validate(&ts, None);
-        let samples = ts.sample_nodes();
-        for x in 2..samples.len() - 1 {
-            let options = crate::FromTreeSequenceOptions {
-                samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
-            };
-            generate_counts_and_validate(&ts, Some(&options));
-        }
+        test_subsets_of_sample_nodes(&ts);
     }
 
     #[test]
@@ -980,13 +978,7 @@ mod with_ancient_samples {
             )],
         );
         generate_counts_and_validate(&ts, None);
-        let samples = ts.sample_nodes();
-        for x in 2..samples.len() - 1 {
-            let options = crate::FromTreeSequenceOptions {
-                samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
-            };
-            generate_counts_and_validate(&ts, Some(&options));
-        }
+        test_subsets_of_sample_nodes(&ts);
     }
 
     #[test]
@@ -1004,19 +996,7 @@ mod with_ancient_samples {
                 ],
             )],
         );
-        generate_counts_and_validate(&ts, None);
-        let samples = ts.sample_nodes();
-        let options = crate::FromTreeSequenceOptions {
-            samples: Some(crate::TskitSamplesList::Node(samples)),
-        };
-        generate_counts_and_validate(&ts, Some(&options));
-
-        for x in 2..samples.len() - 1 {
-            let options = crate::FromTreeSequenceOptions {
-                samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
-            };
-            generate_counts_and_validate(&ts, Some(&options));
-        }
+        test_subsets_of_sample_nodes(&ts);
     }
 }
 
