@@ -1,7 +1,8 @@
-use proptest::proptest;
-use proptest::collection::vec;
-use crate::PopgenError;
 use crate::stats::{GlobalPi, GlobalStatistic, SiteComposable};
+use crate::PopgenError;
+use proptest::collection::vec;
+use proptest::proptest;
+use rand::distr::uniform::SampleRange;
 
 proptest!(
 // we don't need to invoke actual parallelism, just show that the component-wise approach is correct
@@ -45,18 +46,34 @@ fn pi_equivalent_parallel(
         Ok::<_, PopgenError>(pi)
     });
 
-    let parallel = counts.iter().map(|s| {
+    let mut components = counts.iter().map(|s| {
         let mut pi = GlobalPi::default();
         pi.try_add_site(s)?;
         Ok::<_, PopgenError>(pi)
-    }).try_fold(GlobalPi::default(), |mut pi, part| {
-        pi.try_combine(&(part?))?;
-        Ok::<_, PopgenError>(pi)
-    });
+    }).collect::<Vec<_>>();
+
+    components.shuffle(&mut rng);
+    while components.len() > 1 {
+        let pick1 = components.remove((..components.len()).sample_single(&mut rng).unwrap());
+        let pick2 = components.remove((..components.len()).sample_single(&mut rng).unwrap());
+        match (pick1, pick2) {
+            (Err(one), Ok(_)) | (Err(one), Err(_)) | (Ok(_), Err(one)) => {
+                components.push(Err(one));
+            },
+            (Ok(mut one), Ok(two)) => {
+                components.push(one.try_combine(&two).map(|_| one));
+            },
+        }
+    }
+
+    let parallel = if !components.is_empty() {
+        components.remove(0)
+    } else {
+        Ok(GlobalPi::default())
+    };
 
     match pi {
         Err(e) => {
-            dbg!(&e, &parallel);
             assert_eq!(std::mem::discriminant(&e), std::mem::discriminant(&parallel.err().unwrap()));
         },
         Ok(pi) => {
