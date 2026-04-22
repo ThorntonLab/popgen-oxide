@@ -671,12 +671,10 @@ fn test_subsets_of_sample_nodes(ts: &tskit::TreeSequence) {
     let options = crate::FromTreeSequenceOptions {
         samples: Some(crate::TskitSamplesList::Node(samples)),
     };
-    println!("testing entire sample list generated from ts.sample_nodes()");
     generate_counts_and_validate(ts, Some(&options));
 
     for x in 2..samples.len() {
         let subsamples = &samples[..x];
-        println!("testing {subsamples:?} from {samples:?}");
         let options = crate::FromTreeSequenceOptions {
             samples: Some(crate::TskitSamplesList::Node(subsamples)),
         };
@@ -688,21 +686,24 @@ fn test_subsets_of_sample_nodes(ts: &tskit::TreeSequence) {
 fn test_non_sample_nodes_and_subsets(ts: &tskit::TreeSequence) {
     let samples = ts
         .nodes_iter()
-        .find_map(|n| (!n.flags.is_sample()).then(n.id))
+        .filter_map(|n| (!n.flags.is_sample()).then_some(n.id))
         .collect::<Vec<_>>();
-    let options = crate::FromTreeSequenceOptions {
-        samples: Some(crate::TskitSamplesList::Node(samples)),
-    };
-    println!("testing entire sample list generated from ts.sample_nodes()");
-    generate_counts_and_validate(ts, Some(&options));
-
-    for x in 2..samples.len() {
-        let subsamples = &samples[..x];
-        println!("testing {subsamples:?} from {samples:?}");
+    assert!(!samples
+        .iter()
+        .any(|&n| ts.nodes().flags(n).unwrap().is_sample()));
+    if !samples.is_empty() {
         let options = crate::FromTreeSequenceOptions {
-            samples: Some(crate::TskitSamplesList::Node(subsamples)),
+            samples: Some(crate::TskitSamplesList::Node(&samples)),
         };
         generate_counts_and_validate(ts, Some(&options));
+
+        for x in 2..samples.len() {
+            let subsamples = &samples[..x];
+            let options = crate::FromTreeSequenceOptions {
+                samples: Some(crate::TskitSamplesList::Node(subsamples)),
+            };
+            generate_counts_and_validate(ts, Some(&options));
+        }
     }
 }
 
@@ -711,6 +712,7 @@ fn test_0() {
     let ts = make_test_data(make_two_sample_tree, vec![]);
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -725,6 +727,7 @@ fn test_1() {
     );
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -745,6 +748,7 @@ fn test_2() {
     );
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -762,6 +766,7 @@ fn test_3() {
     );
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -780,6 +785,7 @@ fn test_4() {
     );
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -805,6 +811,7 @@ fn test_5() {
     let ts = make_test_data(make_two_identical_four_sample_trees, vec![site0, site1]);
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -830,6 +837,7 @@ fn test_6() {
     let ts = make_test_data(make_two_identical_four_sample_trees, vec![site0, site1]);
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -855,6 +863,7 @@ fn test_7() {
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -863,6 +872,7 @@ fn test_8() {
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -878,6 +888,7 @@ fn test_9() {
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -925,6 +936,7 @@ fn test_11() {
     );
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -945,6 +957,7 @@ fn test_12() {
     );
     generate_counts_and_validate(&ts, None);
     test_subsets_of_sample_nodes(&ts);
+    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -960,6 +973,7 @@ fn test_13() {
         );
         generate_counts_and_validate(&ts, None);
         test_subsets_of_sample_nodes(&ts);
+        test_non_sample_nodes_and_subsets(&ts);
     }
 }
 
@@ -983,6 +997,7 @@ mod with_ancient_samples {
         );
         generate_counts_and_validate(&ts, None);
         test_subsets_of_sample_nodes(&ts);
+        test_non_sample_nodes_and_subsets(&ts);
     }
 
     #[test]
@@ -1002,6 +1017,7 @@ mod with_ancient_samples {
         );
         generate_counts_and_validate(&ts, None);
         test_subsets_of_sample_nodes(&ts);
+        test_non_sample_nodes_and_subsets(&ts);
     }
 
     #[test]
@@ -1021,6 +1037,7 @@ mod with_ancient_samples {
         );
         generate_counts_and_validate(&ts, None);
         test_subsets_of_sample_nodes(&ts);
+        test_non_sample_nodes_and_subsets(&ts);
     }
 
     #[test]
@@ -1039,6 +1056,7 @@ mod with_ancient_samples {
             )],
         );
         test_subsets_of_sample_nodes(&ts);
+        test_non_sample_nodes_and_subsets(&ts);
     }
 }
 
