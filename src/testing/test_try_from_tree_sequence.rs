@@ -172,14 +172,12 @@ mod naive_details {
             unique_focal_node_derived_states.dedup();
             unique_focal_node_derived_states
         };
-        let number_of_alleles: i32 = {
+        let number_of_alleles: usize = {
             let mut n = 0;
             if num_ancestral > 0 {
                 n += 1
             }
-            n += unique_focal_node_derived_states.len() as i32;
-
-            n
+            n + unique_focal_node_derived_states.len()
         };
         // NOTE: we filter out monomorphic sites!
         if number_of_alleles > 1 {
