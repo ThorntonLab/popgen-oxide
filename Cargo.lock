@@ -52,7 +52,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08807e080ed7f9d5433fa9b275196cfc35414f66a0c79d864dc51a0d825231a3"
 dependencies = [
- "bit-vec",
+ "bit-vec 0.8.0",
 ]
 
 [[package]]
@@ -60,6 +60,15 @@ name = "bit-vec"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
+
+[[package]]
+name = "bit-vec"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b71798fca2c1fe1086445a7258a4bc81e6e49dcd24c8d0dd9a1e57395b603f51"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bitflags"
@@ -185,6 +194,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11faaf5a5236997af9848be0bef4db95824b1d534ebc64d0f0c6cf3e67bd38dc"
 dependencies = [
  "crc32fast",
+ "libz-rs-sys",
  "miniz_oxide",
 ]
 
@@ -290,6 +300,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9fbbcab51052fe104eb5e5d351cf728d30a5be1fe14d9be8a3b097481fb97de"
 
 [[package]]
+name = "libz-rs-sys"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "902bc563b5d65ad9bba616b490842ef0651066a1a1dc3ce1087113ffcb873c8d"
+dependencies = [
+ "zlib-rs",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -340,9 +359,9 @@ dependencies = [
 
 [[package]]
 name = "noodles"
-version = "0.92.0"
+version = "0.109.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f668ebe7183738e6283c285ca505bfbb2c0d3225669f080319cb42f75eb6403"
+checksum = "4876a9caa25647b9ddc09883263b61fd6500ec7a4394f31daa5428026d5eb415"
 dependencies = [
  "noodles-bgzf",
  "noodles-csi",
@@ -352,11 +371,10 @@ dependencies = [
 
 [[package]]
 name = "noodles-bgzf"
-version = "0.36.0"
+version = "0.46.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c10c4cb29950028823653395ebedfcaf5b652e504aacf816b510fb0268daa2eb"
+checksum = "37290f565045fd2775b549e62dffca7e1afadc70d8d5a3a2ef19609eb3d8193b"
 dependencies = [
- "byteorder",
  "bytes",
  "crossbeam-channel",
  "flate2",
@@ -372,42 +390,50 @@ dependencies = [
 ]
 
 [[package]]
-name = "noodles-csi"
-version = "0.44.0"
+name = "noodles-core"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45b402963653cacd5df474889a1cfb969e2f66469023836ad3b0a2c75e2b4e7c"
+checksum = "53e1e8a419dbba0e4000b0e60830b124138c7f2277ad556463506f1a81d32d17"
 dependencies = [
- "bit-vec",
  "bstr",
- "byteorder",
+]
+
+[[package]]
+name = "noodles-csi"
+version = "0.55.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9c846d8128bd80b18d891b13cb9e0bc1d364429d6ab3ec3c83939f3d32ba105"
+dependencies = [
+ "bit-vec 0.9.1",
+ "bstr",
  "indexmap",
  "noodles-bgzf",
- "noodles-core",
+ "noodles-core 0.19.0",
 ]
 
 [[package]]
 name = "noodles-tabix"
-version = "0.50.0"
+version = "0.61.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e46ee069d57770840554e3d8bd02e7415b3a2d972cdea7525bea02472032c234"
+checksum = "2443d0852c9618cd4aa8d11bc7c1884285e46aa4466cf5c1e49f3d9756ca7ced"
 dependencies = [
- "byteorder",
+ "bstr",
  "indexmap",
  "noodles-bgzf",
- "noodles-core",
+ "noodles-core 0.19.0",
  "noodles-csi",
 ]
 
 [[package]]
 name = "noodles-vcf"
-version = "0.74.0"
+version = "0.87.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d68867aeaeda06d1149c85b4ebbefc45d31786f41b34868195ccd9dad7db532"
+checksum = "12b339e85269ab7689661c690f9108dceb606bf3d230e1768799ae107d505e76"
 dependencies = [
  "indexmap",
  "memchr",
  "noodles-bgzf",
- "noodles-core",
+ "noodles-core 0.19.0",
  "noodles-csi",
  "noodles-tabix",
  "percent-encoding",
@@ -446,7 +472,7 @@ name = "popgen"
 version = "0.1.0"
 dependencies = [
  "noodles",
- "noodles-core",
+ "noodles-core 0.16.0",
  "proptest",
  "rand",
  "rand_distr",
@@ -488,7 +514,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37566cb3fdacef14c0737f9546df7cfeadbfbc9fef10991038bf5015d0c80532"
 dependencies = [
  "bit-set",
- "bit-vec",
+ "bit-vec 0.8.0",
  "bitflags",
  "num-traits",
  "rand",
@@ -871,3 +897,9 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "zlib-rs"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b20717f0917c908dc63de2e44e97f1e6b126ca58d0e391cee86d504eb8fbd05"
