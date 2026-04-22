@@ -204,7 +204,6 @@ mod naive_details {
 fn generate_expected_site_counts_naive(
     ts: &tskit::TreeSequence,
     focal_nodes: &[bool],
-    _options: Option<&crate::FromTreeSequenceOptions>,
 ) -> Vec<SiteCountContents> {
     let mut expected = vec![];
     let mut current_site = 0_u64;
@@ -654,7 +653,7 @@ fn generate_counts_and_validate(
         }
         focal_nodes
     };
-    let expected = generate_expected_site_counts_naive(ts, &focal_nodes, options);
+    let expected = generate_expected_site_counts_naive(ts, &focal_nodes);
     assert_eq!(counts.len(), expected.len(), "{counts:?}, {expected:?}");
     for (obs, exp) in counts.iter().zip(expected.into_iter()) {
         validate_site_counts(&obs, exp);
