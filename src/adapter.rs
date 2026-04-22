@@ -2,7 +2,6 @@
 pub mod vcf {
     use crate::counts::MultiPopulationCounts;
     use crate::{AlleleID, PopgenResult};
-    pub use noodles::vcf as noodles_vcf;
     use noodles::vcf::variant::record::samples::keys::key;
     use noodles::vcf::variant::record::samples::series::Value;
     use noodles::vcf::variant::record::samples::Sample;
@@ -67,12 +66,12 @@ pub mod vcf {
     /// `ploidy`, if not passed, will be inferred from the first record seen.
     pub struct VCFToPopulationsAdapter<'h> {
         header: &'h Header,
-        ploidy: Option<usize>,
+        ploidy: Option<i32>,
         sample_to_population: Vec<usize>,
         populations: MultiPopulationCounts,
         // buffers for add_record
         buf_counts: Vec<i64>,
-        buf_num_samples: Box<[usize]>,
+        buf_num_samples: Box<[i32]>,
     }
 
     impl<'h> VCFToPopulationsAdapter<'h> {
@@ -90,7 +89,7 @@ pub mod vcf {
         /// If `mapper` produces a population ID greater than or equal to `num_populations` (which is out-of-bounds in a zero-based ID system).
         pub fn new<'sample, M, E>(
             header: &'h Header,
-            ploidy: Option<usize>,
+            ploidy: Option<i32>,
             num_populations: usize,
             mapper: M,
         ) -> Result<Self, E>
