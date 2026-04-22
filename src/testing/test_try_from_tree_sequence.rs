@@ -1048,3 +1048,25 @@ fn test_individual_list() {
     };
     generate_counts_and_validate(&ts, Some(&options));
 }
+
+#[test]
+fn test_null_node_ids() {
+    let ts = make_test_data(
+        make_four_sample_tree_with_one_inline_ancient_sample,
+        vec![SiteData::new(
+            5.,
+            "G",
+            vec![
+                MutationData::new(5, 21.0, "A"),
+                MutationData::new(4, 10.1, "G"),
+                MutationData::new(7, 10.1, "A"),
+                MutationData::new(1, 0.1, "C"),
+            ],
+        )],
+    );
+    let samples = [ts.sample_nodes()[0], tskit::NodeId::NULL];
+    let options = crate::FromTreeSequenceOptions {
+        samples: Some(crate::TskitSamplesList::Node(&samples)),
+    };
+    generate_counts_and_validate(&ts, Some(&options));
+}

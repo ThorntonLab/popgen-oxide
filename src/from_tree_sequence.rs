@@ -80,8 +80,9 @@ fn setup_samples(
                     setup_samples_from_node_ids(ts, nodes.iter().cloned())
                 }
                 TskitSamplesList::Individual(individuals) => {
-                    // TODO: we could/should Err here if the individual table
-                    // is empty?
+                    if ts.individuals().num_rows() == 0 {
+                        panic!()
+                    }
                     // NOTE: tskit-rust does not have an "easy" API
                     // for individual to node mapping, so we require an allocation here
                     let ind_map = ts.nodes().individual_slice();
