@@ -680,6 +680,7 @@ fn test_subsets_of_sample_nodes(ts: &tskit::TreeSequence) {
 fn test_0() {
     let ts = make_test_data(make_two_sample_tree, vec![]);
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
@@ -693,6 +694,7 @@ fn test_1() {
         )],
     );
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
@@ -712,6 +714,7 @@ fn test_2() {
         ],
     );
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
@@ -728,6 +731,7 @@ fn test_3() {
         )],
     );
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
@@ -745,6 +749,7 @@ fn test_4() {
         )],
     );
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
@@ -769,6 +774,7 @@ fn test_5() {
     );
     let ts = make_test_data(make_two_identical_four_sample_trees, vec![site0, site1]);
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
@@ -793,6 +799,7 @@ fn test_6() {
     );
     let ts = make_test_data(make_two_identical_four_sample_trees, vec![site0, site1]);
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
@@ -817,6 +824,7 @@ fn test_7() {
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
@@ -824,6 +832,7 @@ fn test_8() {
     let site0 = SiteData::new(60.0, "G", vec![]);
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
@@ -838,6 +847,7 @@ fn test_9() {
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
@@ -904,6 +914,7 @@ fn test_12() {
         )],
     );
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
