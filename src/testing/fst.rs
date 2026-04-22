@@ -162,6 +162,14 @@ fn f_st_from_random_data() {
             assert!((1.0 - (f_st_from_counts.pi_T() / pi_total_naive)).abs() < 0.00001);
             assert!((1.0 - (f_st_from_counts.pi_S().unwrap() / pi_self_naive)).abs() < 0.00001);
             assert!((1.0 - (f_st_from_counts.pi_B().unwrap() / pi_between_naive)).abs() < 0.00001);
+            for i in 0..n_pops {
+                for j in i + 1..n_pops {
+                    let naivef2 =
+                        crate::testing::naivecalculations::f2(i, j, &mut pops.iter().cloned());
+                    let f2 = f_st_from_counts.f2(i, j).unwrap();
+                    assert!((naivef2 - f2).abs() < 1e-6, "{i} {j}: {naivef2} != {f2}");
+                }
+            }
         }
     }
 }
