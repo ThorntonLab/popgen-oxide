@@ -1095,3 +1095,17 @@ fn test_null_individual_ids() {
     };
     generate_counts_and_validate(&ts, Some(&options));
 }
+
+#[test]
+fn test_individual_ids_with_empty_individual_table() {
+    let ts = make_test_data(
+        make_two_sample_tree,
+        vec![SiteData::new(5., "G", vec![MutationData::new(1, 0.1, "C")])],
+    );
+    assert_eq!(ts.individuals().num_rows(), 0);
+    let individual_ids = [tskit::IndividualId::from(0), tskit::IndividualId::from(1)];
+    let options = crate::FromTreeSequenceOptions {
+        samples: Some(crate::TskitSamplesList::Individual(&individual_ids)),
+    };
+    generate_counts_and_validate(&ts, Some(&options));
+}
