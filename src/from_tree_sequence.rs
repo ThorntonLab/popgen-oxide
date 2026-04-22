@@ -51,7 +51,10 @@ fn update_right(
     }
 }
 
-fn setup_samples_from_node_ids<I>(ts: &tskit::TreeSequence, iter: I) -> (Vec<i64>, i32)
+fn setup_samples_from_node_ids<I>(
+    ts: &tskit::TreeSequence,
+    iter: I,
+) -> Result<(Vec<i64>, i32), crate::PopgenError>
 where
     I: Iterator<Item = tskit::NodeId>,
 {
@@ -60,13 +63,15 @@ where
     let mut num_sampled_genomes = 0;
     for node_id in iter {
         // Should be an Err condition!
-        assert!(node_id != tskit::NodeId::NULL);
+        if node_id == tskit::NodeId::NULL {
+            return Err(crate::PopgenError::LibraryError("null node id".to_owned()));
+        }
         // Should be an Err condition!
         assert!(node_id.as_usize() < num_nodes);
         num_sample_descendants[node_id.as_usize()] += 1;
         num_sampled_genomes += 1;
     }
-    (num_sample_descendants, num_sampled_genomes)
+    Ok((num_sample_descendants, num_sampled_genomes))
 }
 
 fn setup_samples(
@@ -77,7 +82,7 @@ fn setup_samples(
         if let Some(samples_list) = &options.samples {
             match samples_list {
                 TskitSamplesList::Node(nodes) => {
-                    Ok(setup_samples_from_node_ids(ts, nodes.iter().cloned()))
+                    setup_samples_from_node_ids(ts, nodes.iter().cloned())
                 }
                 TskitSamplesList::Individual(individuals) => {
                     if ts.individuals().num_rows() == 0 {
@@ -88,12 +93,15 @@ fn setup_samples(
                     let ind_map = ts.nodes().individual_slice();
                     let mut ind_needed = vec![0; ind_map.len()];
                     for i in individuals.iter() {
-                        // NOTE: we could skip this case or Err
-                        assert!(i != tskit::IndividualId::NULL);
+                        if i == tskit::IndividualId::NULL {
+                            return Err(crate::PopgenError::LibraryError(
+                                "null individual id".to_owned(),
+                            ));
+                        }
                         // NOTE: we could more gracefully catch i>=len here
                         ind_needed[i.as_usize()] = 1;
                     }
-                    Ok(setup_samples_from_node_ids(
+                    setup_samples_from_node_ids(
                         ts,
                         ts.nodes_iter().filter_map(|n| {
                             if n.individual != tskit::IndividualId::NULL
@@ -104,12 +112,12 @@ fn setup_samples(
                                 None
                             }
                         }),
-                    ))
+                    )
                 }
             }
         } else {
             // FIXME: this repeats what is below
-            Ok(setup_samples_from_node_ids(
+            setup_samples_from_node_ids(
                 ts,
                 ts.nodes().iter().filter_map(|i| {
                     if i.flags.is_sample() {
@@ -118,10 +126,10 @@ fn setup_samples(
                         None
                     }
                 }),
-            ))
+            )
         }
     } else {
-        Ok(setup_samples_from_node_ids(
+        setup_samples_from_node_ids(
             ts,
             ts.nodes().iter().filter_map(|i| {
                 if i.flags.is_sample() {
@@ -130,7 +138,7 @@ fn setup_samples(
                     None
                 }
             }),
-        ))
+        )
     }
 }
 
