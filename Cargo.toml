@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-noodles = { version = ">=0.92.0", features = ["vcf"], optional = true }
+noodles = { version = ">=0.109.0", features = ["vcf"], optional = true }
 tskit = { version = ">=0.15.0", optional = true, features = ["bindings"] }
 
 [dev-dependencies]
