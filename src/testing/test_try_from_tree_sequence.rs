@@ -62,7 +62,7 @@ struct SiteCountContents {
 }
 
 #[cfg(test)]
-fn validate_site_counts(counts: &popgen::iter::SiteCounts, expected: SiteCountContents) {
+fn validate_site_counts(counts: &crate::iter::SiteCounts, expected: SiteCountContents) {
     let num_alleles = expected
         .derived
         .iter()
@@ -84,177 +84,132 @@ fn validate_site_counts(counts: &popgen::iter::SiteCounts, expected: SiteCountCo
 mod naive_details {
     use super::SiteCountContents;
 
+    struct MutationInfo {
+        node: tskit::NodeId,
+        derived_state: Vec<u8>,
+    }
+
     pub fn process_site(
         ts: &tskit::TreeSequence,
         tree: &tskit::Tree,
         current_site: u64,
         current_mutation: u64,
+        focal_nodes: &[bool],
         expected: &mut Vec<SiteCountContents>,
     ) -> u64 {
-        let (ancestral_state, mut sample_node_state) =
-            set_up_sample_node_states(ts, current_site as i32);
-        let current_mutation = update_sample_node_states(
-            ts,
-            tree,
-            current_mutation,
-            current_site,
-            &mut sample_node_state,
-        );
-        update_return_value(&ancestral_state, &sample_node_state, expected);
-        current_mutation
-    }
-
-    struct SampleNodeStates {
-        sample_node_state: Vec<Vec<u8>>,
-        sample_map: Vec<Option<usize>>,
-    }
-
-    impl std::ops::Index<usize> for SampleNodeStates {
-        type Output = Vec<u8>;
-        fn index(&self, index: usize) -> &Self::Output {
-            &self.sample_node_state[self.sample_map[index].unwrap()]
-        }
-    }
-
-    impl std::ops::IndexMut<usize> for SampleNodeStates {
-        fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-            &mut self.sample_node_state[self.sample_map[index].unwrap()]
-        }
-    }
-
-    fn set_up_sample_node_states(
-        ts: &tskit::TreeSequence,
-        site: i32,
-    ) -> (Vec<u8>, SampleNodeStates) {
-        let ancestral_state = ts.sites().ancestral_state(site).unwrap().to_owned();
-        let sample_node_state =
-            vec![ancestral_state.clone(); usize::try_from(ts.num_samples()).unwrap()];
-        let mut sample_map = vec![None; ts.nodes().num_rows().try_into().unwrap()];
-        for (next_sample, &sample) in ts.sample_nodes().iter().enumerate() {
-            sample_map[usize::try_from(sample).unwrap()] = Some(next_sample);
-        }
-        (
-            ancestral_state,
-            SampleNodeStates {
-                sample_node_state,
-                sample_map,
-            },
-        )
-    }
-
-    fn update_sample_node_states(
-        ts: &tskit::TreeSequence,
-        tree: &tskit::Tree,
-        current_mutation: u64,
-        current_site: u64,
-        sample_node_state: &mut SampleNodeStates,
-    ) -> u64 {
-        let mut current_mutation = current_mutation;
-        while current_mutation < ts.mutations().num_rows()
-            && ts.mutations().site(current_mutation as i32).unwrap() == (current_site as i32)
-        {
-            let node = ts.mutations().node(current_mutation as i32).unwrap();
-            for sample in tree.samples(node).unwrap() {
-                sample_node_state[usize::try_from(sample).unwrap()] = ts
+        let ancestral_state = ts
+            .sites()
+            .ancestral_state(current_site as i32)
+            .unwrap()
+            .to_owned();
+        // mutations_at_site will contain each mutation at this site,
+        // ordered from present to past.
+        let (mutations_at_site, current_mutation) = {
+            let mut current_mutation = current_mutation;
+            let mut mutations_at_site = vec![];
+            while current_mutation < ts.mutations().num_rows()
+                && ts.mutations().site(current_mutation as i32).unwrap() == (current_site as i32)
+            {
+                let node = ts.mutations().node(current_mutation as i32).unwrap();
+                let derived_state = ts
                     .mutations()
                     .derived_state(current_mutation as i32)
                     .unwrap()
                     .to_owned();
+                mutations_at_site.push(MutationInfo {
+                    node,
+                    derived_state,
+                });
+                current_mutation += 1;
             }
-            current_mutation += 1;
-        }
-        current_mutation
-    }
+            mutations_at_site.reverse();
+            (mutations_at_site, current_mutation)
+        };
 
-    fn get_unique_alleles(sample_node_state: &SampleNodeStates) -> Vec<Vec<u8>> {
-        let mut rv = sample_node_state.sample_node_state.clone();
-        rv.sort_unstable();
-        rv.dedup();
-        rv
-    }
-
-    fn count_ancestral_state(
-        ancestral_state: &[u8],
-        unique_allele_states: &[Vec<u8>],
-        sample_node_state: &SampleNodeStates,
-    ) -> usize {
-        if let Some(a) = unique_allele_states.iter().find(|&u| u == ancestral_state) {
-            sample_node_state
-                .sample_node_state
-                .iter()
-                .filter(|&u| u == a)
-                .count()
-        } else {
-            0
-        }
-    }
-
-    fn count_derived_alleles(
-        ancestral_state: &[u8],
-        unique_allele_states: &[Vec<u8>],
-        sample_node_state: &SampleNodeStates,
-    ) -> Vec<usize> {
-        // any allele can be present [0, num_samples] times,
-        // giving num_samples - 0 + 1 possible values.
-        let mut num_derived_counts = vec![0; sample_node_state.sample_node_state.len() + 1];
-        unique_allele_states
-            .iter()
-            .filter(|&u| u != ancestral_state)
-            .map(|d| {
-                sample_node_state
-                    .sample_node_state
-                    .iter()
-                    .filter(|&u| u == d)
-                    .count()
-            })
-            .for_each(|c| num_derived_counts[c] += 1);
-        num_derived_counts
-    }
-
-    fn update_return_value(
-        ancestral_state: &[u8],
-        sample_node_state: &SampleNodeStates,
-        expected: &mut Vec<SiteCountContents>,
-    ) {
-        let unique_allele_states = get_unique_alleles(sample_node_state);
-        if unique_allele_states.len() > 1 {
-            let mut current_site_count_data = vec![];
-            let num_ancestral_allele =
-                count_ancestral_state(ancestral_state, &unique_allele_states, sample_node_state);
-            let derived_allele_counts =
-                count_derived_alleles(ancestral_state, &unique_allele_states, sample_node_state);
-            for (i, j) in derived_allele_counts
+        // Use brute-force searching of mutations_at_site to set
+        // the state of each node.
+        let node_state = {
+            let mut node_state = vec![ancestral_state.clone(); ts.nodes().num_rows().as_usize()];
+            let parent = tree.parent_array();
+            for node in focal_nodes
                 .iter()
                 .cloned()
                 .enumerate()
-                .filter(|(_, num_sites)| num_sites > &0)
+                .filter_map(|(n, f)| f.then_some(n))
             {
-                current_site_count_data.push(super::DerivedCounts {
-                    count: i as i64,
-                    number_of_sites: j,
-                })
+                let mut p = tskit::NodeId::from(node as i32);
+                while p != tskit::NodeId::NULL {
+                    if let Some(index) = mutations_at_site.iter().position(|t| t.node == p) {
+                        node_state[node] = mutations_at_site[index].derived_state.clone();
+                        break;
+                    }
+                    p = parent[p.as_usize()];
+                }
             }
+            node_state
+        };
+
+        // extract focal node state
+        let focal_node_state = focal_nodes
+            .iter()
+            .cloned()
+            .enumerate()
+            .filter_map(|(n, f)| f.then_some(node_state[n].clone()))
+            .collect::<Vec<_>>();
+        let num_ancestral = focal_node_state
+            .iter()
+            .filter(|i| i == &&ancestral_state)
+            .count() as i64;
+        let unique_focal_node_derived_states = {
+            let mut unique_focal_node_derived_states = focal_node_state
+                .iter()
+                .filter(|i| i != &&ancestral_state)
+                .cloned()
+                .collect::<Vec<_>>();
+            unique_focal_node_derived_states.sort_unstable();
+            unique_focal_node_derived_states.dedup();
+            unique_focal_node_derived_states
+        };
+        let num_derived_counts = {
+            let mut num_derived_counts = vec![0; focal_node_state.len() + 1];
+            for u in unique_focal_node_derived_states {
+                let count = focal_node_state.iter().filter(|&i| i == &u).count();
+                num_derived_counts[count] += 1;
+            }
+            num_derived_counts
+        };
+        let derived = num_derived_counts
+            .iter()
+            .cloned()
+            .enumerate()
+            .filter(|(_, num_sites)| num_sites > &0)
+            .map(|(count, number_of_sites)| super::DerivedCounts {
+                count: count as i64,
+                number_of_sites,
+            })
+            .collect::<Vec<_>>();
+        if !derived.is_empty() {
             expected.push(SiteCountContents {
-                num_ancestral: num_ancestral_allele as i64,
-                derived: current_site_count_data,
+                num_ancestral,
+                derived,
             });
         }
+        current_mutation
     }
 }
 
 #[cfg(test)]
 fn generate_expected_site_counts_naive(
     ts: &tskit::TreeSequence,
-    options: Option<popgen::FromTreeSequenceOptions>,
+    focal_nodes: &[bool],
+    options: Option<crate::FromTreeSequenceOptions>,
 ) -> Vec<SiteCountContents> {
     let mut expected = vec![];
     // We have no code depending on options yet
     assert!(options.is_none());
     let mut current_site = 0_u64;
     let mut current_mutation = 0_u64;
-    // We use the EXPENSIVE option of tracking what sample
-    // nodes are descendants of each node in each tree.
-    let mut tree_iterator = ts.tree_iterator(tskit::TreeFlags::SAMPLE_LISTS).unwrap();
+    let mut tree_iterator = ts.tree_iterator(0).unwrap();
     while let Some(tree) = tree_iterator.next() {
         let (left, right) = tree.interval();
         while current_site < ts.sites().num_rows()
@@ -275,6 +230,7 @@ fn generate_expected_site_counts_naive(
                 tree,
                 current_site,
                 current_mutation,
+                focal_nodes,
                 &mut expected,
             );
             current_site += 1;
@@ -644,11 +600,22 @@ where
 #[cfg(test)]
 fn generate_counts_and_validate(
     ts: &tskit::TreeSequence,
-    options: Option<popgen::FromTreeSequenceOptions>,
+    options: Option<crate::FromTreeSequenceOptions>,
 ) {
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(ts, None).unwrap();
-    let expected = generate_expected_site_counts_naive(ts, options);
-    assert_eq!(counts.len(), expected.len());
+    let counts = crate::MultiSiteCounts::try_from_tree_sequence(ts, None).unwrap();
+    // Instead of relying on the internal node sample-ness status,
+    // we define our set of "sample/focal" nodes externally from
+    // the tree sequence.
+    let mut focal_nodes = vec![false; ts.nodes().num_rows().as_usize()];
+    for n in ts
+        .nodes_iter()
+        .filter_map(|n| n.flags.is_sample().then_some(n.id))
+    {
+        assert!(!focal_nodes[n.as_usize()]);
+        focal_nodes[n.as_usize()] = true;
+    }
+    let expected = generate_expected_site_counts_naive(ts, &focal_nodes, options);
+    assert_eq!(counts.len(), expected.len(), "{counts:?}, {expected:?}");
     for (obs, exp) in counts.iter().zip(expected.into_iter()) {
         validate_site_counts(&obs, exp);
     }

@@ -48,46 +48,46 @@ where
     }
 
     Some(
-                RecordBuf::builder()
-                    .set_reference_sequence_name(seq_name)
-                    .set_variant_start(noodles_core::Position::MIN)
-                    .set_reference_bases(alleles_seen[0])
-                    .set_alternate_bases(AlternateBases::from(
-                        alleles_seen[1..]
-                            .iter()
-                            .map(|s| String::from(*s))
-                            .collect::<Vec<_>>(),
-                    ))
-                    .set_samples(Samples::new(
-                        Keys::from_iter(vec![String::from(key::GENOTYPE)]),
-                        // for each genotype and its count, create that many samples accordingly
-                        {
-                            let mut all_samples = site_genotypes
-                                .iter()
-                                .flat_map(|(genotype, count)| {
-                                    vec![
-                                        // for each sample at this site, there will only be the GT field and no other hence another layer of Vec here
-                                        vec![Some(Value::from(Genotype::from_iter(
-                                            genotype.as_ref().iter()
-                                                .map(|sample_variant| Allele::new(
-                                                    sample_variant.as_ref().map(|some| alleles_seen.iter()
-                                                        .enumerate()
-                                                        .find(|(_, variant)| **variant == some.as_ref())
-                                                        .unwrap().0
-                                                    ),
-                                                    Unphased  // TODO: make this configurable?
-                                                )),
-                                        )))];
-                                        *count
-                                    ]
-                                })
-                                .collect::<Vec<_>>();
-                            all_samples.shuffle(&mut rng());
-                            all_samples
-                        },
-                    ))
-                    .build(),
-            )
+        RecordBuf::builder()
+            .set_reference_sequence_name(seq_name)
+            .set_variant_start(noodles::core::Position::MIN)
+            .set_reference_bases(alleles_seen[0])
+            .set_alternate_bases(AlternateBases::from(
+                alleles_seen[1..]
+                    .iter()
+                    .map(|s| String::from(*s))
+                    .collect::<Vec<_>>(),
+            ))
+            .set_samples(Samples::new(
+                Keys::from_iter(vec![String::from(key::GENOTYPE)]),
+                // for each genotype and its count, create that many samples accordingly
+                {
+                    let mut all_samples = site_genotypes
+                        .iter()
+                        .flat_map(|(genotype, count)| {
+                            vec![
+                                // for each sample at this site, there will only be the GT field and no other hence another layer of Vec here
+                                vec![Some(Value::from(Genotype::from_iter(
+                                    genotype.as_ref().iter()
+                                        .map(|sample_variant| Allele::new(
+                                            sample_variant.as_ref().map(|some| alleles_seen.iter()
+                                                .enumerate()
+                                                .find(|(_, variant)| **variant == some.as_ref())
+                                                .unwrap().0
+                                            ),
+                                            Unphased  // TODO: make this configurable?
+                                        )),
+                                )))];
+                                *count
+                            ]
+                        })
+                        .collect::<Vec<_>>();
+                    all_samples.shuffle(&mut rng());
+                    all_samples
+                },
+            ))
+            .build(),
+    )
 }
 
 #[allow(dead_code)]

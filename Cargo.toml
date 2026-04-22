@@ -4,24 +4,18 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-noodles = { version = "0.92.0", features = ["vcf"], optional = true }
-tskit = { version = ">=0.15.0", optional = true, features=["bindings"] }
+noodles = { version = ">=0.109.0", features = ["vcf"], optional = true }
+tskit = { version = ">=0.15.0", optional = true, features = ["bindings"] }
 
 [dev-dependencies]
 rand = "0.9.0"
-noodles-core = "0.16.0"
-noodles = { version = "0.92.0", features = ["vcf", "csi", "tabix", "bgzf"] }
+noodles = { version = "*", features = ["vcf", "csi", "tabix", "bgzf", "core"] }
 rand_distr = "0.5.1"
 rayon = "1.11.0"
 proptest = "1.10.0"
 
 [profile.release]
 lto = "fat"
-
-[[test]]
-name = "test_try_from_tree_sequence"
-path = "tests/test_try_from_tree_sequence.rs"
-required-features = ["tskit"]
 
 [[example]]
 name = "from_vcf"
