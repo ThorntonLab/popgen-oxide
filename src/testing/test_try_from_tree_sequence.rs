@@ -190,6 +190,9 @@ mod naive_details {
                 number_of_sites,
             })
             .collect::<Vec<_>>();
+        println!("{ancestral_state:?}");
+        println!("{focal_node_state:?}");
+        println!("{derived:?}");
         if !derived.is_empty() {
             expected.push(SiteCountContents {
                 num_ancestral,
