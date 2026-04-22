@@ -7,7 +7,7 @@ use rand::distr::uniform::SampleRange;
 proptest!(
 // we don't need to invoke actual parallelism, just show that the component-wise approach is correct
 #[test]
-fn pi_equivalent_parallel(
+fn pi_equivalent_concurrent(
     seed in 0..u64::MAX,
     ploidy in 1_usize..5,
     num_samples in 2_usize..50,
@@ -52,6 +52,8 @@ fn pi_equivalent_parallel(
         Ok::<_, PopgenError>(pi)
     }).collect::<Vec<_>>();
 
+    // let's combine the components out of order and with random associativity
+    // this test is to make sure that this is equivalent to the serial case
     components.shuffle(&mut rng);
     while components.len() > 1 {
         let pick1 = components.remove((..components.len()).sample_single(&mut rng).unwrap());
