@@ -1068,7 +1068,7 @@ fn test_null_node_ids() {
     let options = crate::FromTreeSequenceOptions {
         samples: Some(crate::TskitSamplesList::Node(&samples)),
     };
-    generate_counts_and_validate(&ts, Some(&options));
+    assert!(crate::MultiSiteCounts::try_from_tree_sequence(&ts, Some(&options)).is_err());
 }
 
 #[test]
@@ -1093,7 +1093,7 @@ fn test_null_individual_ids() {
     let options = crate::FromTreeSequenceOptions {
         samples: Some(crate::TskitSamplesList::Individual(&individual_ids)),
     };
-    generate_counts_and_validate(&ts, Some(&options));
+    assert!(crate::MultiSiteCounts::try_from_tree_sequence(&ts, Some(&options)).is_err());
 }
 
 #[test]
@@ -1107,5 +1107,5 @@ fn test_individual_ids_with_empty_individual_table() {
     let options = crate::FromTreeSequenceOptions {
         samples: Some(crate::TskitSamplesList::Individual(&individual_ids)),
     };
-    generate_counts_and_validate(&ts, Some(&options));
+    assert!(crate::MultiSiteCounts::try_from_tree_sequence(&ts, Some(&options)).is_err());
 }
