@@ -1,8 +1,7 @@
-use noodles_core::Position;
-use noodles_core::Region;
 use popgen::adapter::vcf::record_to_genotypes_adapter;
 use popgen::MultiSiteCounts;
 use std::io::Write;
+use noodles::core::{Position, Region};
 
 /*
 Since this crate is agnostic to input data format, there is no special handling for e.g. indexed VCF.
@@ -23,7 +22,7 @@ fn main() {
     // Make a BGzipped file of the data shown above in VCF_FILE
     {
         let mut vcf_path = std::fs::File::create("simple_vcf.bgzf")
-            .map(noodles::bgzf::Writer::new)
+            .map(noodles::bgzf::io::Writer::new)
             .unwrap();
         vcf_path.write_all(VCF_FILE.as_bytes()).unwrap();
     }
@@ -44,6 +43,7 @@ fn main() {
 
     let query = reader.query(&header, &region).unwrap();
     let alleles = query
+        .records()
         .map(Result::unwrap)
         .map(|rec| record_to_genotypes_adapter(&header, rec, ploidy).unwrap());
     let counts = MultiSiteCounts::try_from_tabular(alleles).unwrap();
