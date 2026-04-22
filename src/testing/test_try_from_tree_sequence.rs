@@ -204,7 +204,7 @@ mod naive_details {
 fn generate_expected_site_counts_naive(
     ts: &tskit::TreeSequence,
     focal_nodes: &[bool],
-    _options: Option<&popgen::FromTreeSequenceOptions>,
+    _options: Option<&crate::FromTreeSequenceOptions>,
 ) -> Vec<SiteCountContents> {
     let mut expected = vec![];
     let mut current_site = 0_u64;
@@ -605,9 +605,9 @@ where
 #[cfg(test)]
 fn generate_counts_and_validate(
     ts: &tskit::TreeSequence,
-    options: Option<&popgen::FromTreeSequenceOptions>,
+    options: Option<&crate::FromTreeSequenceOptions>,
 ) {
-    let counts = popgen::MultiSiteCounts::try_from_tree_sequence(ts, options).unwrap();
+    let counts = crate::MultiSiteCounts::try_from_tree_sequence(ts, options).unwrap();
     // Instead of relying on the internal node sample-ness status,
     // we define our set of "sample/focal" nodes externally from
     // the tree sequence.
@@ -616,13 +616,13 @@ fn generate_counts_and_validate(
         if let Some(opts) = &options {
             if let Some(samples) = &opts.samples {
                 match samples {
-                    popgen::TskitSamplesList::Node(nodes) => {
+                    crate::TskitSamplesList::Node(nodes) => {
                         for n in nodes.iter().cloned().map(|i| i.as_usize()) {
                             assert!(!focal_nodes[n]);
                             focal_nodes[n] = true;
                         }
                     }
-                    popgen::TskitSamplesList::Individual(individuals) => {
+                    crate::TskitSamplesList::Individual(individuals) => {
                         let ind_map = ts.nodes().individual_slice();
                         let mut ind_needed = vec![0; ind_map.len()];
                         for i in individuals.iter() {
@@ -904,8 +904,8 @@ fn test_13() {
         generate_counts_and_validate(&ts, None);
         let samples = ts.sample_nodes();
         for x in 2..samples.len() - 1 {
-            let options = popgen::FromTreeSequenceOptions {
-                samples: Some(popgen::TskitSamplesList::Node(&samples[0..x])),
+            let options = crate::FromTreeSequenceOptions {
+                samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
             };
             generate_counts_and_validate(&ts, Some(&options));
         }
@@ -933,8 +933,8 @@ mod with_ancient_samples {
         generate_counts_and_validate(&ts, None);
         let samples = ts.sample_nodes();
         for x in 2..samples.len() - 1 {
-            let options = popgen::FromTreeSequenceOptions {
-                samples: Some(popgen::TskitSamplesList::Node(&samples[0..x])),
+            let options = crate::FromTreeSequenceOptions {
+                samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
             };
             generate_counts_and_validate(&ts, Some(&options));
         }
@@ -958,8 +958,8 @@ mod with_ancient_samples {
         generate_counts_and_validate(&ts, None);
         let samples = ts.sample_nodes();
         for x in 2..samples.len() - 1 {
-            let options = popgen::FromTreeSequenceOptions {
-                samples: Some(popgen::TskitSamplesList::Node(&samples[0..x])),
+            let options = crate::FromTreeSequenceOptions {
+                samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
             };
             generate_counts_and_validate(&ts, Some(&options));
         }
@@ -983,8 +983,8 @@ mod with_ancient_samples {
         generate_counts_and_validate(&ts, None);
         let samples = ts.sample_nodes();
         for x in 2..samples.len() - 1 {
-            let options = popgen::FromTreeSequenceOptions {
-                samples: Some(popgen::TskitSamplesList::Node(&samples[0..x])),
+            let options = crate::FromTreeSequenceOptions {
+                samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
             };
             generate_counts_and_validate(&ts, Some(&options));
         }
@@ -1007,14 +1007,14 @@ mod with_ancient_samples {
         );
         generate_counts_and_validate(&ts, None);
         let samples = ts.sample_nodes();
-        let options = popgen::FromTreeSequenceOptions {
-            samples: Some(popgen::TskitSamplesList::Node(samples)),
+        let options = crate::FromTreeSequenceOptions {
+            samples: Some(crate::TskitSamplesList::Node(samples)),
         };
         generate_counts_and_validate(&ts, Some(&options));
 
         for x in 2..samples.len() - 1 {
-            let options = popgen::FromTreeSequenceOptions {
-                samples: Some(popgen::TskitSamplesList::Node(&samples[0..x])),
+            let options = crate::FromTreeSequenceOptions {
+                samples: Some(crate::TskitSamplesList::Node(&samples[0..x])),
             };
             generate_counts_and_validate(&ts, Some(&options));
         }
@@ -1037,12 +1037,12 @@ fn test_individual_list() {
         )],
     );
     let individual_ids = ts.individuals_iter().map(|i| i.id).collect::<Vec<_>>();
-    let options = popgen::FromTreeSequenceOptions {
-        samples: Some(popgen::TskitSamplesList::Individual(&individual_ids)),
+    let options = crate::FromTreeSequenceOptions {
+        samples: Some(crate::TskitSamplesList::Individual(&individual_ids)),
     };
     generate_counts_and_validate(&ts, Some(&options));
-    let options = popgen::FromTreeSequenceOptions {
-        samples: Some(popgen::TskitSamplesList::Individual(&individual_ids[0..1])),
+    let options = crate::FromTreeSequenceOptions {
+        samples: Some(crate::TskitSamplesList::Individual(&individual_ids[0..1])),
     };
     generate_counts_and_validate(&ts, Some(&options));
 }
