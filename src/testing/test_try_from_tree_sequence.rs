@@ -884,6 +884,7 @@ fn test_11() {
         )],
     );
     generate_counts_and_validate(&ts, None);
+    test_subsets_of_sample_nodes(&ts);
 }
 
 #[test]
