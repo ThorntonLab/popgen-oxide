@@ -68,7 +68,13 @@ where
         }
         // Should be an Err condition!
         assert!(node_id.as_usize() < num_nodes);
-        num_sample_descendants[node_id.as_usize()] += 1;
+        if let Some(value) = num_sample_descendants.get_mut(node_id.as_usize()) {
+            *value += 1;
+        } else {
+            return Err(crate::PopgenError::LibraryError(
+                "node id {node_id} out of range".to_owned(),
+            ));
+        }
         num_sampled_genomes += 1;
     }
     Ok((num_sample_descendants, num_sampled_genomes))
@@ -98,8 +104,13 @@ fn setup_samples(
                                 "null individual id".to_owned(),
                             ));
                         }
-                        // NOTE: we could more gracefully catch i>=len here
-                        ind_needed[i.as_usize()] = 1;
+                        if let Some(value) = ind_needed.get_mut(i.as_usize()) {
+                            *value = 1;
+                        } else {
+                            return Err(crate::PopgenError::LibraryError(
+                                "individual id {i} out of range".to_owned(),
+                            ));
+                        }
                     }
                     setup_samples_from_node_ids(
                         ts,
