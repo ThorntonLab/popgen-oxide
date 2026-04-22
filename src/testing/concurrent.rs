@@ -57,7 +57,7 @@ fn pi_equivalent_parallel(
         let pick1 = components.remove((..components.len()).sample_single(&mut rng).unwrap());
         let pick2 = components.remove((..components.len()).sample_single(&mut rng).unwrap());
         match (pick1, pick2) {
-            (Err(one), Ok(_)) | (Err(one), Err(_)) | (Ok(_), Err(one)) => {
+            (Err(one), Ok(_)) | (Ok(_), Err(one)) | (Err(one), Err(_)) => {
                 components.push(Err(one));
             },
             (Ok(mut one), Ok(two)) => {
