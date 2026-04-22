@@ -64,21 +64,23 @@ where
                 {
                     let mut all_samples = site_genotypes
                         .iter()
-                        .flat_map(|(genotype, count)| vec![
-                            // for each sample at this site, there will only be the GT field and no other hence another layer of Vec here
-                            vec![Some(Value::from(Genotype::from_iter(
-                                genotype.as_ref().iter()
-                                    .map(|sample_variant| Allele::new(
-                                        sample_variant.as_ref().map(|some| alleles_seen.iter()
-                                            .enumerate()
-                                            .find(|(_, variant)| **variant == some.as_ref())
-                                            .unwrap().0
-                                        ),
-                                        Unphased  // TODO: make this configurable?
-                                    )),
-                            )))];
-                            *count
-                        ])
+                        .flat_map(|(genotype, count)| {
+                            vec![
+                                // for each sample at this site, there will only be the GT field and no other hence another layer of Vec here
+                                vec![Some(Value::from(Genotype::from_iter(
+                                    genotype.as_ref().iter()
+                                        .map(|sample_variant| Allele::new(
+                                            sample_variant.as_ref().map(|some| alleles_seen.iter()
+                                                .enumerate()
+                                                .find(|(_, variant)| **variant == some.as_ref())
+                                                .unwrap().0
+                                            ),
+                                            Unphased  // TODO: make this configurable?
+                                        )),
+                                )))];
+                                *count
+                            ]
+                        })
                         .collect::<Vec<_>>();
                     all_samples.shuffle(&mut rng());
                     all_samples
