@@ -40,7 +40,7 @@ fn pi_equivalent_concurrent(
             sites.push(site);
         }
     }
-    let counts = dbg!(crate::testing::testdata::single_pop_counts(&mut sites.iter()));
+    let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
     let pi = counts.iter().try_fold(GlobalPi::default(), |mut pi, s| {
         pi.try_add_site(s)?;
         Ok::<_, PopgenError>(pi)
