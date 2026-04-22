@@ -130,28 +130,10 @@ fn setup_samples(
             }
         } else {
             // FIXME: this repeats what is below
-            setup_samples_from_node_ids(
-                ts,
-                ts.nodes().iter().filter_map(|i| {
-                    if i.flags.is_sample() {
-                        Some(i.id)
-                    } else {
-                        None
-                    }
-                }),
-            )
+            setup_samples_from_node_ids(ts, ts.sample_nodes().iter().cloned())
         }
     } else {
-        setup_samples_from_node_ids(
-            ts,
-            ts.nodes().iter().filter_map(|i| {
-                if i.flags.is_sample() {
-                    Some(i.id)
-                } else {
-                    None
-                }
-            }),
-        )
+        setup_samples_from_node_ids(ts, ts.sample_nodes().iter().cloned())
     }
 }
 
