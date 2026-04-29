@@ -183,13 +183,7 @@ pub fn make_random_sites(
         } else {
             None
         };
-        let site = random_site_rng(
-            num_samples,
-            ploidy,
-            &freqs,
-            missing_data_rate,
-            rng,
-        );
+        let site = random_site_rng(num_samples, ploidy, &freqs, missing_data_rate, rng);
         if !site.iter().flat_map(|i| i.iter()).all(|i| i.is_none()) {
             sites.push(site);
         }

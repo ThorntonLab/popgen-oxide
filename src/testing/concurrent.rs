@@ -5,8 +5,8 @@ use proptest::collection::vec;
 use proptest::proptest;
 use rand::distr::uniform::SampleRange;
 use rand::rngs::StdRng;
-use rand::SeedableRng;
 use rand::seq::SliceRandom;
+use rand::SeedableRng;
 
 proptest!(
 // we don't need to invoke actual parallelism, just show that the component-wise approach is correct

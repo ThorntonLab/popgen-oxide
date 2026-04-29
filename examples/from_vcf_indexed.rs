@@ -1,7 +1,7 @@
+use noodles::core::{Position, Region};
 use popgen::adapter::vcf::record_to_genotypes_adapter;
 use popgen::MultiSiteCounts;
 use std::io::Write;
-use noodles::core::{Position, Region};
 
 /*
 Since this crate is agnostic to input data format, there is no special handling for e.g. indexed VCF.
