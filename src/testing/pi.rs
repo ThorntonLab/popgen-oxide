@@ -24,7 +24,7 @@ fn pi_from_random_data(
     use rand::prelude::*;
 
     let mut rng = StdRng::seed_from_u64(seed);
-    let mut sites = super::testdata::make_random_sites(
+    let sites = super::testdata::make_random_sites(
         &mut rng,
         ploidy,
         num_samples,

@@ -1,5 +1,4 @@
 use crate::stats::{GlobalPi, GlobalStatistic, SiteComposable, WattersonTheta};
-use crate::testing::testdata::Site;
 use crate::PopgenError;
 use proptest::collection::vec;
 use proptest::proptest;
