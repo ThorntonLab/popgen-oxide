@@ -16,5 +16,6 @@ mod wattersons_theta;
 // tests of OTHER THINGS, like
 // input formats, follow
 
+mod concurrent;
 #[cfg(feature = "noodles")]
 mod noodles_vcf;
