@@ -164,6 +164,40 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Mu
     mcounts
 }
 
+pub fn make_random_sites(
+    rng: &mut StdRng,
+    ploidy: usize,
+    num_samples: usize,
+    missing_data_rate_raw: f64,
+    num_sites: usize,
+    non_normalized_freqs: Vec<Vec<f64>>,
+) -> Vec<Site> {
+    let mut sites = vec![];
+    for nnf in non_normalized_freqs.iter().take(num_sites) {
+        let sum = nnf.iter().sum::<f64>();
+        let freqs = nnf.iter().map(|fi| fi / sum).collect::<Vec<_>>();
+        let missing_data_rate = if missing_data_rate_raw > 0.0 {
+            Some(RandomSiteOptions {
+                missing_data_rate: Some(missing_data_rate_raw),
+            })
+        } else {
+            None
+        };
+        let site = random_site_rng(
+            num_samples,
+            ploidy,
+            &freqs,
+            missing_data_rate,
+            rng,
+        );
+        if !site.iter().flat_map(|i| i.iter()).all(|i| i.is_none()) {
+            sites.push(site);
+        }
+    }
+
+    sites
+}
+
 // Helper fns below
 
 // The rand crate has no multinomial function so we will make do with
