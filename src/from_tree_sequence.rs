@@ -108,7 +108,7 @@ pub fn try_from_tree_sequence(
 
             let mut allele_counts = vec![0_i64];
 
-            // NOTE: it is not 100% clear that unwrap() is good here?
+            // NOTE: this variable SHOULD NOT be required
             let mut mnode = None;
 
             // Copy the mutation types since we don't have .rev for this iterator!
