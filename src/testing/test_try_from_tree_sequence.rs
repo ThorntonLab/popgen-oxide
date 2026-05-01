@@ -70,7 +70,10 @@ fn validate_site_counts(counts: &crate::iter::SiteCounts, expected: SiteCountCon
         .sum::<usize>()
         + 1;
     let c = counts.counts();
-    assert_eq!(c[0], expected.num_ancestral);
+    assert_eq!(
+        c[0], expected.num_ancestral,
+        "calculated: {counts:?}, expected: {expected:?}"
+    );
     expected.derived.iter().for_each(|d| {
         assert_eq!(
             c.iter().skip(1).filter(|&&i| i == d.count).count(),

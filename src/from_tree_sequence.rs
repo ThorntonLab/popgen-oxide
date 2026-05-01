@@ -147,6 +147,24 @@ pub fn try_from_tree_sequence(
                         current_mut_parent = mutation_parent[current_mut_parent.as_usize()];
                     }
                 }
+
+                allele_counts[0] = (u64::from(ts.num_samples()) as i64)
+                    - allele_counts.iter().skip(1).sum::<i64>();
+                assert!(allele_counts[0] >= 0);
+                println!("{allele_counts:?}");
+                if allele_counts
+                    .iter()
+                    .filter(|&&i| i > 0 && (i as u64) < ts.num_samples())
+                    .count()
+                    > 1
+                {
+                    println!("adding! {allele_counts:?} {num_sampled_genomes}");
+                    // this won't panic because our counts are ultimately derived from a collection of
+                    // alleles, which always obeys the required properties
+                    counts
+                        .add_site_from_counts(&allele_counts, num_sampled_genomes)
+                        .unwrap();
+                }
             }
             allele_counts[0] =
                 (u64::from(ts.num_samples()) as i64) - allele_counts.iter().skip(1).sum::<i64>();
@@ -157,7 +175,7 @@ pub fn try_from_tree_sequence(
                 .count()
                 > 1
             {
-                    println!("adding! {allele_counts:?} {num_sampled_genomes}");
+                println!("adding! {allele_counts:?} {num_sampled_genomes}");
                 // this won't panic because our counts are ultimately derived from a collection of
                 // alleles, which always obeys the required properties
                 counts
