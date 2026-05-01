@@ -73,7 +73,7 @@ pub fn try_from_tree_sequence(
         num_sampled_genomes += 1;
     }
     let mut current_site_index = 0;
-    let mut current_mutation_index = 0;
+    // let mut current_mutation_index = 0;
     let mut alleles_at_site = vec![];
     while i < num_edges && left < ts.tables().sequence_length() {
         while j < num_edges && edges_right[edges_out[j].as_usize()] == left {
@@ -109,75 +109,60 @@ pub fn try_from_tree_sequence(
             let mut allele_counts = vec![0_i64];
 
             // NOTE: this variable SHOULD NOT be required
-            let mut mnode = None;
+            // let mut mnode = None;
 
             // Copy the mutation types since we don't have .rev for this iterator!
             let mutations_at_site = current_site.mutation_iter().collect::<Vec<_>>();
-            for last_mutation in mutations_at_site.into_iter().rev() {
-                if let Some(mut_node) = mnode {
-                    if mutation_node[last_mutation.id().as_usize()] != mut_node {
-                        mnode = None;
-                    }
-                }
+            for mutation in mutations_at_site.into_iter().rev() {
+                let nd = num_sample_descendants[mutation.id().as_usize()]
+                    .checked_sub(num_mutated_sample_descendants[mutation.id().as_usize()])
+                    // again -- this is a HARD error representing a serious bug.
+                    .unwrap();
+                println!(
+                    "{} {} {} {} {}",
+                    mutation.id(),
+                    mutation.node(),
+                    num_sample_descendants[mutation.id().as_usize()],
+                    num_mutated_sample_descendants[mutation.id().as_usize()],
+                    nd
+                );
 
-                if mnode.is_none() {
-                    let current_mut_node = mutation_node[last_mutation.id().as_usize()];
-
-                    // FIXME: this is not right
-                    let nd = num_sample_descendants[current_mut_node.as_usize()]
-                        .checked_sub(num_mutated_sample_descendants[last_mutation.id().as_usize()])
-                        // again -- this is a HARD error representing a serious bug.
-                        .unwrap();
-                    assert!(nd >= 0, "nd = {nd} at {current_mut_node:?}");
-                    if nd > 0 {
-                        let derived_state =
-                            last_mutation.derived_state().as_ref().unwrap().to_vec();
-                        if let Some(index) =
-                            alleles_at_site.iter().position(|x| x == &derived_state)
-                        {
-                            if index > 0 {
-                                // NOT the ancestral state!
-                                allele_counts[index] += nd;
-                            } else {
-                                alleles_at_site.push(derived_state);
-                                allele_counts.push(nd);
-                            }
-                            // NOTE: this is likely a more efficient way to express this part.
-                            // The number of mutations under a node that inherit its derived
-                            // state = (num sample nodes under the mutation node) - (sum of
-                            // samples under other, more recent,  mutation nodes at this site)
-                            // I do not think that we need such complex inner loops.
-                            // Rather, we can go thru the mutations once, in present-to-past order,
-                            // and propagate up the total number of mutations accounted for.
-                            let delta = num_sample_descendants[current_mut_node.as_usize()]
-                                - num_mutated_sample_descendants[last_mutation.id().as_usize()];
-                            assert!(!delta.is_negative());
-                            let mut current_mut_parent =
-                                mutation_parent[last_mutation.id().as_usize()];
-                            while !current_mut_parent.is_null() {
-                                num_mutated_sample_descendants[current_mut_parent.as_usize()] +=
-                                    delta;
-                                current_mut_parent = mutation_parent[current_mut_parent.as_usize()];
-                            }
+                if nd > 0 {
+                    let derived_state = mutation.derived_state().as_ref().unwrap().to_vec();
+                    if let Some(index) = alleles_at_site.iter().position(|x| x == &derived_state) {
+                        if index > 0 {
+                            // NOT the ancestral state!
+                            allele_counts[index] += nd;
                         }
+                    } else {
+                        alleles_at_site.push(derived_state);
+                        allele_counts.push(nd);
                     }
-                    mnode = Some(current_mut_node);
+                    // Propagate number of nodes inheriting  this mutation
+                    // up the tree
+                    let delta = nd;
+                    let mut current_mut_parent = mutation_parent[mutation.id().as_usize()];
+                    while !current_mut_parent.is_null() {
+                        num_mutated_sample_descendants[current_mut_parent.as_usize()] += delta;
+                        current_mut_parent = mutation_parent[current_mut_parent.as_usize()];
+                    }
                 }
-                allele_counts[0] = (u64::from(ts.num_samples()) as i64)
-                    - allele_counts.iter().skip(1).sum::<i64>();
-                assert!(allele_counts[0] >= 0);
-                if allele_counts
-                    .iter()
-                    .filter(|&&i| i > 0 && (i as u64) < ts.num_samples())
-                    .count()
-                    > 1
-                {
-                    // this won't panic because our counts are ultimately derived from a collection of
-                    // alleles, which always obeys the required properties
-                    counts
-                        .add_site_from_counts(&allele_counts, num_sampled_genomes)
-                        .unwrap();
-                }
+            }
+            allele_counts[0] =
+                (u64::from(ts.num_samples()) as i64) - allele_counts.iter().skip(1).sum::<i64>();
+            assert!(allele_counts[0] >= 0);
+            if allele_counts
+                .iter()
+                .filter(|&&i| i > 0 && (i as u64) < ts.num_samples())
+                .count()
+                > 1
+            {
+                    println!("adding! {allele_counts:?} {num_sampled_genomes}");
+                // this won't panic because our counts are ultimately derived from a collection of
+                // alleles, which always obeys the required properties
+                counts
+                    .add_site_from_counts(&allele_counts, num_sampled_genomes)
+                    .unwrap();
             }
             current_site_index += 1;
         }
