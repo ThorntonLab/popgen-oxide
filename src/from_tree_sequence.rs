@@ -68,8 +68,8 @@ pub fn try_from_tree_sequence(
     let mut num_mutated_sample_descendants = vec![0_i64; ts.mutations().num_rows().as_usize()];
     let mut parent = vec![tskit::NodeId::NULL; ts.nodes().num_rows().as_usize()];
     let mut num_sampled_genomes = 0_i32;
-    for s in ts.nodes().iter().filter(|i| i.flags.is_sample()) {
-        num_sample_descendants[s.id.as_usize()] = 1;
+    for s in ts.nodes().iter().filter(|i| i.flags().is_sample()) {
+        num_sample_descendants[s.id().as_usize()] = 1;
         num_sampled_genomes += 1;
     }
     let mut current_site_index = 0;
