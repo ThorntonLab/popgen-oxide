@@ -113,7 +113,6 @@ pub fn try_from_tree_sequence(
 
             // Copy the mutation types since we don't have .rev for this iterator!
             let mutations_at_site = current_site.mutation_iter().collect::<Vec<_>>();
-            todo!("the code we are trying to replace is more complex that first thought!");
             for last_mutation in mutations_at_site.into_iter().rev() {
                 if let Some(mut_node) = mnode {
                     if mutation_node[last_mutation.id().as_usize()] != mut_node {
@@ -124,7 +123,7 @@ pub fn try_from_tree_sequence(
                 if mnode.is_none() {
                     let current_mut_node = mutation_node[last_mutation.id().as_usize()];
 
-                    todo!("the following code is wrong");
+                    // FIXME: this is not right
                     let nd = num_sample_descendants[current_mut_node.as_usize()]
                         .checked_sub(num_mutated_sample_descendants[last_mutation.id().as_usize()])
                         // again -- this is a HARD error representing a serious bug.
@@ -143,6 +142,13 @@ pub fn try_from_tree_sequence(
                                 alleles_at_site.push(derived_state);
                                 allele_counts.push(nd);
                             }
+                            // NOTE: this is likely a more efficient way to express this part.
+                            // The number of mutations under a node that inherit its derived
+                            // state = (num sample nodes under the mutation node) - (sum of
+                            // samples under other, more recent,  mutation nodes at this site)
+                            // I do not think that we need such complex inner loops.
+                            // Rather, we can go thru the mutations once, in present-to-past order,
+                            // and propagate up the total number of mutations accounted for.
                             let delta = num_sample_descendants[current_mut_node.as_usize()]
                                 - num_mutated_sample_descendants[last_mutation.id().as_usize()];
                             assert!(!delta.is_negative());
