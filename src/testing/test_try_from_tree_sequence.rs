@@ -608,8 +608,8 @@ fn generate_counts_and_validate(
     // the tree sequence.
     let mut focal_nodes = vec![false; ts.nodes().num_rows().as_usize()];
     for n in ts
-        .nodes_iter()
-        .filter_map(|n| n.flags.is_sample().then_some(n.id))
+        .node_iter()
+        .filter_map(|n| n.flags().is_sample().then_some(n.id()))
     {
         assert!(!focal_nodes[n.as_usize()]);
         focal_nodes[n.as_usize()] = true;

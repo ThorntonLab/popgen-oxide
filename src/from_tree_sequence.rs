@@ -96,101 +96,175 @@ pub fn try_from_tree_sequence(
             edges_in,
         );
         let right = update_right(right, j, edges_right, edges_out);
-        while current_site_index < ts.sites().num_rows()
-            && site_pos[current_site_index as usize] < right
+        for current_site in ts
+            .site_iter()
+            .skip(current_site_index)
+            .take_while(|site| site.position() < right)
         {
             alleles_at_site.clear();
-            alleles_at_site.push(
-                ts.sites()
-                    .ancestral_state(current_site_index as i32)
-                    // Hard error intentional -- these calcs cannot be done w/o state data
-                    // TODO: this missing state might mean something (e.g. insertion); figure this out later
-                    .unwrap(),
-            );
+            // Hard error intentional -- these calcs cannot be done w/o state data
+            // TODO: this missing state might mean something (e.g. insertion); figure this out later
+            alleles_at_site.push(current_site.ancestral_state().as_ref().unwrap().to_vec());
+
             let mut allele_counts = vec![0_i64];
-            while current_mutation_index < ts.mutations().num_rows()
-                // Dang, tskit integer types can get frustrating
-                && mutation_site[current_mutation_index as usize] == current_site_index as i32
-            {
-                let temp = mutation_site[current_mutation_index as usize..]
-                    .iter()
-                    .take_while(|&&site| site == (current_site_index as i32))
-                    .count();
-                // Experimental code follows
-                let mut mnode = None;
-                for mutation_index in
-                    (current_mutation_index..current_mutation_index + (temp as u64)).rev()
-                {
-                    if let Some(mut_node) = mnode {
-                        if mutation_node[mutation_index as usize] != mut_node {
-                            mnode = None;
-                        }
+
+            // NOTE: it is not 100% clear that unwrap() is good here?
+            let mut mnode = None;
+            for last_mutation in current_site.mutation_iter().rev() {
+                if let Some(mut_node) = mnode {
+                    if mutation_node[last_mutation.id().as_usize()] != mut_node {
+                        mnode = None;
                     }
+                }
 
-                    if mnode.is_none() {
-                        let current_mut_node = mutation_node[mutation_index as usize];
-                        let nd = num_sample_descendants[current_mut_node.as_usize()]
-                            .checked_sub(num_mutated_sample_descendants[mutation_index as usize])
-                            // again -- this is a HARD error representing a serious bug.
-                            .unwrap();
-                        assert!(nd >= 0, "nd = {nd} at {current_mut_node:?}");
-                        if nd > 0 {
-                            let derived_state = ts
-                                .mutations()
-                                .derived_state(mutation_index as i32)
-                                // Hard error intentional -- these calcs cannot be done w/o state data
-                                // TODO: this might mean something, but out of scope for now
-                                .unwrap();
+                if mnode.is_none() {
+                    let current_mut_node = mutation_node[last_mutation.id().as_usize()];
 
-                            if let Some(index) =
-                                alleles_at_site.iter().position(|&x| x == derived_state)
-                            {
-                                if index > 0 {
-                                    // NOT the ancestral state!
-                                    allele_counts[index] += nd
-                                }
+                    let nd = num_sample_descendants[current_mut_node.as_usize()]
+                        .checked_sub(num_mutated_sample_descendants[last_mutation.id().as_usize()])
+                        // again -- this is a HARD error representing a serious bug.
+                        .unwrap();
+                    assert!(nd >= 0, "nd = {nd} at {current_mut_node:?}");
+                    if nd > 0 {
+                        let derived_state =
+                            last_mutation.derived_state().as_ref().unwrap().to_vec();
+                        if let Some(index) =
+                            alleles_at_site.iter().position(|x| x == &derived_state)
+                        {
+                            if index > 0 {
+                                // NOT the ancestral state!
+                                allele_counts[index] += nd;
                             } else {
                                 alleles_at_site.push(derived_state);
-                                allele_counts.push(nd)
+                                allele_counts.push(nd);
                             }
                             let delta = num_sample_descendants[current_mut_node.as_usize()]
-                                - num_mutated_sample_descendants[mutation_index as usize];
+                                - num_mutated_sample_descendants[last_mutation.id().as_usize()];
                             assert!(!delta.is_negative());
-                            let mut current_mut_parent = mutation_parent[mutation_index as usize];
+                            let mut current_mut_parent =
+                                mutation_parent[last_mutation.id().as_usize()];
                             while !current_mut_parent.is_null() {
                                 num_mutated_sample_descendants[current_mut_parent.as_usize()] +=
                                     delta;
                                 current_mut_parent = mutation_parent[current_mut_parent.as_usize()];
                             }
                         }
-                        mnode = Some(current_mut_node);
                     }
+                    mnode = Some(current_mut_node);
                 }
-                current_mutation_index += temp as u64;
-            }
-            // Easier way?
-            allele_counts[0] =
-                (u64::from(ts.num_samples()) as i64) - allele_counts.iter().skip(1).sum::<i64>();
-            assert!(allele_counts[0] >= 0);
-            if allele_counts
-                .iter()
-                .filter(|&&i| i > 0 && (i as u64) < ts.num_samples())
-                .count()
-                > 1
-            {
-                // this won't panic because our counts are ultimately derived from a collection of
-                // alleles, which always obeys the required properties
-                counts
-                    .add_site_from_counts(&allele_counts, num_sampled_genomes)
-                    .unwrap();
+                allele_counts[0] = (u64::from(ts.num_samples()) as i64)
+                    - allele_counts.iter().skip(1).sum::<i64>();
+                assert!(allele_counts[0] >= 0);
+                if allele_counts
+                    .iter()
+                    .filter(|&&i| i > 0 && (i as u64) < ts.num_samples())
+                    .count()
+                    > 1
+                {
+                    // this won't panic because our counts are ultimately derived from a collection of
+                    // alleles, which always obeys the required properties
+                    counts
+                        .add_site_from_counts(&allele_counts, num_sampled_genomes)
+                        .unwrap();
+                }
             }
             current_site_index += 1;
         }
+        //while current_site_index < ts.sites().num_rows()
+        //    && site_pos[current_site_index as usize] < right
+        //{
+        //    alleles_at_site.clear();
+        //    alleles_at_site.push(
+        //        ts.sites()
+        //            .ancestral_state(current_site_index as i32)
+        //            // Hard error intentional -- these calcs cannot be done w/o state data
+        //            // TODO: this missing state might mean something (e.g. insertion); figure this out later
+        //            .unwrap(),
+        //    );
+        //    let mut allele_counts = vec![0_i64];
+        //    while current_mutation_index < ts.mutations().num_rows()
+        //        // Dang, tskit integer types can get frustrating
+        //        && mutation_site[current_mutation_index as usize] == current_site_index as i32
+        //    {
+        //        let temp = mutation_site[current_mutation_index as usize..]
+        //            .iter()
+        //            .take_while(|&&site| site == (current_site_index as i32))
+        //            .count();
+        //        // Experimental code follows
+        //        let mut mnode = None;
+        //        for mutation_index in
+        //            (current_mutation_index..current_mutation_index + (temp as u64)).rev()
+        //        {
+        //            if let Some(mut_node) = mnode {
+        //                if mutation_node[mutation_index as usize] != mut_node {
+        //                    mnode = None;
+        //                }
+        //            }
+
+        //            if mnode.is_none() {
+        //                let current_mut_node = mutation_node[mutation_index as usize];
+        //                let nd = num_sample_descendants[current_mut_node.as_usize()]
+        //                    .checked_sub(num_mutated_sample_descendants[mutation_index as usize])
+        //                    // again -- this is a HARD error representing a serious bug.
+        //                    .unwrap();
+        //                assert!(nd >= 0, "nd = {nd} at {current_mut_node:?}");
+        //                if nd > 0 {
+        //                    let derived_state = ts
+        //                        .mutations()
+        //                        .derived_state(mutation_index as i32)
+        //                        // Hard error intentional -- these calcs cannot be done w/o state data
+        //                        // TODO: this might mean something, but out of scope for now
+        //                        .unwrap();
+
+        //                    if let Some(index) =
+        //                        alleles_at_site.iter().position(|&x| x == derived_state)
+        //                    {
+        //                        if index > 0 {
+        //                            // NOT the ancestral state!
+        //                            allele_counts[index] += nd
+        //                        }
+        //                    } else {
+        //                        alleles_at_site.push(derived_state);
+        //                        allele_counts.push(nd)
+        //                    }
+        //                    let delta = num_sample_descendants[current_mut_node.as_usize()]
+        //                        - num_mutated_sample_descendants[mutation_index as usize];
+        //                    assert!(!delta.is_negative());
+        //                    let mut current_mut_parent = mutation_parent[mutation_index as usize];
+        //                    while !current_mut_parent.is_null() {
+        //                        num_mutated_sample_descendants[current_mut_parent.as_usize()] +=
+        //                            delta;
+        //                        current_mut_parent = mutation_parent[current_mut_parent.as_usize()];
+        //                    }
+        //                }
+        //                mnode = Some(current_mut_node);
+        //            }
+        //        }
+        //        current_mutation_index += temp as u64;
+        //    }
+        //    // Easier way?
+        //    allele_counts[0] =
+        //        (u64::from(ts.num_samples()) as i64) - allele_counts.iter().skip(1).sum::<i64>();
+        //    assert!(allele_counts[0] >= 0);
+        //    if allele_counts
+        //        .iter()
+        //        .filter(|&&i| i > 0 && (i as u64) < ts.num_samples())
+        //        .count()
+        //        > 1
+        //    {
+        //        // this won't panic because our counts are ultimately derived from a collection of
+        //        // alleles, which always obeys the required properties
+        //        counts
+        //            .add_site_from_counts(&allele_counts, num_sampled_genomes)
+        //            .unwrap();
+        //    }
+        //    current_site_index += 1;
+        //}
         left = right;
         num_trees += 1;
     }
-    assert_eq!(current_site_index, ts.sites().num_rows());
-    assert_eq!(current_mutation_index, ts.mutations().num_rows());
+    assert_eq!(current_site_index, ts.sites().num_rows().as_usize());
+    //assert_eq!(current_mutation_index, ts.mutations().num_rows());
     assert_eq!(num_trees, ts.num_trees());
     Ok(counts)
 }
