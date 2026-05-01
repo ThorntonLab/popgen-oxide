@@ -113,6 +113,7 @@ pub fn try_from_tree_sequence(
 
             // Copy the mutation types since we don't have .rev for this iterator!
             let mutations_at_site = current_site.mutation_iter().collect::<Vec<_>>();
+            todo!("the code we are trying to replace is more complex that first thought!");
             for last_mutation in mutations_at_site.into_iter().rev() {
                 if let Some(mut_node) = mnode {
                     if mutation_node[last_mutation.id().as_usize()] != mut_node {
