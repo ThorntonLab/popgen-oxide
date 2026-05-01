@@ -110,7 +110,10 @@ pub fn try_from_tree_sequence(
 
             // NOTE: it is not 100% clear that unwrap() is good here?
             let mut mnode = None;
-            for last_mutation in current_site.mutation_iter().rev() {
+
+            // Copy the mutation types since we don't have .rev for this iterator!
+            let mutations_at_site = current_site.mutation_iter().collect::<Vec<_>>();
+            for last_mutation in mutations_at_site.into_iter().rev() {
                 if let Some(mut_node) = mnode {
                     if mutation_node[last_mutation.id().as_usize()] != mut_node {
                         mnode = None;
@@ -120,6 +123,7 @@ pub fn try_from_tree_sequence(
                 if mnode.is_none() {
                     let current_mut_node = mutation_node[last_mutation.id().as_usize()];
 
+                    todo!("the following code is wrong");
                     let nd = num_sample_descendants[current_mut_node.as_usize()]
                         .checked_sub(num_mutated_sample_descendants[last_mutation.id().as_usize()])
                         // again -- this is a HARD error representing a serious bug.
