@@ -114,7 +114,7 @@ pub fn try_from_tree_sequence(
             // Copy the mutation types since we don't have .rev for this iterator!
             let mutations_at_site = current_site.mutation_iter().collect::<Vec<_>>();
             for mutation in mutations_at_site.into_iter().rev() {
-                let nd = num_sample_descendants[mutation.id().as_usize()]
+                let nd = num_sample_descendants[mutation.node().as_usize()]
                     .checked_sub(num_mutated_sample_descendants[mutation.id().as_usize()])
                     // again -- this is a HARD error representing a serious bug.
                     .unwrap();
@@ -140,30 +140,14 @@ pub fn try_from_tree_sequence(
                     }
                     // Propagate number of nodes inheriting  this mutation
                     // up the tree
-                    let delta = nd;
+                    let delta = num_sample_descendants[mutation.node().as_usize()]
+                        - num_mutated_sample_descendants[mutation.id().as_usize()];
+                    assert!(!delta.is_negative());
                     let mut current_mut_parent = mutation_parent[mutation.id().as_usize()];
                     while !current_mut_parent.is_null() {
                         num_mutated_sample_descendants[current_mut_parent.as_usize()] += delta;
                         current_mut_parent = mutation_parent[current_mut_parent.as_usize()];
                     }
-                }
-
-                allele_counts[0] = (u64::from(ts.num_samples()) as i64)
-                    - allele_counts.iter().skip(1).sum::<i64>();
-                assert!(allele_counts[0] >= 0);
-                println!("{allele_counts:?}");
-                if allele_counts
-                    .iter()
-                    .filter(|&&i| i > 0 && (i as u64) < ts.num_samples())
-                    .count()
-                    > 1
-                {
-                    println!("adding! {allele_counts:?} {num_sampled_genomes}");
-                    // this won't panic because our counts are ultimately derived from a collection of
-                    // alleles, which always obeys the required properties
-                    counts
-                        .add_site_from_counts(&allele_counts, num_sampled_genomes)
-                        .unwrap();
                 }
             }
             allele_counts[0] =
