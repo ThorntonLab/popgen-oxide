@@ -96,13 +96,15 @@ pub fn try_from_tree_sequence(
             edges_in,
         );
         let right = update_right(right, j, edges_right, edges_out);
-        let num_sites = ts.sites().num_rows().as_usize();
         for current_site in ts
             .site_iter()
             .skip(current_site_index)
             .take_while(|site| site.position() < right)
         {
-            println!("processing site {current_site_index} {}", current_site.position());
+            println!(
+                "processing site {current_site_index} {}",
+                current_site.position()
+            );
             alleles_at_site.clear();
             // Hard error intentional -- these calcs cannot be done w/o state data
             // TODO: this missing state might mean something (e.g. insertion); figure this out later
@@ -114,8 +116,7 @@ pub fn try_from_tree_sequence(
             // let mut mnode = None;
 
             // Copy the mutation types since we don't have .rev for this iterator!
-            let mutations_at_site = current_site.mutation_iter().collect::<Vec<_>>();
-            for mutation in mutations_at_site.into_iter().rev() {
+            for mutation in current_site.mutation_iter().rev() {
                 let nd = num_sample_descendants[mutation.node().as_usize()]
                     .checked_sub(num_mutated_sample_descendants[mutation.id().as_usize()])
                     // again -- this is a HARD error representing a serious bug.
@@ -168,10 +169,13 @@ pub fn try_from_tree_sequence(
                     .add_site_from_counts(&allele_counts, num_sampled_genomes)
                     .unwrap();
             }
+            println!("here");
             current_site_index += 1;
-            if current_site_index >= num_sites { break;}
+            //if current_site_index >= num_sites {
+            //    break;
+            //}
         }
-        println!("{right} {current_site_index} {}" ,ts.sites().num_rows());
+        println!("{right} {current_site_index} {}", ts.sites().num_rows());
         //while current_site_index < ts.sites().num_rows()
         //    && site_pos[current_site_index as usize] < right
         //{
@@ -265,7 +269,7 @@ pub fn try_from_tree_sequence(
         left = right;
         num_trees += 1;
     }
-    //assert_eq!(current_site_index, ts.sites().num_rows().as_usize());
+    assert_eq!(current_site_index, ts.sites().num_rows().as_usize());
     //assert_eq!(current_mutation_index, ts.mutations().num_rows());
     assert_eq!(num_trees, ts.num_trees());
     Ok(counts)
