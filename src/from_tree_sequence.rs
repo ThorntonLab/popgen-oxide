@@ -105,10 +105,10 @@ pub fn try_from_tree_sequence(
 
             let mut allele_counts = vec![0_i64];
 
-            // NOTE: this variable SHOULD NOT be required
-            // let mut mnode = None;
-
-            // Copy the mutation types since we don't have .rev for this iterator!
+            // NOTE: we process in reverse order because
+            // more recent mutations get processed first,
+            // allowing the propagation of already-mutated
+            // nodes up the tree.
             for mutation in current_site.mutation_iter().rev() {
                 let nd = num_sample_descendants[mutation.node().as_usize()]
                     .checked_sub(num_mutated_sample_descendants[mutation.id().as_usize()])
