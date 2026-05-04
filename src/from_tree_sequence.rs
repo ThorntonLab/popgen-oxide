@@ -124,8 +124,7 @@ pub fn try_from_tree_sequence(
                         alleles_at_site.push(derived_state);
                         allele_counts.push(nd);
                     }
-                    // Propagate number of nodes inheriting  this mutation
-                    // up the tree
+                    // Propagate number of nodes inheriting this mutation up the tree
                     let delta = num_sample_descendants[mutation.node().as_usize()]
                         - num_mutated_sample_descendants[mutation.id().as_usize()];
                     assert!(!delta.is_negative());
