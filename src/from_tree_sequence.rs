@@ -70,7 +70,6 @@ pub fn try_from_tree_sequence(
         num_sampled_genomes += 1;
     }
     let mut current_site_index = 0;
-    // let mut current_mutation_index = 0;
     let mut alleles_at_site = vec![];
     while i < num_edges && left < ts.tables().sequence_length() {
         while j < num_edges && edges_right[edges_out[j].as_usize()] == left {
@@ -158,7 +157,6 @@ pub fn try_from_tree_sequence(
         num_trees += 1;
     }
     assert_eq!(current_site_index, ts.sites().num_rows().as_usize());
-    //assert_eq!(current_mutation_index, ts.mutations().num_rows());
     assert_eq!(num_trees, ts.num_trees());
     Ok(counts)
 }
