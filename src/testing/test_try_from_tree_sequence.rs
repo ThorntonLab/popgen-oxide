@@ -70,7 +70,10 @@ fn validate_site_counts(counts: &crate::iter::SiteCounts, expected: SiteCountCon
         .sum::<usize>()
         + 1;
     let c = counts.counts();
-    assert_eq!(c[0], expected.num_ancestral);
+    assert_eq!(
+        c[0], expected.num_ancestral,
+        "calculated: {counts:?}, expected: {expected:?}"
+    );
     expected.derived.iter().for_each(|d| {
         assert_eq!(
             c.iter().skip(1).filter(|&&i| i == d.count).count(),
@@ -608,8 +611,8 @@ fn generate_counts_and_validate(
     // the tree sequence.
     let mut focal_nodes = vec![false; ts.nodes().num_rows().as_usize()];
     for n in ts
-        .nodes_iter()
-        .filter_map(|n| n.flags.is_sample().then_some(n.id))
+        .node_iter()
+        .filter_map(|n| n.flags().is_sample().then_some(n.id()))
     {
         assert!(!focal_nodes[n.as_usize()]);
         focal_nodes[n.as_usize()] = true;
