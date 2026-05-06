@@ -38,7 +38,7 @@ fn update_right(
     }
 }
 
-pub(crate) fn try_from_tree_sequence(
+pub fn try_from_tree_sequence(
     ts: &tskit::TreeSequence,
     _parameters: Option<FromTreeSequenceOptions>,
 ) -> PopgenResult<MultiSiteCounts> {
