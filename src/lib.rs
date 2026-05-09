@@ -17,7 +17,10 @@ pub use counts::*;
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
 #[cfg(feature = "tskit")]
-pub use from_tree_sequence::FromTreeSequenceOptions;
+pub mod from_tskit {
+    pub use super::from_tree_sequence::FromTreeSequenceOptions;
+    pub use super::from_tree_sequence::SingleSampleSet;
+}
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -25,7 +28,7 @@ pub enum PopgenError {
     #[cfg(feature = "noodles")]
     NoodlesVCF(std::io::Error),
     #[cfg(feature = "tskit")]
-    Tskit(tskit::TskitError),
+    Tskit(::tskit::TskitError),
     Io(std::io::Error),
     NegativeCount(Count),
     TotalAllelesDeficient,
@@ -33,6 +36,7 @@ pub enum PopgenError {
     EmptySiteCounts,
     CalculationError,
     InvalidDeme,
+    LibraryError(String),
 }
 
 impl std::fmt::Display for PopgenError {
@@ -52,6 +56,7 @@ impl std::fmt::Display for PopgenError {
             PopgenError::EmptySiteCounts => write!(f, "empty site count data"),
             PopgenError::CalculationError => write!(f, "calculation produced an invalid value"),
             PopgenError::InvalidDeme => write!(f, "invalid deme label or index"),
+            PopgenError::LibraryError(msg) => write!(f, "{msg}"),
             #[cfg(feature = "tskit")]
             PopgenError::Tskit(e) => write!(f, "tskit error: {}", e),
             #[cfg(feature = "noodles")]

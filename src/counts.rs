@@ -1,7 +1,7 @@
 use crate::iter::{MultiSiteCountsIter, SiteCounts};
 use crate::stats::F_ST;
 #[cfg(feature = "tskit")]
-use crate::{from_tree_sequence, FromTreeSequenceOptions};
+use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions, from_tskit::SingleSampleSet};
 use crate::{AlleleID, PopgenError, PopgenResult};
 use std::cmp::max;
 
@@ -55,9 +55,10 @@ impl MultiSiteCounts {
     #[cfg(feature = "tskit")]
     pub fn try_from_tree_sequence(
         ts: &tskit::TreeSequence,
+        samples: SingleSampleSet<'_>,
         options: Option<FromTreeSequenceOptions>,
     ) -> Result<Self, PopgenError> {
-        from_tree_sequence::try_from_tree_sequence(ts, options)
+        from_tree_sequence::try_from_tree_sequence(ts, samples, options)
     }
 
     /// Add a site from an iterator of potentially missing allele IDs.

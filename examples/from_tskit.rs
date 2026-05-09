@@ -1,7 +1,12 @@
 use popgen::MultiSiteCounts;
 
 fn process_ts(ts: &tskit::TreeSequence) {
-    let counts = MultiSiteCounts::try_from_tree_sequence(ts, None).unwrap();
+    let counts = MultiSiteCounts::try_from_tree_sequence(
+        ts,
+        popgen::from_tskit::SingleSampleSet::AllNodes,
+        None,
+    )
+    .unwrap();
 
     counts.iter().for_each(|c| println!("{c:?}"));
 }
