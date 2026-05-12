@@ -128,100 +128,27 @@ where
     Ok(num_sampled_genomes)
 }
 
-fn setup_samples(
+fn setup_samples<N>(
     ts: &tskit::TreeSequence,
-    samples: SingleSampleSet<'_>,
-) -> Result<(TreeData, i32), crate::PopgenError> {
+    samples: N,
+) -> Result<(TreeData, i32), crate::PopgenError>
+where
+    N: Iterator<Item = tskit::NodeId>,
+{
     let mut tree_data = TreeData::new(ts);
     let num_nodes = ts.nodes().num_rows().as_usize();
-    match samples {
-        SingleSampleSet::Node(nodes) => {
-            let x = setup_samples_from_node_ids(num_nodes, nodes, &mut tree_data)?;
-            Ok((tree_data, x))
-        }
-        SingleSampleSet::AllNodes => {
-            let x = setup_samples_from_node_ids(
-                num_nodes,
-                &mut ts.node_iter().filter_map(|n| {
-                    if n.flags().is_sample() {
-                        Some(n.id())
-                    } else {
-                        None
-                    }
-                }),
-                &mut tree_data,
-            )?;
-            Ok((tree_data, x))
-        }
-        SingleSampleSet::Individual(individuals) => {
-            if ts.individuals().num_rows() == 0 {
-                let msg = "tskit::IndividualIds passed for sample list".to_owned()
-                    + " but tree sequence has an empty individuals table";
-                return Err(crate::PopgenError::LibraryError(msg));
-            }
-            let nodes = {
-                let mut nodes = vec![];
-                for individual in individuals {
-                    // NOTE: nth is constant-time in tskit > 0.16.3
-                    // The next tskit release will also have .individual(id)
-                    // for constant-time access.
-                    // (not released as of May 5, 2026)
-                    if let Some(row) = ts.individual_iter().nth(individual.as_usize()) {
-                        if let Some(ind_nodes) = row.nodes() {
-                            nodes.extend_from_slice(ind_nodes);
-                        } else {
-                            // NOTE: is this possible in the tskit data model?
-                            return Err(crate::PopgenError::LibraryError(
-                                "individual not associated with nodes".to_string(),
-                            ));
-                        }
-                    } else {
-                        return Err(crate::PopgenError::LibraryError(format!(
-                            "individual id {} out of range",
-                            individual
-                        )));
-                    }
-                }
-                nodes
-            };
-            let x = setup_samples_from_node_ids(num_nodes, nodes.into_iter(), &mut tree_data)?;
-            Ok((tree_data, x))
-        }
-        SingleSampleSet::AllIndividuals => {
-            if ts.individuals().num_rows() == 0 {
-                let msg = "tskit::IndividualIds passed for sample list".to_owned()
-                    + " but tree sequence has an empty individuals table";
-                return Err(crate::PopgenError::LibraryError(msg));
-            }
-            let nodes = {
-                let mut nodes = vec![];
-                for individual in ts.individual_iter() {
-                    // NOTE: nth is constant-time in tskit > 0.16.3
-                    // The next tskit release will also have .individual(id)
-                    // for constant-time access.
-                    // (not released as of May 5, 2026)
-                    if let Some(ind_nodes) = individual.nodes() {
-                        nodes.extend_from_slice(ind_nodes);
-                    } else {
-                        // NOTE: is this possible in the tskit data model?
-                        return Err(crate::PopgenError::LibraryError(
-                            "individual not associated with nodes".to_string(),
-                        ));
-                    }
-                }
-                nodes
-            };
-            let x = setup_samples_from_node_ids(num_nodes, nodes.into_iter(), &mut tree_data)?;
-            Ok((tree_data, x))
-        }
-    }
+    let num_sampled_genomes = setup_samples_from_node_ids(num_nodes, samples, &mut tree_data)?;
+    Ok((tree_data, num_sampled_genomes))
 }
 
-pub fn try_from_tree_sequence(
+pub fn try_from_tree_sequence<N>(
     ts: &tskit::TreeSequence,
-    samples: SingleSampleSet<'_>,
+    samples: N,
     parameters: Option<FromTreeSequenceOptions>,
-) -> PopgenResult<MultiSiteCounts> {
+) -> PopgenResult<MultiSiteCounts>
+where
+    N: Iterator<Item = tskit::NodeId>,
+{
     let _parameters = parameters.unwrap_or_default();
     let (mut tree_data, num_sampled_genomes) = setup_samples(ts, samples)?;
     let mut counts = MultiSiteCounts::default();

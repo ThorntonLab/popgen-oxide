@@ -1,9 +1,15 @@
 use popgen::MultiSiteCounts;
 
-fn process_ts(ts: &tskit::TreeSequence) {
+fn process_nodes_from_ts(ts: &tskit::TreeSequence) {
     let counts = MultiSiteCounts::try_from_tree_sequence(
         ts,
-        popgen::from_tskit::SingleSampleSet::AllNodes,
+        ts.node_iter().filter_map(|n| {
+            if n.flags().is_sample() {
+                Some(n.id())
+            } else {
+                None
+            }
+        }),
         None,
     )
     .unwrap();
@@ -11,9 +17,54 @@ fn process_ts(ts: &tskit::TreeSequence) {
     counts.iter().for_each(|c| println!("{c:?}"));
 }
 
+// Get counts from all nodes found in individuals
+fn process_individuals_from_ts(ts: &tskit::TreeSequence) {
+    // NOTE: we use an adapter type to take ownersip
+    // of individuals as we iterate through them.
+    // We implement Iterator on the adapter type
+    // to facilitate flattening an iterator over individuals
+    // into an iterator over all nodes in individuals.
+    //
+    // Without the adapter, we would have to copy each
+    // slice of nodes into a temporary Vec and convert
+    // that into an iterator.
+    //
+    // Future versions of tskit will contain a feature
+    // to do this for you.
+    struct IndividualNodeIter<'i> {
+        ind: tskit::Individual<'i>,
+        current_index: usize,
+    }
+    impl<'i> Iterator for IndividualNodeIter<'i> {
+        type Item = tskit::NodeId;
+        fn next(&mut self) -> Option<Self::Item> {
+            self.current_index += 1;
+            self.ind
+                .nodes()
+                .and_then(|nodes| nodes.get(self.current_index - 1).copied())
+        }
+    }
+    if ts.individuals().num_rows() > 0 {
+        let counts = MultiSiteCounts::try_from_tree_sequence(
+            ts,
+            ts.individual_iter().flat_map(|i| IndividualNodeIter {
+                ind: i,
+                current_index: 0,
+            }),
+            None,
+        )
+        .unwrap();
+
+        counts.iter().for_each(|c| println!("{c:?}"));
+    } else {
+        println!("the individual table is empty...")
+    }
+}
+
 fn main() {
     let ts = make_tree_sequence();
-    process_ts(&ts);
+    process_nodes_from_ts(&ts);
+    process_individuals_from_ts(&ts);
 }
 
 fn make_tree_sequence() -> tskit::TreeSequence {
@@ -82,5 +133,5 @@ fn make_tree_sequence() -> tskit::TreeSequence {
 #[test]
 fn test_process_ts() {
     let ts = make_tree_sequence();
-    process_ts(&ts);
+    process_nodes_from_ts(&ts);
 }

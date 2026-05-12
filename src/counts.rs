@@ -1,7 +1,7 @@
 use crate::iter::{MultiSiteCountsIter, SiteCounts};
 use crate::stats::F_ST;
 #[cfg(feature = "tskit")]
-use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions, from_tskit::SingleSampleSet};
+use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
 use std::cmp::max;
 
@@ -53,11 +53,14 @@ impl MultiSiteCounts {
     /// derived states are currently rejected as a hard error resulting
     /// in a panic.
     #[cfg(feature = "tskit")]
-    pub fn try_from_tree_sequence(
+    pub fn try_from_tree_sequence<N>(
         ts: &tskit::TreeSequence,
-        samples: SingleSampleSet<'_>,
+        samples: N,
         options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError> {
+    ) -> Result<Self, PopgenError>
+    where
+        N: Iterator<Item = tskit::NodeId>,
+    {
         from_tree_sequence::try_from_tree_sequence(ts, samples, options)
     }
 
