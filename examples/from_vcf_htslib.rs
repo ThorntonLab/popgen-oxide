@@ -15,14 +15,24 @@ fn main() {
     vcf_out.write_all(VCF_FILE.as_bytes()).unwrap();
     let mut bcf = bcf::Reader::from_path("htslib_example.vcf").expect("Error opening file.");
     std::fs::remove_file("htslib_example.vcf").unwrap();
+
     let mut counts = popgen::MultiSiteCounts::default();
     let mut site_counts_from_record = Vec::<popgen::Count>::default();
+
     for record_result in bcf.records() {
         let record = record_result.unwrap();
         let num_alleles = record.alleles().len();
-        site_counts_from_record.fill(0);
-        site_counts_from_record.resize(num_alleles, 0);
+
+        if num_alleles > site_counts_from_record.len() {
+            site_counts_from_record.fill(0);
+            site_counts_from_record.resize(num_alleles, 0);
+        } else {
+            site_counts_from_record.truncate(num_alleles);
+            site_counts_from_record.fill(0);
+        }
+
         let gts = record.genotypes().expect("Error reading genotypes");
+
         // number of sample in the vcf
         let sample_count = usize::try_from(record.sample_count()).unwrap();
         let mut total_alleles = 0;
@@ -30,10 +40,10 @@ fn main() {
             // for each sample
             for gta in gts.get(sample_index).iter() {
                 // Filter out missing genotypes
-                if !matches!(gta, bcf::record::GenotypeAllele::PhasedMissing)
-                    && !matches!(gta, bcf::record::GenotypeAllele::UnphasedMissing)
+                if let bcf::record::GenotypeAllele::Phased(ind)
+                | bcf::record::GenotypeAllele::Unphased(ind) = gta
                 {
-                    site_counts_from_record[gta.index().unwrap() as usize] += 1;
+                    site_counts_from_record[*ind as usize] += 1;
                     total_alleles += 1;
                 }
             }
