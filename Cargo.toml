@@ -12,6 +12,8 @@ rand = "0.9.0"
 noodles = { version = "*", features = ["vcf", "csi", "tabix", "bgzf", "core"] }
 rand_distr = "0.5.1"
 proptest = "1.10.0"
+rust-htslib = { version = "1.0.0", default-features = false }
+crossbeam-channel = "0.5.15"
 
 [profile.release]
 lto = "fat"
@@ -28,3 +30,14 @@ required-features = ["noodles"]
 name = "from_tskit"
 required-features = ["tskit"]
 
+[[example]]
+name = "from_vcf_htslib"
+required-features = []
+
+[[example]]
+name = "from_vcf_htslib_indexed_single_thread"
+required-features = []
+
+[[example]]
+name = "from_vcf_htslib_indexed_parallel"
+required-features = []
