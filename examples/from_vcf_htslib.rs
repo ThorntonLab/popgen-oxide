@@ -44,8 +44,8 @@ fn main() {
                 | bcf::record::GenotypeAllele::Unphased(ind) = gta
                 {
                     site_counts_from_record[*ind as usize] += 1;
-                    total_alleles += 1;
                 }
+                total_alleles += 1;
             }
         }
         counts
