@@ -609,70 +609,21 @@ where
         .unwrap()
 }
 
-enum Samples<'s> {
-    Node(&'s [tskit::NodeId]),
-    Individual(&'s [tskit::IndividualId]),
-}
-
 #[cfg(test)]
-fn generate_counts_and_validate<'s>(
-    ts: &tskit::TreeSequence,
-    options: Option<crate::from_tskit::SingleSampleSet<'s>>,
-    samples: Option<Samples<'s>>,
-) {
-    let counts = match options {
-        Some(o) => crate::MultiSiteCounts::try_from_tree_sequence(ts, o, None).unwrap(),
-        None => crate::MultiSiteCounts::try_from_tree_sequence(
-            ts,
-            crate::from_tskit::SingleSampleSet::Node(&mut ts.node_iter().filter_map(|n| {
-                if n.flags().is_sample() {
-                    Some(n.id())
-                } else {
-                    None
-                }
-            })),
-            None,
-        )
-        .unwrap(),
-    };
+fn generate_counts_and_validate<N>(ts: &tskit::TreeSequence, options: N)
+where
+    N: Iterator<Item = tskit::NodeId>,
+{
+    let samples = options.collect::<Vec<_>>();
+    let counts =
+        crate::MultiSiteCounts::try_from_tree_sequence(ts, samples.iter().cloned(), None).unwrap();
     // Instead of relying on the internal node sample-ness status,
     // we define our set of "sample/focal" nodes externally from
     // the tree sequence.
     let focal_nodes = {
         let mut focal_nodes = vec![false; ts.nodes().num_rows().as_usize()];
-        // if let Some(opts) = &options {
-        if let Some(samples) = samples {
-            match samples {
-                Samples::Node(nodes) => {
-                    for n in nodes.iter().map(|i| i.as_usize()) {
-                        assert!(!focal_nodes[n]);
-                        focal_nodes[n] = true;
-                    }
-                }
-                Samples::Individual(individuals) => {
-                    let mut ind_needed = vec![0; ts.individuals().num_rows().as_usize()];
-                    for i in individuals.iter() {
-                        assert!(i != tskit::IndividualId::NULL);
-                        ind_needed[i.as_usize()] = 1;
-                    }
-                    for n in ts.node_iter() {
-                        if n.individual() != tskit::IndividualId::NULL
-                            && ind_needed[n.individual().as_usize()] != 0
-                        {
-                            focal_nodes[n.id().as_usize()] = true;
-                        }
-                    }
-                }
-            }
-        } else {
-            // Get the nodes from the tree sequence sample map
-            for n in ts
-                .node_iter()
-                .filter_map(|n| n.flags().is_sample().then_some(n.id()))
-            {
-                assert!(!focal_nodes[n.as_usize()]);
-                focal_nodes[n.as_usize()] = true;
-            }
+        for i in samples {
+            focal_nodes[i.as_usize()] = true;
         }
         focal_nodes
     };
@@ -685,13 +636,11 @@ fn generate_counts_and_validate<'s>(
 
 #[cfg(test)]
 fn test_subsets_of_sample_nodes(ts: &tskit::TreeSequence) {
-    let tsksamples = crate::from_tskit::SingleSampleSet::AllNodes;
     let samples = ts.sample_nodes();
-    generate_counts_and_validate(ts, Some(tsksamples), Some(Samples::Node(samples)));
+    generate_counts_and_validate(ts, samples.iter().cloned());
     for x in 2..samples.len() {
         let subsamples = &samples[..x];
-        let tsksamples = crate::from_tskit::SingleSampleSet::Node(&mut subsamples.iter().cloned());
-        generate_counts_and_validate(ts, Some(tsksamples), Some(Samples::Node(subsamples)));
+        generate_counts_and_validate(ts, subsamples.iter().cloned());
     }
 }
 
@@ -705,14 +654,11 @@ fn test_non_sample_nodes_and_subsets(ts: &tskit::TreeSequence) {
         .iter()
         .any(|&n| ts.nodes().flags(n).unwrap().is_sample()));
     if !samples.is_empty() {
-        let tsksamples = crate::from_tskit::SingleSampleSet::Node(&mut samples.iter().cloned());
-        generate_counts_and_validate(ts, Some(tsksamples), Some(Samples::Node(&samples)));
+        generate_counts_and_validate(ts, samples.iter().cloned());
 
         for x in 2..samples.len() {
             let subsamples = &samples[..x];
-            let tsksamples =
-                crate::from_tskit::SingleSampleSet::Node(&mut subsamples.iter().cloned());
-            generate_counts_and_validate(ts, Some(tsksamples), Some(Samples::Node(subsamples)));
+            generate_counts_and_validate(ts, subsamples.iter().cloned());
         }
     }
 }
@@ -720,7 +666,12 @@ fn test_non_sample_nodes_and_subsets(ts: &tskit::TreeSequence) {
 #[test]
 fn test_0() {
     let ts = make_test_data(make_two_sample_tree, vec![]);
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -735,7 +686,12 @@ fn test_1() {
             vec![MutationData::new(1, 1.0, "G")],
         )],
     );
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -756,7 +712,12 @@ fn test_2() {
             ),
         ],
     );
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -774,7 +735,12 @@ fn test_3() {
             ],
         )],
     );
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -793,7 +759,12 @@ fn test_4() {
             ],
         )],
     );
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -819,7 +790,12 @@ fn test_5() {
         ],
     );
     let ts = make_test_data(make_two_identical_four_sample_trees, vec![site0, site1]);
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -845,7 +821,12 @@ fn test_6() {
         ],
     );
     let ts = make_test_data(make_two_identical_four_sample_trees, vec![site0, site1]);
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -871,7 +852,12 @@ fn test_7() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -880,7 +866,12 @@ fn test_7() {
 fn test_8() {
     let site0 = SiteData::new(60.0, "G", vec![]);
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -896,7 +887,12 @@ fn test_9() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -913,7 +909,12 @@ fn test_10_anc_state_missing() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
 }
 
 #[test]
@@ -928,7 +929,12 @@ fn test_10_der_state_missing() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
 }
 
 #[test]
@@ -944,7 +950,12 @@ fn test_11() {
             ],
         )],
     );
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -965,7 +976,12 @@ fn test_12() {
             ],
         )],
     );
-    generate_counts_and_validate(&ts, None, None);
+    generate_counts_and_validate(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+    );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
 }
@@ -981,7 +997,12 @@ fn test_13() {
                 vec![MutationData::new(mut_node, mut_time, "1")],
             )],
         );
-        generate_counts_and_validate(&ts, None, None);
+        generate_counts_and_validate(
+            &ts,
+            ts.node_iter()
+                .filter(|n| n.flags().is_sample())
+                .map(|n| n.id()),
+        );
         test_subsets_of_sample_nodes(&ts);
         test_non_sample_nodes_and_subsets(&ts);
     }
@@ -1005,7 +1026,12 @@ mod with_ancient_samples {
                 ],
             )],
         );
-        generate_counts_and_validate(&ts, None, None);
+        generate_counts_and_validate(
+            &ts,
+            ts.node_iter()
+                .filter(|n| n.flags().is_sample())
+                .map(|n| n.id()),
+        );
         test_subsets_of_sample_nodes(&ts);
         test_non_sample_nodes_and_subsets(&ts);
     }
@@ -1025,7 +1051,12 @@ mod with_ancient_samples {
                 ],
             )],
         );
-        generate_counts_and_validate(&ts, None, None);
+        generate_counts_and_validate(
+            &ts,
+            ts.node_iter()
+                .filter(|n| n.flags().is_sample())
+                .map(|n| n.id()),
+        );
         test_subsets_of_sample_nodes(&ts);
         test_non_sample_nodes_and_subsets(&ts);
     }
@@ -1045,7 +1076,12 @@ mod with_ancient_samples {
                 ],
             )],
         );
-        generate_counts_and_validate(&ts, None, None);
+        generate_counts_and_validate(
+            &ts,
+            ts.node_iter()
+                .filter(|n| n.flags().is_sample())
+                .map(|n| n.id()),
+        );
         test_subsets_of_sample_nodes(&ts);
         test_non_sample_nodes_and_subsets(&ts);
     }
@@ -1102,38 +1138,6 @@ mod with_ancient_samples {
 }
 
 #[test]
-fn test_individual_list() {
-    let ts = make_test_data(
-        make_four_sample_tree_with_one_inline_ancient_sample,
-        vec![SiteData::new(
-            5.,
-            "G",
-            vec![
-                MutationData::new(5, 21.0, "A"),
-                MutationData::new(4, 10.1, "G"),
-                MutationData::new(7, 10.1, "A"),
-                MutationData::new(1, 0.1, "C"),
-            ],
-        )],
-    );
-    let individual_ids = ts.individual_iter().map(|i| i.id()).collect::<Vec<_>>();
-
-    let samples = crate::from_tskit::SingleSampleSet::AllIndividuals;
-    generate_counts_and_validate(
-        &ts,
-        Some(samples),
-        Some(Samples::Individual(&individual_ids)),
-    );
-    let samples =
-        crate::from_tskit::SingleSampleSet::Individual(&mut individual_ids[0..1].iter().cloned());
-    generate_counts_and_validate(
-        &ts,
-        Some(samples),
-        Some(Samples::Individual(&individual_ids[0..1])),
-    );
-}
-
-#[test]
 fn test_null_node_ids() {
     let ts = make_test_data(
         make_four_sample_tree_with_one_inline_ancient_sample,
@@ -1149,43 +1153,7 @@ fn test_null_node_ids() {
         )],
     );
     let samples = [ts.sample_nodes()[0], tskit::NodeId::NULL];
-    let tsksamples = crate::from_tskit::SingleSampleSet::Node(&mut samples.iter().cloned());
-    assert!(crate::MultiSiteCounts::try_from_tree_sequence(&ts, tsksamples, None).is_err());
-}
-
-#[test]
-fn test_null_individual_ids() {
-    let ts = make_test_data(
-        make_four_sample_tree_with_one_inline_ancient_sample,
-        vec![SiteData::new(
-            5.,
-            "G",
-            vec![
-                MutationData::new(5, 21.0, "A"),
-                MutationData::new(4, 10.1, "G"),
-                MutationData::new(7, 10.1, "A"),
-                MutationData::new(1, 0.1, "C"),
-            ],
-        )],
+    assert!(
+        crate::MultiSiteCounts::try_from_tree_sequence(&ts, samples.into_iter(), None).is_err()
     );
-    let mut individual_ids = ts.individual_iter().map(|i| i.id()).collect::<Vec<_>>();
-    if let Some(value) = individual_ids.last_mut() {
-        *value = tskit::IndividualId::NULL;
-    }
-    let samples =
-        crate::from_tskit::SingleSampleSet::Individual(&mut individual_ids.iter().cloned());
-    assert!(crate::MultiSiteCounts::try_from_tree_sequence(&ts, samples, None).is_err());
-}
-
-#[test]
-fn test_individual_ids_with_empty_individual_table() {
-    let ts = make_test_data(
-        make_two_sample_tree,
-        vec![SiteData::new(5., "G", vec![MutationData::new(1, 0.1, "C")])],
-    );
-    assert_eq!(ts.individuals().num_rows(), 0);
-    let individual_ids = [tskit::IndividualId::from(0), tskit::IndividualId::from(1)];
-    let samples =
-        crate::from_tskit::SingleSampleSet::Individual(&mut individual_ids.iter().cloned());
-    assert!(crate::MultiSiteCounts::try_from_tree_sequence(&ts, samples, None).is_err());
 }
