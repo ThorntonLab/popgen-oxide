@@ -338,7 +338,8 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
             {
                 Some(index) => {
                     if index > 0 {
-                        for (i, j) in self.num_samples_inheriting_derived_state_at_site
+                        for (i, j) in self
+                            .num_samples_inheriting_derived_state_at_site
                             .iter()
                             .enumerate()
                         {
@@ -348,7 +349,8 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
                 }
                 None => {
                     self.alleles_at_site.push(derived_state);
-                    for (i, j) in self.num_samples_inheriting_derived_state_at_site
+                    for (i, j) in self
+                        .num_samples_inheriting_derived_state_at_site
                         .iter()
                         .enumerate()
                     {
