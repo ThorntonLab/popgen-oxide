@@ -4,6 +4,9 @@
 use tskit::prelude::StreamingIterator;
 
 #[cfg(test)]
+use crate::iter::SiteCounts;
+
+#[cfg(test)]
 struct MutationData {
     node: tskit::NodeId,
     time: tskit::Time,
@@ -743,6 +746,36 @@ fn test_3() {
     );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
+
+    // Multi-sample-set test
+    {
+        let mcounts = crate::MultiPopulationCounts::try_from_tree_sequence(
+            &ts,
+            [[0_i32, 3], [1, 2]]
+                .into_iter()
+                .map(|a| a.into_iter().map(|i| i.into())),
+            None,
+        )
+        .unwrap();
+        let counts0 = crate::MultiSiteCounts::try_from_tree_sequence(
+            &ts,
+            [0, 3].into_iter().map(|i| i.into()),
+            None,
+        )
+        .unwrap();
+        let a = mcounts.iter_sites_in(0).collect::<Vec<_>>();
+        let b = counts0.iter().collect::<Vec<_>>();
+        assert_eq!(a, b);
+        let counts1 = crate::MultiSiteCounts::try_from_tree_sequence(
+            &ts,
+            [1, 2].into_iter().map(|i| i.into()),
+            None,
+        )
+        .unwrap();
+        let a = mcounts.iter_sites_in(1).collect::<Vec<_>>();
+        let b = counts1.iter().collect::<Vec<_>>();
+        assert_eq!(a, b);
+    }
 }
 
 #[test]
@@ -767,6 +800,35 @@ fn test_4() {
     );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
+    // Multi-sample-set test
+    {
+        let mcounts = crate::MultiPopulationCounts::try_from_tree_sequence(
+            &ts,
+            [[0_i32, 3], [1, 2]]
+                .into_iter()
+                .map(|a| a.into_iter().map(|i| i.into())),
+            None,
+        )
+        .unwrap();
+        let counts0 = crate::MultiSiteCounts::try_from_tree_sequence(
+            &ts,
+            [0, 3].into_iter().map(|i| i.into()),
+            None,
+        )
+        .unwrap();
+        let a = extract_subsample(&mcounts, 0);
+        let b = counts0.iter().collect::<Vec<_>>();
+        assert_eq!(a, b);
+        let counts1 = crate::MultiSiteCounts::try_from_tree_sequence(
+            &ts,
+            [1, 2].into_iter().map(|i| i.into()),
+            None,
+        )
+        .unwrap();
+        let a = extract_subsample(&mcounts, 1);
+        let b = counts1.iter().collect::<Vec<_>>();
+        assert_eq!(a, b);
+    }
 }
 
 #[test]
@@ -798,6 +860,35 @@ fn test_5() {
     );
     test_subsets_of_sample_nodes(&ts);
     test_non_sample_nodes_and_subsets(&ts);
+    // Multi-sample-set test
+    {
+        let mcounts = crate::MultiPopulationCounts::try_from_tree_sequence(
+            &ts,
+            [[0_i32, 3], [1, 2]]
+                .into_iter()
+                .map(|a| a.into_iter().map(|i| i.into())),
+            None,
+        )
+        .unwrap();
+        let counts0 = crate::MultiSiteCounts::try_from_tree_sequence(
+            &ts,
+            [0, 3].into_iter().map(|i| i.into()),
+            None,
+        )
+        .unwrap();
+        let a = extract_subsample(&mcounts, 0);
+        let b = counts0.iter().collect::<Vec<_>>();
+        assert_eq!(a, b);
+        let counts1 = crate::MultiSiteCounts::try_from_tree_sequence(
+            &ts,
+            [1, 2].into_iter().map(|i| i.into()),
+            None,
+        )
+        .unwrap();
+        let a = extract_subsample(&mcounts, 1);
+        let b = counts1.iter().collect::<Vec<_>>();
+        assert_eq!(a, b);
+    }
 }
 
 #[test]
@@ -1006,6 +1097,15 @@ fn test_13() {
         test_subsets_of_sample_nodes(&ts);
         test_non_sample_nodes_and_subsets(&ts);
     }
+}
+
+#[cfg(test)]
+fn extract_subsample(data: &crate::MultiPopulationCounts, sample: usize) -> Vec<SiteCounts<'_>> {
+    // We need to filter out sites that are monomorphic in
+    // the focal sample set
+    data.iter_sites_in(sample)
+        .filter(|c| c.counts().iter().filter(|i| i > &&0).count() > 1)
+        .collect::<Vec<_>>()
 }
 
 #[cfg(test)]

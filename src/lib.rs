@@ -19,7 +19,6 @@ pub type PopgenResult<T> = Result<T, PopgenError>;
 #[cfg(feature = "tskit")]
 pub mod from_tskit {
     pub use super::from_tree_sequence::FromTreeSequenceOptions;
-    pub use super::from_tree_sequence::SingleSampleSet;
 }
 
 #[non_exhaustive]
