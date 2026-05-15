@@ -508,12 +508,9 @@ where
 {
     let sample_data = setup_multi_sample_sets(ts, samples)?;
     let counts = MultiPopulationCounts::of_empty_populations(sample_data.len());
-    let mut tree_data = vec![];
-    let mut num_sampled_genomes = vec![];
-    for (td, ns) in sample_data.into_iter() {
-        tree_data.push(td);
-        num_sampled_genomes.push(ns as i64);
-    }
+    let (tree_data, num_sampled_genomes): (Vec<TreeData>, Vec<i32>) =
+        sample_data.into_iter().unzip();
+    let num_sampled_genomes: Vec<i64> = num_sampled_genomes.into_iter().map(|i| i as i64).collect();
     let allele_counts = vec![vec![]; tree_data.len()];
     let sample_sets = MultitpleSampleSets {
         tree_data,
