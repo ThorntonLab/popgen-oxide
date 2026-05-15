@@ -176,6 +176,27 @@ trait SampleSets<'s> {
     fn output(self) -> Self::Output;
 }
 
+fn setup_alleles_at_site<'ts, 'a>(
+    ts: &'ts tskit::TreeSequence,
+    site: tskit::SiteId,
+    alleles_at_site: &mut Vec<&'a [u8]>,
+) -> PopgenResult<()>
+where
+    'ts: 'a,
+{
+    alleles_at_site.clear();
+    // NOTE: trying to store the derived state
+    // from the current_site as a slice runs
+    // into lifetime issues because current_site
+    // goes away. So what we do instead is get a slice
+    // for the same row whose lifetime depends on
+    // the tree sequence!
+    alleles_at_site.push(*ts.sites().ancestral_state(site).as_ref().ok_or(
+        PopgenError::LibraryError("site is missing ancestral state".to_string()),
+    )?);
+    Ok(())
+}
+
 impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
     type Output = MultiSiteCounts;
 
@@ -251,23 +272,8 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         'ts: 's,
         's: 'a,
     {
-        self.alleles_at_site.clear();
-        // NOTE: trying to store the derived state
-        // from the current_site as a slice runs
-        // into lifetime issues because current_site
-        // goes away. So what we do instead is get a slice
-        // for the same row whose lifetime depends on
-        // the tree sequence!
-        self.alleles_at_site
-            .push(
-                *ts.sites()
-                    .ancestral_state(site)
-                    .as_ref()
-                    .ok_or(PopgenError::LibraryError(
-                        "site is missing ancestral state".to_string(),
-                    ))?,
-            );
-        self.allele_counts.resize(1, 0_i64);
+        setup_alleles_at_site(ts, site, &mut self.alleles_at_site)?;
+        self.allele_counts.resize(1, 0);
         Ok(())
     }
 
@@ -390,16 +396,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         'ts: 's,
         's: 'a,
     {
-        self.alleles_at_site.clear();
-        self.alleles_at_site
-            .push(
-                *ts.sites()
-                    .ancestral_state(site)
-                    .as_ref()
-                    .ok_or(PopgenError::LibraryError(
-                        "site missing ancestral state".to_string(),
-                    ))?,
-            );
+        setup_alleles_at_site(ts, site, &mut self.alleles_at_site)?;
         self.allele_counts.iter_mut().for_each(|v| v.resize(1, 0));
         Ok(())
     }
