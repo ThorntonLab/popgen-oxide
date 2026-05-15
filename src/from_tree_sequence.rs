@@ -146,6 +146,7 @@ struct MultitpleSampleSets<'ts> {
     num_sampled_genomes: Vec<i64>,
     alleles_at_site: Vec<&'ts [u8]>,
     allele_counts: Vec<Vec<i64>>,
+    num_samples_inheriting_derived_state_at_site: Vec<i64>,
     counts: MultiPopulationCounts,
 }
 
@@ -308,7 +309,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         M: tskit::TableColumn<tskit::MutationId, tskit::MutationId>,
     {
         let mut any_sample_sets_polymorphic = false;
-        let mut num_samples_inheriting_derived_state_at_site = vec![];
+        self.num_samples_inheriting_derived_state_at_site.clear();
         for (nd, num_genomes) in self
             .tree_data
             .iter_mut()
@@ -324,7 +325,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
             if nd > 0 && nd < *num_genomes {
                 any_sample_sets_polymorphic = true;
             }
-            num_samples_inheriting_derived_state_at_site.push(nd);
+            self.num_samples_inheriting_derived_state_at_site.push(nd);
         }
         if any_sample_sets_polymorphic {
             let derived_state = *ts.mutations().derived_state(mutation.id()).as_ref().ok_or(
@@ -337,7 +338,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
             {
                 Some(index) => {
                     if index > 0 {
-                        for (i, j) in num_samples_inheriting_derived_state_at_site
+                        for (i, j) in self.num_samples_inheriting_derived_state_at_site
                             .iter()
                             .enumerate()
                         {
@@ -347,7 +348,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
                 }
                 None => {
                     self.alleles_at_site.push(derived_state);
-                    for (i, j) in num_samples_inheriting_derived_state_at_site
+                    for (i, j) in self.num_samples_inheriting_derived_state_at_site
                         .iter()
                         .enumerate()
                     {
@@ -356,7 +357,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
                 }
             }
         }
-        num_samples_inheriting_derived_state_at_site.clear();
+        self.num_samples_inheriting_derived_state_at_site.clear();
         Ok(())
     }
 
@@ -571,6 +572,7 @@ where
         counts,
         allele_counts,
         alleles_at_site: vec![],
+        num_samples_inheriting_derived_state_at_site: vec![],
     };
     try_from_tree_sequence_details(ts, options, sample_sets)
 }
