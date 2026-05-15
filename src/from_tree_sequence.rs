@@ -154,7 +154,7 @@ trait SampleSets<'s> {
 
     fn process_input_edge(&mut self, parent: usize, child: usize);
     fn process_output_edge(&mut self, parent: usize, child: usize);
-    fn setup_alleles_at_site<'ts, 'a>(
+    fn intialize_site<'ts, 'a>(
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
@@ -263,7 +263,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         Ok(())
     }
 
-    fn setup_alleles_at_site<'ts, 'a>(
+    fn intialize_site<'ts, 'a>(
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
@@ -387,7 +387,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         Ok(())
     }
 
-    fn setup_alleles_at_site<'ts, 'a>(
+    fn intialize_site<'ts, 'a>(
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
@@ -458,7 +458,7 @@ where
             .skip(current_site_index)
             .take_while(|site| site.position() < right)
         {
-            sample_sets.setup_alleles_at_site(ts, current_site.id())?;
+            sample_sets.intialize_site(ts, current_site.id())?;
             // alleles_at_site.clear();
             // // NOTE: trying to store the derived state
             // // from the current_site as a slice runs
