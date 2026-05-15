@@ -460,22 +460,6 @@ where
             .take_while(|site| site.position() < right)
         {
             sample_sets.intialize_site(ts, current_site.id())?;
-            // alleles_at_site.clear();
-            // // NOTE: trying to store the derived state
-            // // from the current_site as a slice runs
-            // // into lifetime issues because current_site
-            // // goes away. So what we do instead is get a slice
-            // // for the same row whose lifetime depends on
-            // // the tree sequence!
-            // alleles_at_site.push(
-            //     *ts.sites()
-            //         .ancestral_state(current_site.id())
-            //         .as_ref()
-            //         .ok_or(PopgenError::LibraryError(
-            //             "site is missing ancestral state".to_string(),
-            //         ))?,
-            // );
-            // allele_counts.resize(1, 0_i64);
 
             // NOTE: we process in reverse order because
             // more recent mutations get processed first,
@@ -483,42 +467,8 @@ where
             // nodes up the tree.
             for mutation in current_site.mutation_iter().rev() {
                 sample_sets.process_mutation(ts, &mutation_parent, mutation)?;
-                //let num_samples_inheriting_derived_state =
-                //    tree_data.process_mutation(&mutation, &mutation_parent);
-                //if num_samples_inheriting_derived_state > 0
-                //    && num_samples_inheriting_derived_state < num_sampled_genomes as i64
-                //{
-                //    let derived_state =
-                //        *ts.mutations().derived_state(mutation.id()).as_ref().ok_or(
-                //            PopgenError::LibraryError(
-                //                "mutation is missing derived state".to_string(),
-                //            ),
-                //        )?;
-                //    match alleles_at_site.iter().position(|&x| x == derived_state) {
-                //        Some(index) => {
-                //            if index > 0 {
-                //                allele_counts[index] += num_samples_inheriting_derived_state
-                //            }
-                //        }
-                //        None => {
-                //            alleles_at_site.push(derived_state);
-                //            allele_counts.push(num_samples_inheriting_derived_state);
-                //        }
-                //    }
-                //}
             }
             sample_sets.update_allele_counts()?;
-            //allele_counts[0] =
-            //    (num_sampled_genomes as i64) - allele_counts.iter().skip(1).sum::<i64>();
-            //assert!(allele_counts[0] >= 0);
-            //if allele_counts
-            //    .iter()
-            //    .filter(|&&i| i > 0 && i < num_sampled_genomes as i64)
-            //    .count()
-            //    > 1
-            //{
-            //    counts.add_site_from_counts(&allele_counts, num_sampled_genomes)?;
-            //}
             current_site_index += 1;
         }
         left = right;
