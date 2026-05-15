@@ -142,10 +142,10 @@ struct SingleSampleSet<'ts> {
 }
 
 struct MultitpleSampleSets<'ts> {
-    tree_data: TreeData,
-    num_sampled_genomes: i64,
+    tree_data: Vec<TreeData>,
+    num_sampled_genomes: Vec<i64>,
     alleles_at_site: Vec<&'ts [u8]>,
-    allele_counts: Vec<i64>,
+    allele_counts: Vec<Vec<i64>>,
     counts: MultiPopulationCounts,
 }
 
@@ -268,6 +268,139 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
                     ))?,
             );
         self.allele_counts.resize(1, 0_i64);
+        Ok(())
+    }
+
+    fn output(self) -> Self::Output {
+        self.counts
+    }
+}
+
+impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
+    type Output = MultiPopulationCounts;
+
+    fn process_input_edge(&mut self, parent: usize, child: usize) {
+        self.tree_data
+            .iter_mut()
+            .for_each(|td| td.process_input_edge(parent, child));
+    }
+    fn process_output_edge(&mut self, parent: usize, child: usize) {
+        self.tree_data
+            .iter_mut()
+            .for_each(|td| td.process_output_edge(parent, child));
+    }
+
+    fn process_mutation<'ts, 'a, M>(
+        &'a mut self,
+        ts: &'ts tskit::TreeSequence,
+        mutation_parent: &'a M,
+        mutation: tskit::MutationRef<'a>,
+    ) -> PopgenResult<()>
+    where
+        'ts: 's,
+        's: 'a,
+        M: tskit::TableColumn<tskit::MutationId, tskit::MutationId>,
+    {
+        let mut any_sample_sets_polymorphic = false;
+        let mut num_samples_inheriting_derived_state_at_site = vec![];
+        for (nd, num_genomes) in self
+            .tree_data
+            .iter_mut()
+            .zip(self.num_sampled_genomes.iter())
+            .map(|(tree_data, num_genomes)| {
+                (
+                    tree_data.process_mutation(&mutation, mutation_parent),
+                    num_genomes,
+                )
+            })
+        {
+            // Check if mutation is polymorphic in this sample set
+            if nd > 0 && nd < *num_genomes {
+                any_sample_sets_polymorphic = true;
+            }
+            num_samples_inheriting_derived_state_at_site.push(nd);
+        }
+        if any_sample_sets_polymorphic {
+            let derived_state = *ts.mutations().derived_state(mutation.id()).as_ref().ok_or(
+                PopgenError::LibraryError("mutation missing derived state".to_string()),
+            )?;
+            match self
+                .alleles_at_site
+                .iter()
+                .position(|&x| x == derived_state)
+            {
+                Some(index) => {
+                    if index > 0 {
+                        for (i, j) in num_samples_inheriting_derived_state_at_site
+                            .iter()
+                            .enumerate()
+                        {
+                            self.allele_counts[i][index] += j;
+                        }
+                    }
+                }
+                None => {
+                    self.alleles_at_site.push(derived_state);
+                    for (i, j) in num_samples_inheriting_derived_state_at_site
+                        .iter()
+                        .enumerate()
+                    {
+                        self.allele_counts[i].push(*j);
+                    }
+                }
+            }
+        }
+        num_samples_inheriting_derived_state_at_site.clear();
+        Ok(())
+    }
+
+    fn update_allele_counts(&mut self) -> PopgenResult<()> {
+        self.num_sampled_genomes
+            .iter()
+            .enumerate()
+            .for_each(|(i, num_sampled_genomes)| {
+                self.allele_counts[i][0] =
+                    (*num_sampled_genomes) - self.allele_counts[i].iter().skip(1).sum::<i64>()
+            });
+        assert!(self.allele_counts.iter().all(|v| v[0] >= 0));
+        // If ANY of the sample sets are polymorphic,
+        // record data for them.
+        if self.allele_counts.iter().enumerate().any(|(i, ac)| {
+            ac.iter()
+                .filter(|&&c| c > 0 && c < self.num_sampled_genomes[i])
+                .count()
+                > 1
+        }) {
+            self.counts.extend_populations_from_site(|index| {
+                (
+                    &self.allele_counts[index],
+                    self.num_sampled_genomes[index] as i32,
+                )
+            })?;
+        }
+        Ok(())
+    }
+
+    fn setup_alleles_at_site<'ts, 'a>(
+        &'a mut self,
+        ts: &'ts tskit::TreeSequence,
+        site: tskit::SiteId,
+    ) -> PopgenResult<()>
+    where
+        'ts: 's,
+        's: 'a,
+    {
+        self.alleles_at_site.clear();
+        self.alleles_at_site
+            .push(
+                *ts.sites()
+                    .ancestral_state(site)
+                    .as_ref()
+                    .ok_or(PopgenError::LibraryError(
+                        "site missing ancestral state".to_string(),
+                    ))?,
+            );
+        self.allele_counts.iter_mut().for_each(|v| v.resize(1, 0));
         Ok(())
     }
 
@@ -426,142 +559,21 @@ where
     OUTER: Iterator<Item = INNER>,
     INNER: Iterator<Item = tskit::NodeId>,
 {
-    let _parameter = options.unwrap_or_default();
-    let mut sample_data = setup_multi_sample_sets(ts, samples)?;
-    let mut counts = MultiPopulationCounts::of_empty_populations(sample_data.len());
-    let mut left = 0.0;
-    let edges_in = ts.edge_insertion_order_column();
-    let edges_out = ts.edge_removal_order_column();
-    let edges_left = ts.tables().edges().left_column();
-    let edges_right = ts.tables().edges().right_column();
-    let edges_parent = ts.tables().edges().parent_column();
-    let edges_child = ts.tables().edges().child_column();
-    let mutation_parent = ts.tables().mutations().parent_column();
-    let num_edges = ts.edges().num_rows().as_usize();
-    let mut i = 0_usize;
-    let mut j = 0_usize;
-
-    let mut num_trees = 0;
-    let mut parent = vec![tskit::NodeId::NULL; ts.nodes().num_rows().as_usize()];
-    let mut current_site_index = 0;
-    let mut alleles_at_site = vec![];
-    let mut allele_counts = vec![Vec::<i64>::default(); sample_data.len()];
-    while i < num_edges && left < ts.tables().sequence_length() {
-        while j < num_edges && edges_right[edges_out[j]] == left {
-            let edge_parent = edges_parent[edges_out[j]].as_usize();
-            let edge_child = edges_child[edges_out[j]].as_usize();
-            sample_data
-                .iter_mut()
-                .for_each(|(tree_data, _)| tree_data.process_output_edge(edge_parent, edge_child));
-            parent[edges_child[edges_out[j]].as_usize()] = tskit::NodeId::NULL;
-            j += 1;
-        }
-        while i < num_edges && edges_left[edges_in[i]] == left {
-            parent[edges_child[edges_in[i]].as_usize()] = edges_parent[edges_in[i]];
-            let edge_parent = edges_parent[edges_in[i]].as_usize();
-            let edge_child = edges_child[edges_in[i]].as_usize();
-            sample_data
-                .iter_mut()
-                .for_each(|(tree_data, _)| tree_data.process_input_edge(edge_parent, edge_child));
-            i += 1;
-        }
-        let right = update_right(
-            ts.tables().sequence_length().into(),
-            i,
-            &edges_left,
-            &edges_in,
-        );
-        let right = update_right(right, j, &edges_right, &edges_out);
-        for current_site in ts
-            .site_iter()
-            .skip(current_site_index)
-            .take_while(|site| site.position() < right)
-        {
-            alleles_at_site.clear();
-            alleles_at_site.push(
-                *ts.sites()
-                    .ancestral_state(current_site.id())
-                    .as_ref()
-                    .ok_or(PopgenError::LibraryError(
-                        "site missing ancestral state".to_string(),
-                    ))?,
-            );
-            allele_counts.iter_mut().for_each(|v| v.resize(1, 0));
-
-            // NOTE: we process in reverse order because
-            // more recent mutations get processed first,
-            // allowing the propagation of already-mutated
-            // nodes up the tree.
-            let mut num_samples_inheriting_derived_state_at_site = vec![];
-            for mutation in current_site.mutation_iter().rev() {
-                let mut any_sample_sets_polymorphic = false;
-                for (nd, num_genomes) in sample_data.iter_mut().map(|(tree_data, num_genomes)| {
-                    (
-                        tree_data.process_mutation(&mutation, &mutation_parent),
-                        num_genomes,
-                    )
-                }) {
-                    // Check if mutation is polymorphic in this sample set
-                    if nd > 0 && nd < *num_genomes as i64 {
-                        any_sample_sets_polymorphic = true;
-                    }
-                    num_samples_inheriting_derived_state_at_site.push(nd);
-                }
-                if any_sample_sets_polymorphic {
-                    let derived_state =
-                        *ts.mutations().derived_state(mutation.id()).as_ref().ok_or(
-                            PopgenError::LibraryError("mutation missing derived state".to_string()),
-                        )?;
-                    match alleles_at_site.iter().position(|&x| x == derived_state) {
-                        Some(index) => {
-                            if index > 0 {
-                                for (i, j) in num_samples_inheriting_derived_state_at_site
-                                    .iter()
-                                    .enumerate()
-                                {
-                                    allele_counts[i][index] += j;
-                                }
-                            }
-                        }
-                        None => {
-                            alleles_at_site.push(derived_state);
-                            for (i, j) in num_samples_inheriting_derived_state_at_site
-                                .iter()
-                                .enumerate()
-                            {
-                                allele_counts[i].push(*j);
-                            }
-                        }
-                    }
-                }
-                num_samples_inheriting_derived_state_at_site.clear();
-            }
-            sample_data
-                .iter()
-                .enumerate()
-                .for_each(|(i, (_, num_sampled_genomes))| {
-                    allele_counts[i][0] =
-                        (*num_sampled_genomes as i64) - allele_counts[i].iter().skip(1).sum::<i64>()
-                });
-            assert!(allele_counts.iter().all(|v| v[0] >= 0));
-            // If ANY of the sample sets are polymorphic,
-            // record data for them.
-            if allele_counts.iter().enumerate().any(|(i, ac)| {
-                ac.iter()
-                    .filter(|&&c| c > 0 && c < sample_data[i].1 as i64)
-                    .count()
-                    > 1
-            }) {
-                counts.extend_populations_from_site(|index| {
-                    (&allele_counts[index], sample_data[index].1)
-                })?;
-            }
-            current_site_index += 1;
-        }
-        left = right;
-        num_trees += 1;
+    let sample_data = setup_multi_sample_sets(ts, samples)?;
+    let counts = MultiPopulationCounts::of_empty_populations(sample_data.len());
+    let mut tree_data = vec![];
+    let mut num_sampled_genomes = vec![];
+    for (td, ns) in sample_data.into_iter() {
+        tree_data.push(td);
+        num_sampled_genomes.push(ns as i64);
     }
-    assert_eq!(current_site_index, ts.sites().num_rows().as_usize());
-    assert_eq!(num_trees, ts.num_trees());
-    Ok(counts)
+    let allele_counts = vec![vec![]; tree_data.len()];
+    let sample_sets = MultitpleSampleSets {
+        tree_data,
+        num_sampled_genomes,
+        counts,
+        allele_counts,
+        alleles_at_site: vec![],
+    };
+    try_from_tree_sequence_details(ts, options, sample_sets)
 }
