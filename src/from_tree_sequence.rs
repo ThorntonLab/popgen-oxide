@@ -432,18 +432,15 @@ where
     let mut j = 0_usize;
 
     let mut num_trees = 0;
-    let mut parent = vec![tskit::NodeId::NULL; ts.nodes().num_rows().as_usize()];
     let mut current_site_index = 0;
     while i < num_edges && left < ts.tables().sequence_length() {
         while j < num_edges && edges_right[edges_out[j]] == left {
             let edge_parent = edges_parent[edges_out[j]].as_usize();
             let edge_child = edges_child[edges_out[j]].as_usize();
             sample_sets.process_output_edge(edge_parent, edge_child);
-            parent[edges_child[edges_out[j]].as_usize()] = tskit::NodeId::NULL;
             j += 1;
         }
         while i < num_edges && edges_left[edges_in[i]] == left {
-            parent[edges_child[edges_in[i]].as_usize()] = edges_parent[edges_in[i]];
             let edge_parent = edges_parent[edges_in[i]].as_usize();
             let edge_child = edges_child[edges_in[i]].as_usize();
             sample_sets.process_input_edge(edge_parent, edge_child);
