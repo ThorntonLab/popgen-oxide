@@ -133,6 +133,154 @@ where
     Ok(rv)
 }
 
+struct SingleSampleSet<'ts> {
+    tree_data: TreeData,
+    num_sampled_genomes: i64,
+    alleles_at_site: Vec<&'ts [u8]>,
+    allele_counts: Vec<i64>,
+    counts: MultiSiteCounts,
+}
+
+struct MultitpleSampleSets<'ts> {
+    tree_data: TreeData,
+    num_sampled_genomes: i64,
+    alleles_at_site: Vec<&'ts [u8]>,
+    allele_counts: Vec<i64>,
+    counts: MultiPopulationCounts,
+}
+
+trait SampleSets {
+    type Output: Sized;
+
+    fn process_input_edge(&mut self, parent: usize, child: usize);
+    fn process_output_edge(&mut self, parent: usize, child: usize);
+    fn setup_alleles_at_site(&mut self, site: &tskit::SiteRef<'_>);
+    fn process_mutation(&mut self, mutation: &tskit::MutationRef<'_>);
+    fn output(self) -> Self::Output;
+}
+
+
+pub fn try_from_tree_sequence_details<S>(
+    ts: &tskit::TreeSequence,
+    parameters: Option<FromTreeSequenceOptions>,
+    sample_sets: S,
+) -> PopgenResult<S::Output>
+where
+    S: SampleSets,
+{
+    let _parameters = parameters.unwrap_or_default();
+    let mut sample_sets = sample_sets;
+    let mut left = 0.0;
+    let edges_in = ts.edge_insertion_order_column();
+    let edges_out = ts.edge_removal_order_column();
+    let edges_left = ts.tables().edges().left_column();
+    let edges_right = ts.tables().edges().right_column();
+    let edges_parent = ts.tables().edges().parent_column();
+    let edges_child = ts.tables().edges().child_column();
+    let mutation_parent = ts.tables().mutations().parent_column();
+    let num_edges = ts.edges().num_rows().as_usize();
+    let mut i = 0_usize;
+    let mut j = 0_usize;
+
+    let mut num_trees = 0;
+    let mut parent = vec![tskit::NodeId::NULL; ts.nodes().num_rows().as_usize()];
+    let mut current_site_index = 0;
+    while i < num_edges && left < ts.tables().sequence_length() {
+        while j < num_edges && edges_right[edges_out[j]] == left {
+            let edge_parent = edges_parent[edges_out[j]].as_usize();
+            let edge_child = edges_child[edges_out[j]].as_usize();
+            sample_sets.process_output_edge(edge_parent, edge_child);
+            parent[edges_child[edges_out[j]].as_usize()] = tskit::NodeId::NULL;
+            j += 1;
+        }
+        while i < num_edges && edges_left[edges_in[i]] == left {
+            parent[edges_child[edges_in[i]].as_usize()] = edges_parent[edges_in[i]];
+            let edge_parent = edges_parent[edges_in[i]].as_usize();
+            let edge_child = edges_child[edges_in[i]].as_usize();
+            sample_sets.process_input_edge(edge_parent, edge_child);
+            i += 1;
+        }
+        let right = update_right(
+            ts.tables().sequence_length().into(),
+            i,
+            &edges_left,
+            &edges_in,
+        );
+        let right = update_right(right, j, &edges_right, &edges_out);
+        for current_site in ts
+            .site_iter()
+            .skip(current_site_index)
+            .take_while(|site| site.position() < right)
+        {
+            sample_sets.setup_alleles_at_site(&current_site);
+            // alleles_at_site.clear();
+            // // NOTE: trying to store the derived state
+            // // from the current_site as a slice runs
+            // // into lifetime issues because current_site
+            // // goes away. So what we do instead is get a slice
+            // // for the same row whose lifetime depends on
+            // // the tree sequence!
+            // alleles_at_site.push(
+            //     *ts.sites()
+            //         .ancestral_state(current_site.id())
+            //         .as_ref()
+            //         .ok_or(PopgenError::LibraryError(
+            //             "site is missing ancestral state".to_string(),
+            //         ))?,
+            // );
+            // allele_counts.resize(1, 0_i64);
+
+            // NOTE: we process in reverse order because
+            // more recent mutations get processed first,
+            // allowing the propagation of already-mutated
+            // nodes up the tree.
+            for mutation in current_site.mutation_iter().rev() {
+                let num_samples_inheriting_derived_state =
+                    tree_data.process_mutation(&mutation, &mutation_parent);
+                if num_samples_inheriting_derived_state > 0
+                    && num_samples_inheriting_derived_state < num_sampled_genomes as i64
+                {
+                    let derived_state =
+                        *ts.mutations().derived_state(mutation.id()).as_ref().ok_or(
+                            PopgenError::LibraryError(
+                                "mutation is missing derived state".to_string(),
+                            ),
+                        )?;
+                    match alleles_at_site.iter().position(|&x| x == derived_state) {
+                        Some(index) => {
+                            if index > 0 {
+                                allele_counts[index] += num_samples_inheriting_derived_state
+                            }
+                        }
+                        None => {
+                            alleles_at_site.push(derived_state);
+                            allele_counts.push(num_samples_inheriting_derived_state);
+                        }
+                    }
+                }
+            }
+            allele_counts[0] =
+                (num_sampled_genomes as i64) - allele_counts.iter().skip(1).sum::<i64>();
+            assert!(allele_counts[0] >= 0);
+            if allele_counts
+                .iter()
+                .filter(|&&i| i > 0 && i < num_sampled_genomes as i64)
+                .count()
+                > 1
+            {
+                counts.add_site_from_counts(&allele_counts, num_sampled_genomes)?;
+            }
+            current_site_index += 1;
+        }
+        left = right;
+        num_trees += 1;
+    }
+    assert_eq!(current_site_index, ts.sites().num_rows().as_usize());
+    assert_eq!(num_trees, ts.num_trees());
+    Ok(counts)
+    Ok(sample_sets.output())
+}
+
 pub fn try_from_tree_sequence<N>(
     ts: &tskit::TreeSequence,
     samples: N,
