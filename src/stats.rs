@@ -134,14 +134,14 @@ impl GlobalStatistic for WattersonTheta {
 /// Tajima's D, as proposed in [Tajima 1989](https://academic.oup.com/genetics/article/123/3/585/5998755?login=false).
 /// See also [Wikipedia](https://en.wikipedia.org/wiki/Tajima%27s_D#Mathematical_details) for the equations restated.
 #[derive(Debug, Copy, Clone, Default)]
-pub struct TajimaD {
+pub struct TajimasD {
     k_hat: GlobalPi,
     theta: WattersonTheta,
     num_samples: usize,
     num_sites: usize,
 }
 
-impl GlobalStatistic for TajimaD {
+impl GlobalStatistic for TajimasD {
     fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         self.k_hat.try_add_site(site.clone())?;
@@ -193,36 +193,34 @@ impl GlobalStatistic for TajimaD {
     }
 }
 
-/// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953).
+/// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953) and [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
 ///
 /// Construction of this type from an arbitrary collection of [`MultiSiteCounts`] is not sound,
 /// because the invariant of [`crate::counts::MultiPopulationCounts`] is required.
-#[allow(non_camel_case_types)]
-#[allow(non_snake_case)]
 #[derive(Clone, Debug)]
-pub struct F_ST<'backing> {
+pub struct FStatistics<'backing> {
     backing: &'backing MultiPopulationCounts,
     /// (population number, weight) pairs
     populations: Vec<(usize, f64)>,
-    // total pi_T derivable from other terms, no need to store anything new
-    /// for pi_S
+    // total pi_t derivable from other terms, no need to store anything new
+    /// for pi_s
     diversity_within: Vec<f64>,
     // keep numerator and denominator apart for incremental update
-    pi_S: (f64, f64),
-    /// for pi_B
+    pi_s: (f64, f64),
+    /// for pi_b
     diversity_between: HashMap<UnorderedPair<usize>, f64>,
-    pi_B: (f64, f64),
+    pi_b: (f64, f64),
 }
 
-impl<'backing> F_ST<'backing> {
+impl<'backing> FStatistics<'backing> {
     pub(crate) fn new_viewing(populations: &'backing MultiPopulationCounts) -> Self {
         Self {
             backing: populations,
             populations: vec![],
             diversity_within: vec![],
-            pi_S: (0.0, 0.0),
+            pi_s: (0.0, 0.0),
             diversity_between: Default::default(),
-            pi_B: (0.0, 0.0),
+            pi_b: (0.0, 0.0),
         }
     }
 
@@ -241,8 +239,8 @@ impl<'backing> F_ST<'backing> {
 
         self.diversity_within.push(pi_new_site);
 
-        self.pi_S.0 += weight * weight * pi_new_site;
-        self.pi_S.1 += weight * weight;
+        self.pi_s.0 += weight * weight * pi_new_site;
+        self.pi_s.1 += weight * weight;
 
         // there are more possible pairs of populations now
         for (i, (existing_pop, existing_pop_weight)) in self.populations.iter().enumerate() {
@@ -280,11 +278,77 @@ impl<'backing> F_ST<'backing> {
             self.diversity_between
                 .insert(UnorderedPair::new(i, self.populations.len()), pi_ij);
 
-            self.pi_B.0 += weight * existing_pop_weight * pi_ij;
-            self.pi_B.1 += weight * existing_pop_weight;
+            self.pi_b.0 += weight * existing_pop_weight * pi_ij;
+            self.pi_b.1 += weight * existing_pop_weight;
         }
         self.populations.push((population_num, weight));
         Ok(())
+    }
+
+    ///.The two halves of the fraction [`Self::pi_s`].
+    pub fn pi_s_parts(&self) -> (f64, f64) {
+        self.pi_s
+    }
+
+    ///.The two halves of the fraction [`Self::pi_b`].
+    pub fn pi_b_parts(&self) -> (f64, f64) {
+        self.pi_b
+    }
+
+    /// The total diversity of these populations as defined by Charlesworth (1998) equations 1a and 2.
+    pub fn pi_t(&self) -> f64 {
+        let (pi_s_unweighted, _) = self.pi_s_parts();
+        let (pi_b_unweighted, _) = self.pi_b_parts();
+        pi_s_unweighted + 2. * pi_b_unweighted
+    }
+
+    /// The diversity of each population against itself as defined by Charlesworth (1998) equation 1b.
+    /// [`None`] if no populations have been added so this fraction is undefined.
+    pub fn pi_s(&self) -> Option<f64> {
+        let pi_s = self.pi_s_parts();
+        match pi_s.1 {
+            0. => None,
+            denom => Some(pi_s.0 / denom),
+        }
+    }
+
+    /// The diversity between distinct populations as defined by Charlesworth (1998) equation 1c.
+    /// [`None`] if no populations have been added so this fraction is undefined.
+    pub fn pi_b(&self) -> Option<f64> {
+        let pi_b = self.pi_b_parts();
+        match pi_b.1 {
+            0. => None,
+            denom => Some(pi_b.0 / denom),
+        }
+    }
+
+    /// As defined before equation 2.
+    /// Calculated as pi_B - pi_S, from Charlesworth's pi_S + pi_D = pi_B.
+    /// [`None`] if any of the required terms is undefined.
+    pub fn pi_d(&self) -> Option<f64> {
+        self.pi_b().zip(self.pi_s()).map(|(b, s)| b - s)
+    }
+
+    // pi_(T-S) is done fastest as pi_T - pi_S instead of with pi_D as in eqn 2b
+
+    /// F_ST as defined by [Weir and Cockerham (1984)](https://doi.org/10.1111/j.1558-5646.1984.tb05657.x).
+    /// [`None`] if any of the required terms is undefined.
+    pub fn weir_cockerham(&self) -> Option<f64> {
+        // eqn 3a
+        self.pi_d().zip(self.pi_s()).map(|(d, s)| d / (s + d))
+    }
+
+    /// F_ST as defined by [Slatkin (1993)](https://doi.org/10.1111/j.1558-5646.1993.tb01215.x).
+    /// [`None`] if any of the required terms is undefined.
+    pub fn slatkin(&self) -> Option<f64> {
+        // eqn 3b
+        self.pi_d().zip(self.pi_s()).map(|(d, s)| d / (2. * s + d))
+    }
+
+    /// F_ST as defined by [Hudson, Boos, and Kaplan (1992)](https://doi.org/10.1093/oxfordjournals.molbev.a040703).
+    /// [`None`] if any of the required terms is undefined.
+    pub fn hudson_boos_kaplan(&self) -> Option<f64> {
+        Some(self.pi_t()).zip(self.pi_s()).map(|(t, s)| (t - s) / t)
     }
 
     /// Calculate F2(deme1, deme2).
@@ -352,87 +416,5 @@ impl<'backing> F_ST<'backing> {
         let c = self.f2(deme1, deme3)?;
         let d = self.f2(deme2, deme4)?;
         Ok((a + b - c - d) / 2.)
-    }
-}
-
-pub trait FStatisticParts {
-    #[allow(non_snake_case)]
-    fn pi_S_parts(&self) -> (f64, f64);
-
-    #[allow(non_snake_case)]
-    fn pi_B_parts(&self) -> (f64, f64);
-
-    /// The total diversity of these populations as defined by equations 1a and 2.
-    #[allow(non_snake_case)]
-    fn pi_T(&self) -> f64 {
-        let (pi_S_unweighted, _) = self.pi_S_parts();
-        let (pi_B_unweighted, _) = self.pi_B_parts();
-        pi_S_unweighted + 2. * pi_B_unweighted
-    }
-
-    /// The diversity of each population against itself as defined by equation 1b.
-    /// [`None`] if no populations have been added so this fraction is undefined.
-    #[allow(non_snake_case)]
-    fn pi_S(&self) -> Option<f64> {
-        let pi_S = self.pi_S_parts();
-        match pi_S.1 {
-            0. => None,
-            denom => Some(pi_S.0 / denom),
-        }
-    }
-
-    /// The diversity between distinct populations as defined by equation 1c.
-    /// [`None`] if no populations have been added so this fraction is undefined.
-    #[allow(non_snake_case)]
-    fn pi_B(&self) -> Option<f64> {
-        let pi_B = self.pi_B_parts();
-        match pi_B.1 {
-            0. => None,
-            denom => Some(pi_B.0 / denom),
-        }
-    }
-
-    /// As defined before equation 2.
-    /// Calculated as pi_B - pi_S, from Charlesworth's pi_S + pi_D = pi_B.
-    /// [`None`] if any of the required terms is undefined.
-    #[allow(non_snake_case)]
-    fn pi_D(&self) -> Option<f64> {
-        self.pi_B().zip(self.pi_S()).map(|(b, s)| b - s)
-    }
-
-    // pi_(T-S) is done fastest as pi_T - pi_S instead of with pi_D as in eqn 2b
-}
-
-pub trait FStatistics: FStatisticParts {
-    /// F_ST as defined by [Weir and Cockerham (1984)](https://doi.org/10.1111/j.1558-5646.1984.tb05657.x).
-    /// [`None`] if any of the required terms is undefined.
-    fn weir_cockerham(&self) -> Option<f64> {
-        // eqn 3a
-        self.pi_D().zip(self.pi_S()).map(|(d, s)| d / (s + d))
-    }
-
-    /// F_ST as defined by [Slatkin (1993)](https://doi.org/10.1111/j.1558-5646.1993.tb01215.x).
-    /// [`None`] if any of the required terms is undefined.
-    fn slatkin(&self) -> Option<f64> {
-        // eqn 3b
-        self.pi_D().zip(self.pi_S()).map(|(d, s)| d / (2. * s + d))
-    }
-
-    /// F_ST as defined by [Hudson, Boos, and Kaplan (1992)](https://doi.org/10.1093/oxfordjournals.molbev.a040703).
-    /// [`None`] if any of the required terms is undefined.
-    fn hudson_boos_kaplan(&self) -> Option<f64> {
-        Some(self.pi_T()).zip(self.pi_S()).map(|(t, s)| (t - s) / t)
-    }
-}
-
-impl FStatisticParts for F_ST<'_> {
-    #[allow(non_snake_case)]
-    fn pi_S_parts(&self) -> (f64, f64) {
-        self.pi_S
-    }
-
-    #[allow(non_snake_case)]
-    fn pi_B_parts(&self) -> (f64, f64) {
-        self.pi_B
     }
 }

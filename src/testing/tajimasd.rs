@@ -1,5 +1,5 @@
 use crate::stats::GlobalStatistic;
-use crate::stats::TajimaD;
+use crate::stats::TajimasD;
 use crate::AlleleID;
 use crate::MultiSiteCounts;
 use rand::rng;
@@ -12,7 +12,7 @@ use std::iter::repeat_n;
 // once we have a naive implementation in place
 // and can test using our random data API.
 #[test]
-fn tajima_d() {
+fn tajimas_d() {
     fn shuffled_site(
         ids: impl Iterator<Item = (Option<AlleleID>, usize)>,
         rng: &mut ThreadRng,
@@ -42,6 +42,6 @@ fn tajima_d() {
 
     let allele_counts = MultiSiteCounts::try_from_tabular(sites).unwrap();
 
-    let tajima = TajimaD::try_from_iter_sites(allele_counts.iter()).unwrap();
-    assert!((tajima.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
+    let d = TajimasD::try_from_iter_sites(allele_counts.iter()).unwrap();
+    assert!((d.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
 }
