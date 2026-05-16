@@ -11,7 +11,7 @@ pub mod vcf {
 
     pub fn record_to_genotypes_adapter(
         header: &Header,
-        record: Record,
+        record: &Record,
         ploidy: usize,
     ) -> PopgenResult<Vec<Option<AlleleID>>> {
         let num_samples = header.sample_names().len();

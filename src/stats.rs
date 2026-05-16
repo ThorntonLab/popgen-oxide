@@ -1,6 +1,6 @@
 use crate::iter::SiteCounts;
 use crate::util::UnorderedPair;
-use crate::{Count, MultiPopulationCounts, PopgenError};
+use crate::{Count, MultiPopulationCounts, MultiSiteCounts, PopgenError, PopgenResult};
 use std::cmp::max;
 use std::collections::HashMap;
 
@@ -60,6 +60,133 @@ pub trait GlobalStatistic {
     fn as_raw(&self) -> f64;
 }
 
+/// A [`GlobalStatistic`], with the following additional guarantees:
+/// - The statistic can be updated with at least one site when given a reference to another `Self` to which site(s) have already been added.
+/// - This composition remains correct under reordering (commutation and association).
+///
+/// It is also possible to implement this trait if a sufficient *portion* of computation can be done
+/// under the above conditions.
+/// Such types can use [`GlobalStatistic::as_raw`] to perform inexpensive finalizing computations
+/// if needed.
+/// For an example of this use case, see [`TajimaD`].
+///
+/// # Errors
+///
+/// - The statistic is not required to be in a valid state after [`try_combine`](Self::try_combine) fails.
+///
+/// # Example
+/// ```
+/// # use popgen::iter::SiteCounts;
+/// # use popgen::PopgenResult;
+/// # use popgen::stats::{GlobalStatistic, SiteComposable};
+/// #
+/// // a very simple statistic
+/// #[derive(Default)]  // to define the result over 0 sites
+/// struct NumSites(u64);
+///
+/// impl SiteComposable for NumSites {
+///     fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
+///         self.0 += other.0;
+///         Ok(())
+///     }
+/// }
+///
+/// impl GlobalStatistic for NumSites {
+///     fn try_add_site(&mut self, site: SiteCounts) -> PopgenResult<()> {
+///         self.0 += 1;
+///         Ok(())
+///     }
+///
+///     fn as_raw(&self) -> f64 {
+///         self.0 as f64
+///     }
+/// }
+/// ```
+pub trait SiteComposable: GlobalStatistic {
+    fn try_combine(&mut self, other: &Self) -> crate::PopgenResult<()>;
+}
+
+pub fn windowed<Stat, GetWindow, E>(
+    window_size: i64,
+    stride: i64,
+    start_pos: i64,
+    end_pos: i64,
+    mut get_window: GetWindow,
+) -> PopgenResult<Result<Vec<Stat>, E>>
+where
+    Stat: SiteComposable + Default + Clone,
+    GetWindow: FnMut(i64, i64) -> Result<MultiSiteCounts, E>,
+{
+    let use_add_remove = window_size > stride;
+    let mut intersection = None::<Stat>;
+
+    let mut ret = Vec::with_capacity(((end_pos - start_pos + 1) / stride + 1) as usize);
+
+    let mut window_start = start_pos;
+    // TODO: parallelize this under some condition
+
+    while window_start < end_pos {
+        let mut accum = Stat::default();
+        if !use_add_remove {
+            let counts = match get_window(window_start, (window_start + window_size).min(end_pos)) {
+                Ok(window) => window,
+                Err(e) => return Ok(Err(e)),
+            };
+            for site in counts.iter() {
+                accum.try_add_site(site)?;
+            }
+        } else {
+            let new_intersection = match get_window(
+                window_start + window_size - stride,
+                window_start + window_size,
+            ) {
+                Ok(window) => window,
+                Err(e) => return Ok(Err(e)),
+            }
+            .iter()
+            .try_fold(Stat::default(), |mut stat, site| {
+                stat.try_add_site(site)?;
+                PopgenResult::Ok(stat)
+            })?;
+
+            if let Some(ref intersection) = intersection {
+                accum.try_combine(intersection)?;
+
+                let new_part = match get_window(window_start + stride, window_start + window_size) {
+                    Ok(window) => window,
+                    Err(e) => return Ok(Err(e)),
+                };
+                new_part
+                    .iter()
+                    .try_fold(Stat::default(), |mut stat, site| {
+                        stat.try_add_site(site)?;
+                        PopgenResult::Ok(stat)
+                    })?;
+            } else {
+                let first_part = match get_window(window_start, window_start + window_size - stride)
+                {
+                    Ok(window) => window,
+                    Err(e) => return Ok(Err(e)),
+                };
+                first_part
+                    .iter()
+                    .try_fold(Stat::default(), |mut stat, site| {
+                        stat.try_add_site(site)?;
+                        PopgenResult::Ok(stat)
+                    })?;
+
+                accum.try_combine(&new_intersection)?;
+                intersection = Some(new_intersection);
+            }
+
+            ret.push(accum);
+            window_start += stride;
+        }
+    }
+
+    Ok(Ok(ret))
+}
+
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 ///
 /// This is the sum of [`Pi`] over all sites.
@@ -89,6 +216,16 @@ impl GlobalStatistic for GlobalPi {
 
     fn as_raw(&self) -> f64 {
         self.0
+    }
+}
+
+impl SiteComposable for GlobalPi {
+    fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
+        if self.0.is_nan() || other.0.is_nan() {
+            return Err(PopgenError::CalculationError);
+        }
+        self.0 += other.as_raw();
+        Ok(())
     }
 }
 
@@ -123,11 +260,19 @@ impl GlobalStatistic for WattersonTheta {
             let harmonic = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
             self.0 += (num_variants - 1) as f64 / harmonic;
         }
+
         Ok(())
     }
 
     fn as_raw(&self) -> f64 {
         self.0
+    }
+}
+
+impl SiteComposable for WattersonTheta {
+    fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
+        self.0 += other.0;
+        Ok(())
     }
 }
 
@@ -190,6 +335,20 @@ impl GlobalStatistic for TajimaD {
         #[allow(non_snake_case)]
         let D = d / (e_1 * S + e_2 * S * (S - 1.)).sqrt();
         D
+    }
+}
+
+impl SiteComposable for TajimaD
+where
+    GlobalPi: SiteComposable,
+    WattersonTheta: SiteComposable,
+{
+    fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
+        self.k_hat.try_combine(&other.k_hat)?;
+        self.theta.try_combine(&other.theta)?;
+        self.num_samples += other.num_samples;
+        self.num_sites += other.num_sites;
+        Ok(())
     }
 }
 
