@@ -28,9 +28,8 @@ fn process_job(
         let num_alleles = record.alleles().len();
 
         if num_alleles > site_counts_from_record.len() {
-            let old_len = site_counts_from_record.len();
+            site_counts_from_record.fill(0);
             site_counts_from_record.resize(num_alleles, 0);
-            site_counts_from_record[..old_len].fill(0);
         } else {
             site_counts_from_record.truncate(num_alleles);
             site_counts_from_record.fill(0);
