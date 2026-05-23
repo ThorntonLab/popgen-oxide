@@ -22,7 +22,7 @@ fn main() {
         // ignore IO errors
         .map(Result::unwrap)
         // this crate maps a record to allele IDs for you
-        .map(|rec| record_to_genotypes_adapter(&header, rec, ploidy).unwrap());
+        .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy).unwrap());
 
     // this constructor is iterator-based
     let counts = MultiSiteCounts::try_from_tabular(all_alleles).unwrap();

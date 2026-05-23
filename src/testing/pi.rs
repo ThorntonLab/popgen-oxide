@@ -24,30 +24,17 @@ fn pi_from_random_data(
     use rand::prelude::*;
 
     let mut rng = StdRng::seed_from_u64(seed);
-    let mut sites = vec![];
-    for nnf in non_normalized_freqs.iter().take(num_sites) {
-        let sum = nnf.iter().sum::<f64>();
-        let freqs = nnf.iter().map(|fi| fi / sum).collect::<Vec<_>>();
-        let missing_data_rate = if missing_data_rate_raw > 0.0 {
-            Some(crate::testing::testdata::RandomSiteOptions {
-                missing_data_rate: Some(missing_data_rate_raw),
-            })
-        } else {
-            None
-        };
-        let site = crate::testing::testdata::random_site_rng(
-            num_samples,
-            ploidy,
-            &freqs,
-            missing_data_rate,
-            &mut rng,
-        );
-        if !site.iter().flat_map(|i| i.iter()).all(|i| i.is_none()) {
-            sites.push(site);
-        }
-    }
+    let sites = super::testdata::make_random_sites(
+        &mut rng,
+        ploidy,
+        num_samples,
+        missing_data_rate_raw,
+        num_sites,
+        non_normalized_freqs,
+    );
     // convert to our normal format
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
+
     // get the calcs
     let pi_from_counts = GlobalPi::try_from_iter_sites(counts.iter());
     let pi_naive = crate::testing::naivecalculations::pi(sites.iter());
