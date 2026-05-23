@@ -1,10 +1,10 @@
+use popgen::stats::{GlobalPi, GlobalStatistic};
 use popgen::{Count, MultiSiteCounts};
 use rust_htslib::bcf::record::GenotypeAllele;
 use rust_htslib::bcf::{HeaderRecord, Read};
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::Arc;
-use popgen::stats::{GlobalPi, GlobalStatistic};
 
 #[derive(Debug)]
 struct Job {
@@ -13,7 +13,10 @@ struct Job {
     end: Option<u64>,
 }
 
-fn process_job(reader: &mut rust_htslib::bcf::IndexedReader, job: Job) -> (u64, Vec<(Vec<Count>, usize)>) {
+fn process_job(
+    reader: &mut rust_htslib::bcf::IndexedReader,
+    job: Job,
+) -> (u64, Vec<(Vec<Count>, usize)>) {
     reader.fetch(job.rid, job.start, job.end).unwrap();
 
     let mut site_counts_from_record = Vec::<popgen::Count>::default();
@@ -92,7 +95,7 @@ fn main() {
             start,
             end: Some(end),
         })
-            .expect("still alive");
+        .expect("still alive");
         start = end;
     }
 

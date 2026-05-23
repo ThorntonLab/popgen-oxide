@@ -14,9 +14,14 @@ rand_distr = "0.5.1"
 rayon = "1.11.0"
 proptest = "1.10.0"
 rust-htslib = { version = "1.0.0", default-features = false }
+crossbeam-channel = "0.5.15"
 
 [profile.release]
 lto = "fat"
+
+[[example]]
+name = "concurrent"
+required-features = ["noodles"]
 
 [[example]]
 name = "from_vcf"
@@ -31,5 +36,17 @@ name = "from_tskit"
 required-features = ["tskit"]
 
 [[example]]
-name = "concurrent"
+name = "from_vcf_htslib"
+required-features = []
+
+[[example]]
+name = "htslib_single"
+required-features = []
+
+[[example]]
+name = "htslib_parallel"
+required-features = []
+
+[[example]]
+name = "noodles_parallel"
 required-features = ["noodles"]
