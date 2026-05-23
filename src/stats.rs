@@ -374,6 +374,17 @@ pub struct F_ST<'backing> {
 }
 
 impl<'m> F_ST<'m> {
+    pub(crate) fn new_viewing(backing: &'m MultiPopulationCounts) -> Self {
+        Self {
+            backing,
+            populations: vec![],
+            diversity_within: vec![],
+            pi_S: (0.0, 0.0),
+            diversity_between: Default::default(),
+            pi_B: (0.0, 0.0),
+        }
+    }
+
     /// Add a population and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
     ///
