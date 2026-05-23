@@ -1,3 +1,5 @@
+//! this works for htslib (rust bindings), too
+
 use std::io::Write;
 
 use rust_htslib::bcf;
@@ -11,6 +13,7 @@ chr0	1	.	A	C	.	.	.	GT	0/0	0/1	0/1	0/0	0/1	0/0	0/1	0/0	0/0	0/0	0/0	1/1	1/0	0/1	0/
 chr0	1	.	G	A	.	.	.	GT	0/0	./.	0/1	0/0	0/1	0/1	0/0	0/0	0/0	0/0	0/0	0/0	0/1	./.	0/1	0/1	0/0	0/0"#;
 
 fn main() {
+    // sadly we do have to use the disk here since htslib expects a path
     let mut vcf_out = std::fs::File::create_new("htslib_example.vcf").unwrap();
     vcf_out.write_all(VCF_FILE.as_bytes()).unwrap();
     let mut bcf = bcf::Reader::from_path("htslib_example.vcf").expect("Error opening file.");
@@ -19,6 +22,7 @@ fn main() {
     let mut counts = popgen::MultiSiteCounts::default();
     let mut site_counts_from_record = Vec::<popgen::Count>::default();
 
+    // concept follows closely on the noodles version; iterate records, count alleles
     for record_result in bcf.records() {
         let record = record_result.unwrap();
         let num_alleles = record.alleles().len();
@@ -33,7 +37,7 @@ fn main() {
 
         let gts = record.genotypes().expect("Error reading genotypes");
 
-        // number of sample in the vcf
+        // number of samples in the vcf
         let sample_count = usize::try_from(record.sample_count()).unwrap();
         let mut total_alleles = 0;
         for sample_index in 0..sample_count {

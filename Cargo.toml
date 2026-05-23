@@ -24,29 +24,16 @@ name = "concurrent"
 required-features = ["noodles"]
 
 [[example]]
-name = "from_vcf"
+name = "from_vcf_noodles"
 required-features = ["noodles"]
 
 [[example]]
-name = "from_vcf_indexed"
+name = "from_vcf_noodles_indexed"
 required-features = ["noodles"]
+
+[[example]]
+name = "from_vcf_htslib"
 
 [[example]]
 name = "from_tskit"
 required-features = ["tskit"]
-
-[[example]]
-name = "from_vcf_htslib"
-required-features = []
-
-[[example]]
-name = "htslib_single"
-required-features = []
-
-[[example]]
-name = "htslib_parallel"
-required-features = []
-
-[[example]]
-name = "noodles_parallel"
-required-features = ["noodles"]
