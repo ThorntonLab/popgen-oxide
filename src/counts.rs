@@ -191,8 +191,8 @@ impl<'inner> SiteCounts<'inner> {
     /// Build a new `Self`, viewing a slice of counts and total alleles provided by the user.
     ///
     /// # Errors
-    /// This site must uphold the same properties as a site originating from a counts struct like [`MultiSiteCounts`].
-    /// Thus, those invariants still hold (in particular, see [`MultiSiteCounts::add_site_from_counts`].
+    /// The constructed site must uphold the same properties as a site originating from a counts struct like [`MultiSiteCounts`].
+    /// Therefore, constraints akin to those on [`MultiSiteCounts::add_site_from_counts`] also apply here.
     pub fn try_new(counts: &'inner [Count], total_alleles: i32) -> Result<Self, PopgenError> {
         if counts.is_empty() || total_alleles == 0 {
             return Err(PopgenError::EmptySiteCounts);
