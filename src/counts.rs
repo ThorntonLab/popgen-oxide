@@ -259,8 +259,8 @@ impl MultiPopulationCounts {
     ///
     /// # Errors
     /// This function will fail **without rollback guarantees** if the provided slices do not match in length.
-    /// Also see [`MultiSiteCounts::add_site_from_counts`] for additional error cases.
-    /// Such an underlying error also does not provide rollback guarantees.
+    /// The sites must also be individually valid; see [`SiteCounts::try_new`].
+    /// Failure due to an invalid site does not provide rollback guarantees.
     pub fn extend_populations_from_site<Counts>(
         &mut self,
         mut get_counts: impl FnMut(usize) -> (Counts, i32),
