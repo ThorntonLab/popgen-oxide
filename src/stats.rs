@@ -455,7 +455,7 @@ impl<'backing> FStatistics<'backing> {
     pub fn try_from_populations(
         populations: &'backing MultiPopulationCounts,
         mut pred: impl FnMut(usize) -> Option<f64>,
-    ) -> Result<FStatistics<'_>, PopgenError> {
+    ) -> Result<Self, PopgenError> {
         let mut ret = Self::new_viewing(populations);
 
         let mut any = false;
