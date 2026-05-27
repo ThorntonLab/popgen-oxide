@@ -1,5 +1,5 @@
-use crate::stats::GlobalPi;
 use crate::stats::GlobalStatistic;
+use crate::stats::{FStatistics, GlobalPi};
 use crate::testing::testdata::RandomSiteOptions;
 use crate::{MultiPopulationCounts, PopgenError};
 use std::borrow::Cow;
@@ -11,7 +11,7 @@ fn f_st_no_pops() {
     // but this is simpler
     let counts = MultiPopulationCounts::default();
     assert!(matches!(
-        counts.try_f_st_if(|_| Some(1.0)),
+        FStatistics::try_from_populations(&counts, |_| Some(1.0)),
         Err(PopgenError::CalculationError)
     ));
 }
@@ -20,7 +20,10 @@ fn f_st_no_pops() {
 fn f_st_empty_pops() {
     for n_pops in [1, 2, 5] {
         assert!(matches!(
-            MultiPopulationCounts::of_empty_populations(n_pops).try_f_st_if(|_| Some(1.0)),
+            FStatistics::try_from_populations(
+                &MultiPopulationCounts::of_empty_populations(n_pops),
+                |_| { Some(1.0) }
+            ),
             Err(PopgenError::EmptySiteCounts)
         ));
     }
@@ -37,7 +40,7 @@ fn f_st() {
         .extend_populations_from_site(|i| (&data[i].0, data[i].1))
         .unwrap();
 
-    let f_st = populations.try_f_st_if(|i| Some(weights[i])).unwrap();
+    let f_st = FStatistics::try_from_populations(&populations, |i| Some(weights[i])).unwrap();
 
     let (pi_b_top, pi_b_bottom) = f_st.pi_b_parts();
 
@@ -147,7 +150,8 @@ fn f_st_from_random_data() {
                     .unwrap();
             }
 
-            let f_st_from_counts = counts.try_f_st_if(|i| Some(pop_weights[i])).unwrap();
+            let f_st_from_counts =
+                FStatistics::try_from_populations(&counts, |i| Some(pop_weights[i])).unwrap();
             let (pi_total_naive, pi_self_naive, pi_between_naive) =
                 crate::testing::naivecalculations::f_st(
                     &mut pops

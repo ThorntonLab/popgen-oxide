@@ -445,6 +445,34 @@ impl<'backing> FStatistics<'backing> {
         Ok(())
     }
 
+    /// Stream selected populations of a [`MultiPopulationCounts`] into a computation of [`FStatistics`].
+    ///
+    /// Populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
+    /// The newly created struct immutably borrows from `self`.
+    /// # Errors
+    /// - If no sites are selected for inclusion.
+    /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
+    pub fn try_from_populations(
+        populations: &'backing MultiPopulationCounts,
+        mut pred: impl FnMut(usize) -> Option<f64>,
+    ) -> Result<FStatistics<'_>, PopgenError> {
+        let mut ret = Self::new_viewing(populations);
+
+        let mut any = false;
+        for pop_i in 0..populations.num_populations() {
+            if let Some(weight) = pred(pop_i) {
+                ret.try_add_population(pop_i, weight)?;
+                any = true;
+            }
+        }
+
+        if !any {
+            return Err(PopgenError::CalculationError);
+        }
+
+        Ok(ret)
+    }
+
     ///.The two halves of the fraction [`Self::pi_s`].
     pub fn pi_s_parts(&self) -> (f64, f64) {
         self.pi_s

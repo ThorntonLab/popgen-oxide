@@ -1,5 +1,4 @@
 use crate::iter::{MultiSiteCountsIter, SiteCounts};
-use crate::stats::FStatistics;
 #[cfg(feature = "tskit")]
 use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
@@ -304,33 +303,5 @@ impl MultiPopulationCounts {
     /// Empty if `population_num` is out of bounds.
     pub fn iter_sites_in(&self, population_num: usize) -> impl Iterator<Item = SiteCounts<'_>> {
         (0..self.num_sites()).flat_map(move |site_n| self.get(site_n, population_num))
-    }
-
-    /// Stream selected populations of this [`Self`] into a computation of [`FStatistics`].
-    ///
-    /// Populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
-    /// The newly created struct immutably borrows from `self`.
-    /// # Errors
-    /// - If no sites are selected for inclusion.
-    /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
-    pub fn try_f_st_if(
-        &self,
-        mut pred: impl FnMut(usize) -> Option<f64>,
-    ) -> Result<FStatistics<'_>, PopgenError> {
-        let mut ret = FStatistics::new_viewing(self);
-
-        let mut any = false;
-        for pop_i in 0..self.num_populations() {
-            if let Some(weight) = pred(pop_i) {
-                ret.try_add_population(pop_i, weight)?;
-                any = true;
-            }
-        }
-
-        if !any {
-            return Err(PopgenError::CalculationError);
-        }
-
-        Ok(ret)
     }
 }
