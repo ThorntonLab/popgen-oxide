@@ -75,7 +75,7 @@ pub trait GlobalStatistic {
 ///
 /// # Example
 /// ```
-/// # use popgen::iter::SiteCounts;
+/// # use popgen::counts::SiteCounts;
 /// # use popgen::PopgenResult;
 /// # use popgen::stats::{GlobalStatistic, SiteComposable};
 /// #
