@@ -1,4 +1,4 @@
-use crate::iter::{MultiSiteCountsIter, SiteCounts};
+use crate::iter::MultiSiteCountsIter;
 #[cfg(feature = "tskit")]
 use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
@@ -178,6 +178,46 @@ impl MultiSiteCounts {
             counts: self.counts_slice_at(site)?,
             total_alleles: self.total_alleles[site],
         })
+    }
+}
+
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub struct SiteCounts<'inner> {
+    pub(crate) counts: &'inner [Count],
+    pub(crate) total_alleles: i32,
+}
+
+impl<'inner> SiteCounts<'inner> {
+    /// Build a new `Self`, viewing a slice of counts and total alleles provided by the user.
+    ///
+    /// # Errors
+    /// This site must uphold the same properties as a site originating from a counts struct like [`MultiSiteCounts`].
+    /// Thus, those invariants still hold (in particular, see [`MultiSiteCounts::add_site_from_counts`].
+    pub fn try_new(counts: &'inner [Count], total_alleles: i32) -> Result<Self, PopgenError> {
+        if counts.is_empty() || total_alleles == 0 {
+            return Err(PopgenError::EmptySiteCounts);
+        }
+
+        if let Some(bad) = counts.iter().find(|&c| c < &0) {
+            return Err(PopgenError::NegativeCount(*bad));
+        }
+
+        if counts.iter().sum::<Count>() as i32 > total_alleles {
+            return Err(PopgenError::TotalAllelesDeficient);
+        }
+
+        Ok(Self {
+            counts,
+            total_alleles,
+        })
+    }
+
+    pub fn counts(&self) -> &[Count] {
+        self.counts
+    }
+
+    pub fn total_alleles(&self) -> i32 {
+        self.total_alleles
     }
 }
 

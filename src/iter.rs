@@ -1,25 +1,9 @@
-use crate::{Count, MultiSiteCounts};
+use crate::{MultiSiteCounts, SiteCounts};
 
 pub struct MultiSiteCountsIter<'inner> {
     pub(crate) inner: &'inner MultiSiteCounts,
     // index of next for forward iter, index of next for reverse iter
     pub(crate) next_site_ind: (usize, usize),
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub struct SiteCounts<'inner> {
-    pub(crate) counts: &'inner [Count],
-    pub(crate) total_alleles: i32,
-}
-
-impl SiteCounts<'_> {
-    pub fn counts(&self) -> &[Count] {
-        self.counts
-    }
-
-    pub fn total_alleles(&self) -> i32 {
-        self.total_alleles
-    }
 }
 
 impl<'inner> Iterator for MultiSiteCountsIter<'inner> {

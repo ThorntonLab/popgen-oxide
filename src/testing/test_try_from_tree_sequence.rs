@@ -62,7 +62,7 @@ struct SiteCountContents {
 }
 
 #[cfg(test)]
-fn validate_site_counts(counts: &crate::iter::SiteCounts, expected: SiteCountContents) {
+fn validate_site_counts(counts: &crate::counts::SiteCounts, expected: SiteCountContents) {
     let num_alleles = expected
         .derived
         .iter()
