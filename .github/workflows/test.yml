@@ -46,10 +46,11 @@ jobs:
           cargo hack test --doc --feature-powerset
       - name: run examples
         run: |
-          cargo run --example from_vcf --features=noodles
-          cargo run --example from_vcf_indexed --features=noodles
-          cargo run --example from_tskit --features=tskit
           cargo run --example concurrent --features=noodles
+          cargo run --example from_vcf_noodles --features=noodles
+          cargo run --example from_vcf_noodles_indexed --features=noodles
+          cargo run --example from_vcf_htslib
+          cargo run --example from_tskit --features=tskit
 
   fmt:
     name: rustfmt
