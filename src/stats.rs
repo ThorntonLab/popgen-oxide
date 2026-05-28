@@ -1,6 +1,5 @@
-use crate::iter::SiteCounts;
 use crate::util::UnorderedPair;
-use crate::{Count, MultiPopulationCounts, MultiSiteCounts, PopgenError, PopgenResult};
+use crate::{Count, MultiPopulationCounts, MultiSiteCounts, PopgenError, PopgenResult, SiteCounts};
 use std::cmp::max;
 use std::collections::HashMap;
 
@@ -76,8 +75,7 @@ pub trait GlobalStatistic {
 ///
 /// # Example
 /// ```
-/// # use popgen::iter::SiteCounts;
-/// # use popgen::PopgenResult;
+/// # use popgen::{PopgenResult, SiteCounts};
 /// # use popgen::stats::{GlobalStatistic, SiteComposable};
 /// #
 /// // a very simple statistic

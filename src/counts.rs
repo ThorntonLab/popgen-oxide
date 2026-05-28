@@ -1,4 +1,4 @@
-use crate::iter::{MultiSiteCountsIter, SiteCounts};
+use crate::iter::MultiSiteCountsIter;
 #[cfg(feature = "tskit")]
 use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
@@ -96,10 +96,8 @@ impl MultiSiteCounts {
     /// alleles in total, including missing data.
     ///
     /// # Errors
-    /// - If any element in `counts` is negative.
-    /// - If `total_alleles` is less than the sum of elements of `counts`.
-    /// - If `counts` is empty.
-    /// - If `total_alleles == 0`.
+    /// - Passed site counts must be valid.
+    ///   See [`SiteCounts::try_new`].
     ///
     /// If any error occurs, the underlying struct has not been modified.
     // NOTE: any pub function that calls this one (probably)
@@ -114,13 +112,8 @@ impl MultiSiteCounts {
             return Err(PopgenError::EmptySiteCounts);
         }
 
-        if let Some(bad) = counts.iter().find(|&c| c < &0) {
-            return Err(PopgenError::NegativeCount(*bad));
-        }
-
-        if counts.iter().sum::<Count>() as i32 > total_alleles {
-            return Err(PopgenError::TotalAllelesDeficient);
-        }
+        // check the conditions
+        let _ = SiteCounts::try_new(counts, total_alleles)?;
 
         self.add_site_from_counts_unchecked(counts, total_alleles);
         Ok(())
@@ -181,6 +174,56 @@ impl MultiSiteCounts {
     }
 }
 
+/// A borrowed collection of allele counts and the total number of alleles (to describe, by implication, number of missing alleles).
+///
+/// This type is returned when requesting views into [`MultiSiteCounts`] and [`MultiPopulationCounts`].
+/// It can also be built from user-provided data via [`Self::try_new`].
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub struct SiteCounts<'inner> {
+    pub(crate) counts: &'inner [Count],
+    pub(crate) total_alleles: i32,
+}
+
+impl<'inner> SiteCounts<'inner> {
+    /// Build a new `Self`, viewing a slice of counts and total alleles provided by the user.
+    ///
+    /// # Errors
+    /// - If any element in `counts` is negative.
+    /// - If `total_alleles` is less than the sum of elements of `counts`.
+    /// - If `counts` is empty.
+    /// - If `total_alleles == 0`.
+    pub fn try_new(counts: &'inner [Count], total_alleles: i32) -> Result<Self, PopgenError> {
+        if counts.is_empty() || total_alleles == 0 {
+            return Err(PopgenError::EmptySiteCounts);
+        }
+
+        let mut sum = 0;
+        for c in counts {
+            if c < &0 {
+                return Err(PopgenError::NegativeCount(*c));
+            }
+            sum += c;
+        }
+
+        if sum as i32 > total_alleles {
+            return Err(PopgenError::TotalAllelesDeficient);
+        }
+
+        Ok(Self {
+            counts,
+            total_alleles,
+        })
+    }
+
+    pub fn counts(&self) -> &[Count] {
+        self.counts
+    }
+
+    pub fn total_alleles(&self) -> i32 {
+        self.total_alleles
+    }
+}
+
 /// Counts of present allele variants and of all alleles, including missing ones.
 /// The data layout is by site, then population.
 ///
@@ -216,8 +259,8 @@ impl MultiPopulationCounts {
     ///
     /// # Errors
     /// This function will fail **without rollback guarantees** if the provided slices do not match in length.
-    /// Also see [`MultiSiteCounts::add_site_from_counts`] for additional error cases.
-    /// Such an underlying error also does not provide rollback guarantees.
+    /// The sites must also be individually valid; see [`SiteCounts::try_new`].
+    /// Failure due to an invalid site does not provide rollback guarantees.
     pub fn extend_populations_from_site<Counts>(
         &mut self,
         mut get_counts: impl FnMut(usize) -> (Counts, i32),
@@ -243,17 +286,7 @@ impl MultiPopulationCounts {
                 Some(_) => {}
             }
 
-            if counts.is_empty() || total_alleles == 0 {
-                return Err(PopgenError::EmptySiteCounts);
-            }
-
-            if let Some(bad) = counts.iter().find(|&c| c < &0) {
-                return Err(PopgenError::NegativeCount(*bad));
-            }
-
-            if counts.iter().sum::<Count>() as i32 > total_alleles {
-                return Err(PopgenError::TotalAllelesDeficient);
-            }
+            let _ = SiteCounts::try_new(counts, total_alleles)?;
 
             self.counts.extend(counts);
             self.total_alleles.push(total_alleles);

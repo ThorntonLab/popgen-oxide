@@ -1,7 +1,6 @@
-use crate::AlleleID;
+use crate::{AlleleID, SiteCounts};
 
 use crate::counts::MultiSiteCounts;
-use crate::iter::SiteCounts;
 use rand::rng;
 use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
