@@ -295,6 +295,19 @@ impl MultiPopulationCounts {
         Ok(())
     }
 
+    #[cfg(feature = "tskit")]
+    pub fn try_from_tree_sequence<Outer, Inner>(
+        ts: &tskit::TreeSequence,
+        samples: Outer,
+        options: Option<FromTreeSequenceOptions>,
+    ) -> Result<Self, PopgenError>
+    where
+        Outer: Iterator<Item = Inner>,
+        Inner: Iterator<Item = tskit::NodeId>,
+    {
+        from_tree_sequence::try_from_tree_sequence_multi(ts, samples, options)
+    }
+
     /// Return the number of populations contained in [`Self`].
     pub fn num_populations(&self) -> usize {
         self.num_populations
