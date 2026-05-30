@@ -43,6 +43,15 @@ impl TreeData {
         }
     }
 
+    fn update_ancestors(&mut self, p: i32, delta: i64) {
+        let mut p = p;
+        while p != -1 {
+            self.num_sample_descendants[p as usize] += delta;
+            debug_assert!(self.num_sample_descendants[p as usize] >= 0);
+            p = self.parent[p as usize];
+        }
+    }
+
     fn process_output_edge(&mut self, parent: usize, child: usize) {
         debug_assert!(
             self.num_sample_descendants[child] <= self.num_sample_descendants[parent],
@@ -51,12 +60,8 @@ impl TreeData {
             self.num_sample_descendants[child],
         );
         if self.num_sample_descendants[child] > 0 {
-            let mut p = self.parent[child];
-            while p != -1 {
-                self.num_sample_descendants[p as usize] -= self.num_sample_descendants[child];
-                debug_assert!(self.num_sample_descendants[p as usize] >= 0);
-                p = self.parent[p as usize];
-            }
+            let delta = -self.num_sample_descendants[child];
+            self.update_ancestors(self.parent[child], delta);
         }
         self.parent[child] = -1;
     }
@@ -66,11 +71,8 @@ impl TreeData {
         debug_assert!(self.num_sample_descendants[child] >= 0);
         self.parent[child] = parent as i32;
         if self.num_sample_descendants[child] > 0 {
-            let mut p = self.parent[child];
-            while p != -1 {
-                self.num_sample_descendants[p as usize] += self.num_sample_descendants[child];
-                p = self.parent[p as usize];
-            }
+            let delta = self.num_sample_descendants[child];
+            self.update_ancestors(self.parent[child], delta);
         }
     }
 
