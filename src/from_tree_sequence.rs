@@ -1,4 +1,5 @@
 use crate::{MultiPopulationCounts, MultiSiteCounts, PopgenError, PopgenResult};
+use itertools::Itertools;
 
 #[derive(Debug, Default)]
 /// Options affecting the behavior of
@@ -465,6 +466,7 @@ where
 
     let mut num_trees = 0;
     let mut current_site_index = 0;
+    let mut site_iter = ts.site_iter().peekable();
     while i < num_edges && left < ts.tables().sequence_length() {
         while j < num_edges && edges_right[edges_out[j]] == left {
             let edge_parent = edges_parent[edges_out[j]].as_usize();
@@ -485,11 +487,7 @@ where
             &edges_in,
         );
         let right = update_right(right, j, &edges_right, &edges_out);
-        for current_site in ts
-            .site_iter()
-            .skip(current_site_index)
-            .take_while(|site| site.position() < right)
-        {
+        for current_site in site_iter.peeking_take_while(|site| site.position() < right) {
             sample_sets.initialize_site(ts, current_site.id())?;
 
             // NOTE: we process in reverse order because
