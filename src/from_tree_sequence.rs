@@ -463,8 +463,9 @@ where
     let mut i = 0_usize;
     let mut j = 0_usize;
 
-    let mut num_trees = 0;
     let mut current_site_index = 0;
+    let mut site_iter = ts.site_iter();
+    let mut current_site = site_iter.next();
     while i < num_edges && left < ts.tables().sequence_length() {
         while j < num_edges && edges_right[edges_out[j]] == left {
             let edge_parent = edges_parent[edges_out[j]].as_usize();
@@ -485,28 +486,39 @@ where
             &edges_in,
         );
         let right = update_right(right, j, &edges_right, &edges_out);
-        for current_site in ts
-            .site_iter()
-            .skip(current_site_index)
-            .take_while(|site| site.position() < right)
-        {
-            sample_sets.initialize_site(ts, current_site.id())?;
+        while let Some(site_ref) = current_site.as_ref() {
+            // TODO: in general, we need to ensure left <= position < right
+            #[expect(unreachable_code)]
+            if site_ref.position() < left {
+                // TODO: this should only come up if we have tests
+                // considering the case of "windows" or something similar
+                todo!("we have no tests that can cover this case");
+                current_site = site_iter.next();
+                current_site_index += 1;
+            } else if site_ref.position() < right {
+                sample_sets.initialize_site(ts, site_ref.id())?;
 
-            // NOTE: we process in reverse order because
-            // more recent mutations get processed first,
-            // allowing the propagation of already-mutated
-            // nodes up the tree.
-            for mutation in current_site.mutation_iter().rev() {
-                sample_sets.process_mutation(ts, &mutation_parent, mutation)?;
+                // NOTE: we process in reverse order because
+                // more recent mutations get processed first,
+                // allowing the propagation of already-mutated
+                // nodes up the tree.
+                for mutation in site_ref.mutation_iter().rev() {
+                    sample_sets.process_mutation(ts, &mutation_parent, mutation)?;
+                }
+                sample_sets.update_allele_counts()?;
+                current_site = site_iter.next();
+                current_site_index += 1;
+            } else {
+                break;
             }
-            sample_sets.update_allele_counts()?;
-            current_site_index += 1;
         }
+        if current_site.is_none() {
+            break;
+        };
         left = right;
-        num_trees += 1;
     }
+    // NOTE: this will fail when we add support for windows
     assert_eq!(current_site_index, ts.sites().num_rows().as_usize());
-    assert_eq!(num_trees, ts.num_trees());
     Ok(sample_sets.output())
 }
 
