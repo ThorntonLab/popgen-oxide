@@ -500,27 +500,15 @@ where
                 }
                 sample_sets.update_allele_counts()?;
                 current_site = site_iter.next();
+                current_site_index += 1;
             } else {
                 break;
             }
         }
-        //for current_site in site_iter.peeking_take_while(|site| site.position() < right) {
-        //    sample_sets.initialize_site(ts, current_site.id())?;
-
-        //    // NOTE: we process in reverse order because
-        //    // more recent mutations get processed first,
-        //    // allowing the propagation of already-mutated
-        //    // nodes up the tree.
-        //    for mutation in current_site.mutation_iter().rev() {
-        //        sample_sets.process_mutation(ts, &mutation_parent, mutation)?;
-        //    }
-        //    sample_sets.update_allele_counts()?;
-        //    current_site_index += 1;
-        //}
         left = right;
         num_trees += 1;
     }
-    // assert_eq!(current_site_index, ts.sites().num_rows().as_usize());
+    assert_eq!(current_site_index, ts.sites().num_rows().as_usize());
     assert_eq!(num_trees, ts.num_trees());
     Ok(sample_sets.output())
 }
