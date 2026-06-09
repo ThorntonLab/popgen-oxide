@@ -1,5 +1,4 @@
 use crate::{MultiPopulationCounts, MultiSiteCounts, PopgenError, PopgenResult};
-use itertools::Itertools;
 
 #[derive(Debug, Default)]
 /// Options affecting the behavior of
