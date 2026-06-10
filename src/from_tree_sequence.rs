@@ -488,6 +488,7 @@ where
         );
         let right = update_right(right, j, &edges_right, &edges_out);
         while let Some(site_ref) = current_site.as_ref() {
+            // TODO: in general, we need to ensure left <= position < right
             if site_ref.position() < right {
                 sample_sets.initialize_site(ts, site_ref.id())?;
 
