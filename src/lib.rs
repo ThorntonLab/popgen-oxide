@@ -28,6 +28,7 @@ pub enum PopgenError {
     NoodlesVCF(std::io::Error),
     #[cfg(feature = "tskit")]
     Tskit(::tskit::TskitError),
+    NoInputVariants,
     Io(std::io::Error),
     NegativeCount(Count),
     TotalAllelesDeficient,
@@ -58,6 +59,7 @@ impl std::fmt::Display for PopgenError {
             PopgenError::LibraryError(msg) => write!(f, "{msg}"),
             #[cfg(feature = "tskit")]
             PopgenError::Tskit(e) => write!(f, "tskit error: {}", e),
+            PopgenError::NoInputVariants => write!(f, "input data has no variants"),
             #[cfg(feature = "noodles")]
             PopgenError::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
         }

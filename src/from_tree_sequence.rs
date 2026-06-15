@@ -449,6 +449,9 @@ fn try_from_tree_sequence_details<'s, S>(
 where
     S: SampleSets<'s>,
 {
+    if ts.sites().num_rows() == 0 || ts.mutations().num_rows() == 0 {
+        return Err(PopgenError::NoInputVariants);
+    }
     let _parameters = parameters.unwrap_or_default();
     let mut sample_sets = sample_sets;
     let mut left = 0.0;
