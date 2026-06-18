@@ -16,6 +16,10 @@ proptest = "1.10.0"
 rust-htslib = { version = "1.0.0", default-features = false }
 crossbeam-channel = "0.5.15"
 
+[lints.rust]
+# Added for rust 1.80.0
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(doc_cfg)'] }
+
 [profile.release]
 lto = "fat"
 
