@@ -85,6 +85,23 @@ jobs:
       - name: clippy (all targets, feature powerset)
         run: cargo hack clippy --all-targets --feature-powerset -- -D warnings
 
+  rustdoc:
+    name: Build docs
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy
+      - uses: Swatinem/rust-cache@v2.7.5
+      - name: rustdoc
+        run: cargo doc --all-features
+
 #  msrv:
 #    name: Verify MSRV
 #    runs-on: ubuntu-24.04

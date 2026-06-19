@@ -1,3 +1,6 @@
+#![deny(rustdoc::broken_intra_doc_links)]
+#![cfg_attr(doc_cfg, feature(doc_cfg))]
+
 use std::fmt::Debug;
 use std::str::FromStr;
 

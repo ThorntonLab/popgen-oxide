@@ -13,13 +13,13 @@ pub trait SiteStatistic {
 pub trait GlobalStatistic {
     /// Instantiate a `Self` from an iterator over [`SiteCounts`].
     ///
-    /// The implementation depends on [`GlobalStatistic::add_site`].
+    /// The implementation depends on [`GlobalStatistic::try_add_site`].
     ///
     /// # Errors
     ///
     /// * If the iterator is empty, implementors may return [`PopgenError::EmptySiteCounts`],
     ///   because many statistics are not meaningfully defined over 0 sites.
-    /// * Any error resulting from adding a single site ([`Self::add_site`]) may also be raised.
+    /// * Any error resulting from adding a single site ([`Self::try_add_site`]) may also be raised.
     fn try_from_iter_sites<'counts, I>(iter: I) -> Result<Self, PopgenError>
     where
         I: Iterator<Item = SiteCounts<'counts>>,
@@ -67,7 +67,7 @@ pub trait GlobalStatistic {
 /// under the above conditions.
 /// Such types can use [`GlobalStatistic::as_raw`] to perform inexpensive finalizing computations
 /// if needed.
-/// For an example of this use case, see [`TajimaD`].
+/// For an example of this use case, see [`TajimasD`].
 ///
 /// # Errors
 ///
@@ -186,8 +186,6 @@ where
 }
 
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
-///
-/// This is the sum of [`Pi`] over all sites.
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
 pub struct GlobalPi(f64);
