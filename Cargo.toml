@@ -3,6 +3,10 @@ name = "popgen"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+noodles = ["dep:noodles"]
+tskit = ["dep:tskit"]
+
 [dependencies]
 noodles = { version = ">=0.109.0", features = ["vcf"], optional = true }
 tskit = { version = ">=0.16.3", optional = true, features = ["bindings"] }
