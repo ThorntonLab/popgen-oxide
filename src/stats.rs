@@ -348,7 +348,7 @@ where
     }
 }
 
-/// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953) and [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
+/// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953) and [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
 ///
 /// Construction of this type from an arbitrary collection of [`MultiSiteCounts`] is not sound,
 /// because the invariant of [`crate::counts::MultiPopulationCounts`] is required.
@@ -538,7 +538,7 @@ impl<'backing> FStatistics<'backing> {
     /// Calculate F2(deme1, deme2).
     ///
     /// We follow Equation 17 from
-    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
+    /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
     ///
     /// # Errors
     ///
@@ -562,11 +562,11 @@ impl<'backing> FStatistics<'backing> {
     /// Calculate F3(deme1; deme2, deme3).
     ///
     /// We follow Equation 20b from
-    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/),
+    /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/),
     /// with some change of notation.
     /// He writes F3(deme X; deme 1, deme2).
     ///
-    /// Originally due to Reich 2009 (as cited in Peters).
+    /// Originally due to Reich 2009 (as cited in Peter).
     ///
     /// # Errors
     ///
@@ -581,9 +581,9 @@ impl<'backing> FStatistics<'backing> {
     /// Calculate F4(deme1, deme2; deme3, deme4).
     ///
     /// We follow Equation 24b from
-    /// [Peters, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
+    /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
     ///
-    /// Originally due to Reich 2009 (as cited in Peters).
+    /// Originally due to Reich 2009 (as cited in Peter).
     ///
     /// # Errors
     ///
