@@ -2,6 +2,7 @@
 name = "popgen"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.88.0"
 
 [features]
 noodles = ["dep:noodles"]
