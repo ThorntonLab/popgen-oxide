@@ -60,7 +60,21 @@ impl MultiSiteCounts {
     where
         N: Iterator<Item = tskit::NodeId>,
     {
-        from_tree_sequence::try_from_tree_sequence(ts, samples, options)
+        Self::try_from_tree_sequence_site_iter(ts, samples, ts.site_iter(), options)
+    }
+
+    #[cfg(feature = "tskit")]
+    pub fn try_from_tree_sequence_site_iter<'ts, N, S>(
+        ts: &'ts tskit::TreeSequence,
+        samples: N,
+        sites: S,
+        options: Option<FromTreeSequenceOptions>,
+    ) -> Result<Self, PopgenError>
+    where
+        N: Iterator<Item = tskit::NodeId>,
+        S: Iterator<Item = tskit::SiteRef<'ts>>,
+    {
+        from_tree_sequence::try_from_tree_sequence_with_site_iter(ts, samples, sites, options)
     }
 
     /// Add a site from an iterator of potentially missing allele IDs.
@@ -305,7 +319,22 @@ impl MultiPopulationCounts {
         Outer: Iterator<Item = Inner>,
         Inner: Iterator<Item = tskit::NodeId>,
     {
-        from_tree_sequence::try_from_tree_sequence_multi(ts, samples, options)
+        Self::try_from_tree_sequence_site_iter(ts, samples, ts.site_iter(), options)
+    }
+
+    #[cfg(feature = "tskit")]
+    pub fn try_from_tree_sequence_site_iter<'ts, Outer, Inner, S>(
+        ts: &'ts tskit::TreeSequence,
+        samples: Outer,
+        sites: S,
+        options: Option<FromTreeSequenceOptions>,
+    ) -> Result<Self, PopgenError>
+    where
+        Outer: Iterator<Item = Inner>,
+        Inner: Iterator<Item = tskit::NodeId>,
+        S: Iterator<Item = tskit::SiteRef<'ts>>,
+    {
+        from_tree_sequence::try_from_tree_sequence_multi_with_site_iter(ts, samples, sites, options)
     }
 
     /// Return the number of populations contained in [`Self`].

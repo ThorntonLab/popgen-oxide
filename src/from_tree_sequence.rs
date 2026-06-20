@@ -441,15 +441,17 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
     }
 }
 
-fn try_from_tree_sequence_details<'s, S>(
+fn try_from_tree_sequence_details<'s, S, I>(
     ts: &'s tskit::TreeSequence,
-    parameters: Option<FromTreeSequenceOptions>,
+    options: Option<FromTreeSequenceOptions>,
+    site_iter: I, // NOTE: this iterator must iterate in order of INCREASING site position!
     sample_sets: S,
 ) -> PopgenResult<S::Output>
 where
     S: SampleSets<'s>,
+    I: Iterator<Item = tskit::SiteRef<'s>>,
 {
-    let _parameters = parameters.unwrap_or_default();
+    let _options = options.unwrap_or_default();
     let mut sample_sets = sample_sets;
     let mut left = 0.0;
     let edges_in = ts.edge_insertion_order_column();
@@ -463,9 +465,9 @@ where
     let mut i = 0_usize;
     let mut j = 0_usize;
 
-    let mut current_site_index = 0;
-    let mut site_iter = ts.site_iter();
+    let mut site_iter = site_iter;
     let mut current_site = site_iter.next();
+    let mut lastpos: Option<tskit::Position> = None;
     while i < num_edges && left < ts.tables().sequence_length() {
         while j < num_edges && edges_right[edges_out[j]] == left {
             let edge_parent = edges_parent[edges_out[j]].as_usize();
@@ -487,15 +489,16 @@ where
         );
         let right = update_right(right, j, &edges_right, &edges_out);
         while let Some(site_ref) = current_site.as_ref() {
-            // TODO: in general, we need to ensure left <= position < right
-            #[expect(unreachable_code)]
-            if site_ref.position() < left {
-                // TODO: this should only come up if we have tests
-                // considering the case of "windows" or something similar
-                todo!("we have no tests that can cover this case");
-                current_site = site_iter.next();
-                current_site_index += 1;
-            } else if site_ref.position() < right {
+            // TODO: in general, we may need to ensure left <= position < right
+
+            if site_ref.position() < right {
+                if let Some(lp) = lastpos.as_ref() {
+                    if *lp >= site_ref.position() {
+                        return Err(PopgenError::LibraryError(
+                            "unsorted site positions".to_string(),
+                        ));
+                    }
+                }
                 sample_sets.initialize_site(ts, site_ref.id())?;
 
                 // NOTE: we process in reverse order because
@@ -506,8 +509,8 @@ where
                     sample_sets.process_mutation(ts, &mutation_parent, mutation)?;
                 }
                 sample_sets.update_allele_counts()?;
+                lastpos = Some(site_ref.position());
                 current_site = site_iter.next();
-                current_site_index += 1;
             } else {
                 break;
             }
@@ -517,18 +520,18 @@ where
         };
         left = right;
     }
-    // NOTE: this will fail when we add support for windows
-    assert_eq!(current_site_index, ts.sites().num_rows().as_usize());
     Ok(sample_sets.output())
 }
 
-pub fn try_from_tree_sequence<N>(
-    ts: &tskit::TreeSequence,
+pub fn try_from_tree_sequence_with_site_iter<'ts, N, S>(
+    ts: &'ts tskit::TreeSequence,
     samples: N,
-    parameters: Option<FromTreeSequenceOptions>,
+    sites: S,
+    options: Option<FromTreeSequenceOptions>,
 ) -> PopgenResult<MultiSiteCounts>
 where
     N: Iterator<Item = tskit::NodeId>,
+    S: Iterator<Item = tskit::SiteRef<'ts>>,
 {
     let (tree_data, num_sampled_genomes) = setup_samples(ts, samples)?;
     let sample_sets = SingleSampleSet {
@@ -538,17 +541,19 @@ where
         allele_counts: vec![],
         counts: MultiSiteCounts::default(),
     };
-    try_from_tree_sequence_details(ts, parameters, sample_sets)
+    try_from_tree_sequence_details(ts, options, sites, sample_sets)
 }
 
-pub fn try_from_tree_sequence_multi<Outer, Inner>(
-    ts: &tskit::TreeSequence,
+pub fn try_from_tree_sequence_multi_with_site_iter<'ts, Outer, Inner, S>(
+    ts: &'ts tskit::TreeSequence,
     samples: Outer,
+    sites: S,
     options: Option<FromTreeSequenceOptions>,
 ) -> Result<crate::MultiPopulationCounts, PopgenError>
 where
     Outer: Iterator<Item = Inner>,
     Inner: Iterator<Item = tskit::NodeId>,
+    S: Iterator<Item = tskit::SiteRef<'ts>>,
 {
     let sample_data = setup_multi_sample_sets(ts, samples)?;
     let counts = MultiPopulationCounts::of_empty_populations(sample_data.len());
@@ -564,5 +569,5 @@ where
         alleles_at_site: vec![],
         num_samples_inheriting_derived_state_at_site: vec![],
     };
-    try_from_tree_sequence_details(ts, options, sample_sets)
+    try_from_tree_sequence_details(ts, options, sites, sample_sets)
 }
