@@ -188,9 +188,9 @@ where
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
-pub struct GlobalPi(f64);
+pub struct Diversity(f64);
 
-impl GlobalStatistic for GlobalPi {
+impl GlobalStatistic for Diversity {
     fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // technically should divide both by two here and below but it cancels out
@@ -215,7 +215,7 @@ impl GlobalStatistic for GlobalPi {
     }
 }
 
-impl SiteComposable for GlobalPi {
+impl SiteComposable for Diversity {
     fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
         if self.0.is_nan() || other.0.is_nan() {
             return Err(PopgenError::CalculationError);
@@ -276,7 +276,7 @@ impl SiteComposable for WattersonTheta {
 /// See also [Wikipedia](https://en.wikipedia.org/wiki/Tajima%27s_D#Mathematical_details) for the equations restated.
 #[derive(Debug, Copy, Clone, Default)]
 pub struct TajimasD {
-    k_hat: GlobalPi,
+    k_hat: Diversity,
     theta: WattersonTheta,
     num_samples: usize,
     num_sites: usize,
@@ -336,7 +336,7 @@ impl GlobalStatistic for TajimasD {
 
 impl SiteComposable for TajimasD
 where
-    GlobalPi: SiteComposable,
+    Diversity: SiteComposable,
     WattersonTheta: SiteComposable,
 {
     fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
@@ -392,7 +392,7 @@ impl<'backing> FStatistics<'backing> {
         weight: f64,
     ) -> Result<(), PopgenError> {
         let pi_new_site =
-            GlobalPi::try_from_iter_sites(self.backing.iter_sites_in(population_num))?.as_raw();
+            Diversity::try_from_iter_sites(self.backing.iter_sites_in(population_num))?.as_raw();
         self.diversity_within.push(pi_new_site);
 
         self.pi_s.0 += weight * weight * pi_new_site;

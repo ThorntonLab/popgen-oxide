@@ -1,4 +1,4 @@
-use crate::stats::GlobalPi;
+use crate::stats::Diversity;
 use crate::stats::GlobalStatistic;
 
 use proptest::collection::vec;
@@ -36,7 +36,7 @@ fn pi_from_random_data(
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
 
     // get the calcs
-    let pi_from_counts = GlobalPi::try_from_iter_sites(counts.iter());
+    let pi_from_counts = Diversity::try_from_iter_sites(counts.iter());
     let pi_naive = crate::testing::naivecalculations::pi(sites.iter());
     // compare
     match pi_from_counts {
@@ -65,7 +65,7 @@ fn pi_allele_frequency_of_one() {
                 // convert to our normal format
                 let counts =
                     crate::testing::testdata::single_pop_counts(&mut std::iter::once(&site));
-                let pi_from_counts = GlobalPi::try_from_iter_sites(counts.iter());
+                let pi_from_counts = Diversity::try_from_iter_sites(counts.iter());
                 assert_eq!(pi_from_counts.unwrap().as_raw(), 0.);
             }
         }
@@ -75,5 +75,5 @@ fn pi_allele_frequency_of_one() {
 #[test]
 fn pi_try_from_iter_empty_is_err() {
     let c = crate::MultiSiteCounts::default();
-    assert!(GlobalPi::try_from_iter_sites(c.iter()).is_err());
+    assert!(Diversity::try_from_iter_sites(c.iter()).is_err());
 }

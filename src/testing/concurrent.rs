@@ -1,4 +1,4 @@
-use crate::stats::{GlobalPi, GlobalStatistic, SiteComposable, WattersonTheta};
+use crate::stats::{Diversity, GlobalStatistic, SiteComposable, WattersonTheta};
 use crate::PopgenError;
 use proptest::collection::vec;
 use proptest::proptest;
@@ -29,13 +29,13 @@ fn pi_equivalent_concurrent(
     );
 
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-    let pi = counts.iter().try_fold(GlobalPi::default(), |mut pi, s| {
+    let pi = counts.iter().try_fold(Diversity::default(), |mut pi, s| {
         pi.try_add_site(s)?;
         Ok::<_, PopgenError>(pi)
     });
 
     let mut components = counts.iter().map(|s| {
-        let mut pi = GlobalPi::default();
+        let mut pi = Diversity::default();
         pi.try_add_site(s)?;
         Ok::<_, PopgenError>(pi)
     }).collect::<Vec<_>>();
@@ -59,7 +59,7 @@ fn pi_equivalent_concurrent(
     let parallel = if !components.is_empty() {
         components.remove(0)
     } else {
-        Ok(GlobalPi::default())
+        Ok(Diversity::default())
     };
 
     match pi {
