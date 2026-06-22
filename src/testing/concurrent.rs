@@ -134,8 +134,8 @@ fn watterson_theta_equivalent_concurrent(
         Err(e) => {
             assert_eq!(std::mem::discriminant(&e), std::mem::discriminant(&parallel.err().unwrap()));
         },
-        Ok(pi) => {
-            let theta_raw = pi.as_raw();
+        Ok(theta) => {
+            let theta_raw = theta.as_raw();
             let parallel_raw = parallel.unwrap().as_raw();
             assert!((theta_raw - parallel_raw).abs() < 0.00001)
         },
