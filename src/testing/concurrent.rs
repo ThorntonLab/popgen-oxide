@@ -29,9 +29,9 @@ fn pi_equivalent_concurrent(
     );
 
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-    let pi = counts.iter().try_fold(Diversity::default(), |mut pi, s| {
-        pi.try_add_site(s)?;
-        Ok::<_, PopgenError>(pi)
+    let diversity = counts.iter().try_fold(Diversity::default(), |mut diversity, s| {
+        diversity.try_add_site(s)?;
+        Ok::<_, PopgenError>(diversity)
     });
 
     let mut components = counts.iter().map(|s| {
@@ -62,14 +62,14 @@ fn pi_equivalent_concurrent(
         Ok(Diversity::default())
     };
 
-    match pi {
+    match diversity {
         Err(e) => {
             assert_eq!(std::mem::discriminant(&e), std::mem::discriminant(&parallel.err().unwrap()));
         },
         Ok(pi) => {
-            let pi_raw = pi.as_raw();
+            let diversity_raw = pi.as_raw();
             let parallel_raw = parallel.unwrap().as_raw();
-            assert!((pi_raw - parallel_raw).abs() < 0.00001)
+            assert!((diversity_raw - parallel_raw).abs() < 0.00001)
         },
     }
 }
