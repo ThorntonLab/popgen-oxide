@@ -42,7 +42,9 @@ pub fn diversity<'s>(sites: impl Iterator<Item = &'s Site>) -> f64 {
     let sites = sites.cloned();
     let mut sites = sites.peekable();
     if sites.peek().is_some() {
-        sites.map(|s| diversity_site(&mut s.iter().cloned())).sum::<f64>()
+        sites
+            .map(|s| diversity_site(&mut s.iter().cloned()))
+            .sum::<f64>()
     } else {
         f64::NAN
     }
