@@ -954,6 +954,89 @@ fn test_7() {
 }
 
 #[test]
+fn test_7_site_iter() {
+    let site0 = SiteData::new(
+        60.0,
+        "G",
+        vec![
+            MutationData::new(5, 20.1, "A"),
+            MutationData::new(4, 10.1, "G"),
+            MutationData::new(1, 0.1, "C"),
+        ],
+    );
+    let site1 = SiteData::new(
+        40.0,
+        "T",
+        vec![
+            MutationData::new(3, 20.1, "T"),
+            MutationData::new(2, 0.1, "G"),
+            MutationData::new(4, 10.1, "G"),
+        ],
+    );
+    let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
+    let counts = crate::MultiSiteCounts::try_from_tree_sequence_site_iter(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+        ts.site_iter().filter(|s| s.position() > 40.),
+        None,
+    )
+    .unwrap();
+    let reduced = ts
+        .keep_intervals(std::iter::once((50., 100.)))
+        .unwrap()
+        .unwrap()
+        .tree_sequence(tskit::TreeSequenceFlags::default().build_indexes())
+        .unwrap();
+    let reduced_counts = crate::MultiSiteCounts::try_from_tree_sequence(
+        &reduced,
+        reduced
+            .node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+        None,
+    )
+    .unwrap();
+    assert_eq!(counts.len(), reduced_counts.len());
+    for (i, j) in counts.iter().zip(reduced_counts.iter()) {
+        assert_eq!(i, j)
+    }
+}
+
+#[test]
+fn test_7_site_iter_reversed() {
+    let site0 = SiteData::new(
+        60.0,
+        "G",
+        vec![
+            MutationData::new(5, 20.1, "A"),
+            MutationData::new(4, 10.1, "G"),
+            MutationData::new(1, 0.1, "C"),
+        ],
+    );
+    let site1 = SiteData::new(
+        40.0,
+        "T",
+        vec![
+            MutationData::new(3, 20.1, "T"),
+            MutationData::new(2, 0.1, "G"),
+            MutationData::new(4, 10.1, "G"),
+        ],
+    );
+    let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
+    assert!(crate::MultiSiteCounts::try_from_tree_sequence_site_iter(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+        ts.site_iter().rev(),
+        None,
+    )
+    .is_err())
+}
+
+#[test]
 fn test_8() {
     let site0 = SiteData::new(60.0, "G", vec![]);
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0]);
@@ -1234,6 +1317,71 @@ mod with_ancient_samples {
         );
         test_subsets_of_sample_nodes(&ts);
         test_non_sample_nodes_and_subsets(&ts);
+    }
+
+    #[test]
+    fn test4_site_iter() {
+        let ts = super::make_test_data(
+            make_four_sample_tree_with_one_inline_ancient_sample,
+            vec![
+                SiteData::new(
+                    5.,
+                    "G",
+                    vec![
+                        MutationData::new(5, 21.0, "A"),
+                        MutationData::new(4, 10.1, "G"),
+                        MutationData::new(7, 10.1, "A"),
+                        MutationData::new(1, 0.1, "C"),
+                    ],
+                ),
+                // Make sure that sites 5 and 6
+                // give different genotypes in the samples!
+                SiteData::new(
+                    6.,
+                    "G",
+                    vec![
+                        MutationData::new(5, 21.0, "A"),
+                        MutationData::new(4, 10.1, "G"),
+                        MutationData::new(1, 0.1, "C"),
+                    ],
+                ),
+            ],
+        );
+
+        let counts = crate::MultiSiteCounts::try_from_tree_sequence_site_iter(
+            &ts,
+            ts.node_iter()
+                .filter(|n| n.flags().is_sample())
+                .map(|n| n.id()),
+            ts.site_iter().filter(|s| s.position() > 5.0),
+            None,
+        )
+        .unwrap();
+        let genome_len = ts.tables().sequence_length();
+        let reduced = ts
+            // The kept intervals are [left, right), so we need
+            // to make sure to exclide 5 on the left!
+            .keep_intervals(std::iter::once((5.1_f64.into(), genome_len)))
+            .unwrap()
+            .unwrap()
+            .tree_sequence(tskit::TreeSequenceFlags::default().build_indexes())
+            .unwrap();
+        let reduced_counts = crate::MultiSiteCounts::try_from_tree_sequence(
+            &reduced,
+            reduced
+                .node_iter()
+                .filter(|n| n.flags().is_sample())
+                .map(|n| n.id()),
+            None,
+        )
+        .unwrap();
+        assert_eq!(counts.len(), reduced_counts.len());
+        let mut num_iterated = 0_usize;
+        for (i, j) in counts.iter().zip(reduced_counts.iter()) {
+            assert_eq!(i, j);
+            num_iterated += 1;
+        }
+        assert_eq!(num_iterated, counts.len());
     }
 }
 
