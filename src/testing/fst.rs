@@ -76,7 +76,7 @@ fn f_st() {
         (pi_s_top
             - (0..populations.num_populations())
                 .map(|pop_i| {
-                    // sum of weight * weight * pi within this population
+                    // sum of weight * weight * diversity within this population
                     Diversity::try_from_iter_sites(populations.iter_sites_in(pop_i))
                         .unwrap()
                         .as_raw()

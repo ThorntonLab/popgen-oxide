@@ -31,7 +31,7 @@ fn pairwise_diffs(alleles: &[usize]) -> (i64, i64) {
     (num_differences, num_comparisons)
 }
 
-fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
+fn diversity_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
     let alleles = flatten_to_alleles(genotypes);
     let (num_differences, num_comparisons) = pairwise_diffs(&alleles);
     num_differences as f64 / num_comparisons as f64
@@ -42,7 +42,7 @@ pub fn diversity<'s>(sites: impl Iterator<Item = &'s Site>) -> f64 {
     let sites = sites.cloned();
     let mut sites = sites.peekable();
     if sites.peek().is_some() {
-        sites.map(|s| pi_site(&mut s.iter().cloned())).sum::<f64>()
+        sites.map(|s| diversity_site(&mut s.iter().cloned())).sum::<f64>()
     } else {
         f64::NAN
     }

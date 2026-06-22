@@ -28,11 +28,11 @@ fn main() {
     let out = iter
         .par_bridge()
         .map(|rec| record_to_genotypes_adapter(&header, &rec, 1).unwrap())
-        .try_fold(Diversity::default, |mut pi, alleles| {
+        .try_fold(Diversity::default, |mut diversity, alleles| {
             let mut multi = MultiSiteCounts::default();
             multi.add_site(alleles).unwrap();
-            pi.try_add_site(multi.get(0).unwrap())?;
-            Ok::<_, PopgenError>(pi)
+            diversity.try_add_site(multi.get(0).unwrap())?;
+            Ok::<_, PopgenError>(diversity)
         })
         .try_reduce(Diversity::default, |mut a, b| {
             a.try_combine(&b)?;

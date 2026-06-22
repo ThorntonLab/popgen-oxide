@@ -10,7 +10,7 @@ use rand::SeedableRng;
 proptest!(
 // we don't need to invoke actual parallelism, just show that the component-wise approach is correct
 #[test]
-fn pi_equivalent_concurrent(
+fn diversity_equivalent_concurrent(
     seed in 0..u64::MAX,
     ploidy in 1_usize..5,
     num_samples in 2_usize..50,
@@ -35,9 +35,9 @@ fn pi_equivalent_concurrent(
     });
 
     let mut components = counts.iter().map(|s| {
-        let mut pi = Diversity::default();
-        pi.try_add_site(s)?;
-        Ok::<_, PopgenError>(pi)
+        let mut diversity = Diversity::default();
+        diversity.try_add_site(s)?;
+        Ok::<_, PopgenError>(diversity)
     }).collect::<Vec<_>>();
 
     // let's combine the components out of order and with random associativity
@@ -66,8 +66,8 @@ fn pi_equivalent_concurrent(
         Err(e) => {
             assert_eq!(std::mem::discriminant(&e), std::mem::discriminant(&parallel.err().unwrap()));
         },
-        Ok(pi) => {
-            let diversity_raw = pi.as_raw();
+        Ok(diversity) => {
+            let diversity_raw = diversity.as_raw();
             let parallel_raw = parallel.unwrap().as_raw();
             assert!((diversity_raw - parallel_raw).abs() < 0.00001)
         },
