@@ -2,7 +2,7 @@
 
 use noodles::vcf;
 use popgen::adapter::vcf::record_to_genotypes_adapter;
-use popgen::stats::{GlobalPi, GlobalStatistic, SiteComposable};
+use popgen::stats::{Diversity, GlobalStatistic, SiteComposable};
 use popgen::{MultiSiteCounts, PopgenError};
 use rayon::iter::ParallelBridge;
 use rayon::iter::ParallelIterator;
@@ -28,13 +28,13 @@ fn main() {
     let out = iter
         .par_bridge()
         .map(|rec| record_to_genotypes_adapter(&header, &rec, 1).unwrap())
-        .try_fold(GlobalPi::default, |mut pi, alleles| {
+        .try_fold(Diversity::default, |mut diversity, alleles| {
             let mut multi = MultiSiteCounts::default();
             multi.add_site(alleles).unwrap();
-            pi.try_add_site(multi.get(0).unwrap())?;
-            Ok::<_, PopgenError>(pi)
+            diversity.try_add_site(multi.get(0).unwrap())?;
+            Ok::<_, PopgenError>(diversity)
         })
-        .try_reduce(GlobalPi::default, |mut a, b| {
+        .try_reduce(Diversity::default, |mut a, b| {
             a.try_combine(&b)?;
             Ok::<_, PopgenError>(a)
         })

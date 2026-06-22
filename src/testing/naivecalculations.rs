@@ -31,18 +31,20 @@ fn pairwise_diffs(alleles: &[usize]) -> (i64, i64) {
     (num_differences, num_comparisons)
 }
 
-fn pi_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
+fn diversity_site(genotypes: &mut dyn Iterator<Item = GenotypeData>) -> f64 {
     let alleles = flatten_to_alleles(genotypes);
     let (num_differences, num_comparisons) = pairwise_diffs(&alleles);
     num_differences as f64 / num_comparisons as f64
 }
 
 // O(N^2) implementation of the Nei/Tajima diversity measure.
-pub fn pi<'s>(sites: impl Iterator<Item = &'s Site>) -> f64 {
+pub fn diversity<'s>(sites: impl Iterator<Item = &'s Site>) -> f64 {
     let sites = sites.cloned();
     let mut sites = sites.peekable();
     if sites.peek().is_some() {
-        sites.map(|s| pi_site(&mut s.iter().cloned())).sum::<f64>()
+        sites
+            .map(|s| diversity_site(&mut s.iter().cloned()))
+            .sum::<f64>()
     } else {
         f64::NAN
     }
@@ -72,7 +74,10 @@ pub fn watterson_theta<'s>(sites: &'s mut dyn Iterator<Item = &'s mut Site>) -> 
     rv
 }
 
-pub fn pi_ij(pop1: &mut dyn Iterator<Item = Site>, pop2: &mut dyn Iterator<Item = Site>) -> f64 {
+pub fn divergence_ij(
+    pop1: &mut dyn Iterator<Item = Site>,
+    pop2: &mut dyn Iterator<Item = Site>,
+) -> f64 {
     let mut accum = 0f64;
 
     for (site1, site2) in pop1.zip(pop2) {
@@ -112,56 +117,56 @@ where
         .map(|(_w, pop)| pop)
         .collect::<Vec<_>>();
 
-    let pi_ii = populations
+    let diversity_ii = populations
         .iter_mut()
-        .map(|pop| pi(pop.iter()))
+        .map(|pop| diversity(pop.iter()))
         .collect::<Vec<_>>();
 
-    let mut pi_ij_computed = vec![vec![None; populations.len()]; populations.len()];
+    let mut divergence_ij_computed = vec![vec![None; populations.len()]; populations.len()];
     for i in 0..populations.len() {
         for j in 0..i {
-            pi_ij_computed[i][j] = Some(pi_ij(
+            divergence_ij_computed[i][j] = Some(divergence_ij(
                 &mut populations[i].iter().cloned(),
                 &mut populations[j].iter().cloned(),
             ));
-            pi_ij_computed[j][i] = pi_ij_computed[i][j];
+            divergence_ij_computed[j][i] = divergence_ij_computed[i][j];
         }
     }
 
     // equation 1a
-    let pi_total = {
-        let pi_ii_term = (0..populations.len())
-            .map(|i| weights[i] * weights[i] * pi_ii[i])
+    let diversity_total = {
+        let diversity_ii_term = (0..populations.len())
+            .map(|i| weights[i] * weights[i] * diversity_ii[i])
             .sum::<f64>();
-        let pi_ij_term = {
+        let divergence_ij_term = {
             let mut tot = 0f64;
             for i in 0..populations.len() {
                 for j in 0..i {
-                    tot += weights[i] * weights[j] * pi_ij_computed[i][j].unwrap();
+                    tot += weights[i] * weights[j] * divergence_ij_computed[i][j].unwrap();
                 }
             }
             2.0 * tot
         };
 
-        pi_ii_term + pi_ij_term
+        diversity_ii_term + divergence_ij_term
     };
 
     // equation 1b
-    let pi_self = ((0..populations.len())
-        .map(|i| weights[i] * weights[i] * pi_ii[i])
+    let diversity_self = ((0..populations.len())
+        .map(|i| weights[i] * weights[i] * diversity_ii[i])
         .sum::<f64>())
         / (0..populations.len())
             .map(|i| weights[i] * weights[i])
             .sum::<f64>();
 
     // equation 1c
-    let pi_between = {
+    let diversity_between = {
         let mut num = 0f64;
         let mut denom = 0f64;
 
         for i in 0..populations.len() {
             for j in 0..i {
-                num += weights[i] * weights[j] * pi_ij_computed[i][j].unwrap();
+                num += weights[i] * weights[j] * divergence_ij_computed[i][j].unwrap();
                 denom += weights[i] * weights[j];
             }
         }
@@ -169,7 +174,7 @@ where
         num / denom
     };
 
-    (pi_total, pi_self, pi_between)
+    (diversity_total, diversity_self, diversity_between)
 }
 
 // TODO: note that there is another way of writing the estimator from, e.g. early Reich papers.
@@ -182,11 +187,11 @@ where
     Sites: IntoIterator<Item = Site>,
 {
     let freq_data: Vec<Vec<Site>> = populations.map(|pop| pop.into_iter().collect()).collect();
-    let pi_deme1 = pi(freq_data[deme1].iter());
-    let pi_deme2 = pi(freq_data[deme2].iter());
-    let pi_ij = pi_ij(
+    let diversity_deme1 = diversity(freq_data[deme1].iter());
+    let diversity_deme2 = diversity(freq_data[deme2].iter());
+    let divergence_ij = divergence_ij(
         &mut freq_data[deme1].iter().cloned(),
         &mut freq_data[deme2].iter().cloned(),
     );
-    pi_ij - (pi_deme1 + pi_deme2) / 2.
+    divergence_ij - (diversity_deme1 + diversity_deme2) / 2.
 }

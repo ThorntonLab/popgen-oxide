@@ -188,9 +188,9 @@ where
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
-pub struct GlobalPi(f64);
+pub struct Diversity(f64);
 
-impl GlobalStatistic for GlobalPi {
+impl GlobalStatistic for Diversity {
     fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // technically should divide both by two here and below but it cancels out
@@ -215,7 +215,7 @@ impl GlobalStatistic for GlobalPi {
     }
 }
 
-impl SiteComposable for GlobalPi {
+impl SiteComposable for Diversity {
     fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
         if self.0.is_nan() || other.0.is_nan() {
             return Err(PopgenError::CalculationError);
@@ -276,7 +276,7 @@ impl SiteComposable for WattersonTheta {
 /// See also [Wikipedia](https://en.wikipedia.org/wiki/Tajima%27s_D#Mathematical_details) for the equations restated.
 #[derive(Debug, Copy, Clone, Default)]
 pub struct TajimasD {
-    k_hat: GlobalPi,
+    k_hat: Diversity,
     theta: WattersonTheta,
     num_samples: usize,
     num_sites: usize,
@@ -336,7 +336,7 @@ impl GlobalStatistic for TajimasD {
 
 impl SiteComposable for TajimasD
 where
-    GlobalPi: SiteComposable,
+    Diversity: SiteComposable,
     WattersonTheta: SiteComposable,
 {
     fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
@@ -365,7 +365,7 @@ pub struct FStatistics<'backing> {
     // keep numerator and denominator apart for incremental update
     pi_s: (f64, f64),
     /// for pi_b
-    diversity_between: HashMap<UnorderedPair<usize>, f64>,
+    divergence_between: HashMap<UnorderedPair<usize>, f64>,
     pi_b: (f64, f64),
 }
 
@@ -376,7 +376,7 @@ impl<'backing> FStatistics<'backing> {
             populations: vec![],
             diversity_within: vec![],
             pi_s: (0.0, 0.0),
-            diversity_between: Default::default(),
+            divergence_between: Default::default(),
             pi_b: (0.0, 0.0),
         }
     }
@@ -391,16 +391,16 @@ impl<'backing> FStatistics<'backing> {
         population_num: usize,
         weight: f64,
     ) -> Result<(), PopgenError> {
-        let pi_new_site =
-            GlobalPi::try_from_iter_sites(self.backing.iter_sites_in(population_num))?.as_raw();
-        self.diversity_within.push(pi_new_site);
+        let diversity_new_site =
+            Diversity::try_from_iter_sites(self.backing.iter_sites_in(population_num))?.as_raw();
+        self.diversity_within.push(diversity_new_site);
 
-        self.pi_s.0 += weight * weight * pi_new_site;
+        self.pi_s.0 += weight * weight * diversity_new_site;
         self.pi_s.1 += weight * weight;
 
         // there are more possible pairs of populations now
         for (i, (existing_pop, existing_pop_weight)) in self.populations.iter().enumerate() {
-            let pi_ij = self
+            let divergence_ij = self
                 .backing
                 .iter_sites_in(*existing_pop)
                 .zip(self.backing.iter_sites_in(population_num))
@@ -431,10 +431,10 @@ impl<'backing> FStatistics<'backing> {
                 .sum::<Result<f64, PopgenError>>()?;
 
             // TODO: just use a linear vector?
-            self.diversity_between
-                .insert(UnorderedPair::new(i, self.populations.len()), pi_ij);
+            self.divergence_between
+                .insert(UnorderedPair::new(i, self.populations.len()), divergence_ij);
 
-            self.pi_b.0 += weight * existing_pop_weight * pi_ij;
+            self.pi_b.0 += weight * existing_pop_weight * divergence_ij;
             self.pi_b.1 += weight * existing_pop_weight;
         }
         self.populations.push((population_num, weight));
@@ -544,19 +544,19 @@ impl<'backing> FStatistics<'backing> {
     ///
     /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
     pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
-        let pi_12 = self
-            .diversity_between
+        let divergence_12 = self
+            .divergence_between
             .get(&UnorderedPair::new(deme1, deme2))
             .ok_or(PopgenError::InvalidDeme)?;
-        let pi_11 = self
+        let diversity_11 = self
             .diversity_within
             .get(deme1)
             .ok_or(PopgenError::InvalidDeme)?;
-        let pi_22 = self
+        let diversity_22 = self
             .diversity_within
             .get(deme2)
             .ok_or(PopgenError::InvalidDeme)?;
-        Ok(pi_12 - (pi_11 + pi_22) / 2.)
+        Ok(divergence_12 - (diversity_11 + diversity_22) / 2.)
     }
 
     /// Calculate F3(deme1; deme2, deme3).

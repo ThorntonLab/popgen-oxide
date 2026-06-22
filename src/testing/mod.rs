@@ -8,8 +8,8 @@ mod test_try_from_tree_sequence;
 
 // tests of CALCULATIONS go below
 
+mod diversity;
 mod fst;
-mod pi;
 mod tajimasd;
 mod wattersons_theta;
 
