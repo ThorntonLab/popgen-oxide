@@ -3,6 +3,10 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 name: Test, rustfmt, and Clippy (64 bit)
 
 jobs:
@@ -18,11 +22,6 @@ jobs:
         rust:
           - stable
     steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@0.12.1
-        with:
-          access_token: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: actions/checkout@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
