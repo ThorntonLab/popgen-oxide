@@ -535,10 +535,10 @@ impl FStatistics {
 
     fn internal_index_for(&self, deme: usize) -> Option<usize> {
         match self.populations.len() {
-            0..100 => self.populations.iter().position(|(p, w)| p == &deme),
+            0..100 => self.populations.iter().position(|(p, _w)| p == &deme),
             _more => self
                 .populations
-                .binary_search_by_key(&deme, |(p, w)| *p)
+                .binary_search_by_key(&deme, |(p, _w)| *p)
                 .ok(),
         }
     }
