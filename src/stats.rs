@@ -543,6 +543,33 @@ impl FStatistics {
         }
     }
 
+    /// Get the diversity of this deme among its samples.
+    /// The deme number must follow the indexes of demes used to create this type.
+    ///
+    /// # Errors
+    ///
+    //// * If `deme` is out of range, return [`PopgenError::InvalidDeme`]
+    pub fn pi_within(&self, deme: usize) -> PopgenResult<f64> {
+        Ok(self.diversity_within[self
+            .internal_index_for(deme)
+            .ok_or(PopgenError::InvalidDeme)?])
+    }
+
+    /// Get the [`Diversity`] of these two demes, comparing a sample from one against a sample from the other.
+    /// The deme numbers must follow the indexes of demes used to create this type.
+    ///
+    /// # Errors
+    ///
+    /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
+    pub fn pi_between(&self, deme1: usize, deme2: usize) -> PopgenResult<f64> {
+        Ok(self.divergence_between[&UnorderedPair::new(
+            self.internal_index_for(deme1)
+                .ok_or(PopgenError::InvalidDeme)?,
+            self.internal_index_for(deme2)
+                .ok_or(PopgenError::InvalidDeme)?,
+        )])
+    }
+
     /// Calculate F2(deme1, deme2).
     /// The deme numbers must follow the indexes of demes used to create this type.
     ///
@@ -553,8 +580,12 @@ impl FStatistics {
     ///
     /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
     pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
-        let deme1_internal = self.internal_index_for(deme1).ok_or(PopgenError::InvalidDeme)?;
-        let deme2_internal = self.internal_index_for(deme2).ok_or(PopgenError::InvalidDeme)?;
+        let deme1_internal = self
+            .internal_index_for(deme1)
+            .ok_or(PopgenError::InvalidDeme)?;
+        let deme2_internal = self
+            .internal_index_for(deme2)
+            .ok_or(PopgenError::InvalidDeme)?;
 
         let divergence_12 = self
             .divergence_between
