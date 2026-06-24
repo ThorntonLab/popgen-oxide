@@ -6,7 +6,7 @@ rust-version = "1.88.0"
 license = "MIT"
 description = "Efficient types for population genetic analysis."
 homepage = "https://github.com/ThorntonLab/popgen-oxide"
-repository = "https://github.com/tskit-dev/tskit-rust"
+repository = "https://github.com/ThorntonLab/popgen-oxide"
 
 [features]
 noodles = ["dep:noodles"]
