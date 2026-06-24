@@ -42,6 +42,18 @@ fn f_st() {
 
     let f_st = FStatistics::try_from_populations(&populations, |i| Some(weights[i])).unwrap();
 
+    for p in 0..populations.num_populations() {
+        assert!(
+            (f_st.pi_within(p).unwrap()
+                - Diversity::try_from_iter_sites(populations.iter_sites_in(p))
+                    .unwrap()
+                    .as_raw())
+            .abs()
+                < f64::EPSILON,
+            "pi_within is wrong for deme {p}"
+        );
+    }
+
     let (pi_b_top, pi_b_bottom) = f_st.pi_b_parts();
 
     assert!(
@@ -94,6 +106,26 @@ fn f_st() {
         .abs()
             < f64::EPSILON
     );
+}
+
+#[test]
+fn f_st_skip_indices() {
+    let mut populations = MultiPopulationCounts::of_empty_populations(3);
+
+    let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
+    let weights = [Some(1.0), None, Some(3.0)];
+
+    populations
+        .extend_populations_from_site(|i| (&data[i].0, data[i].1))
+        .unwrap();
+
+    let f_st = FStatistics::try_from_populations(&populations, |i| weights[i]).unwrap();
+    assert!(f_st.pi_within(0).is_ok());
+    assert!(matches!(f_st.pi_within(1), Err(PopgenError::InvalidDeme)));
+    assert!(f_st.pi_within(2).is_ok());
+
+    assert_eq!(f_st.f2(0, 2).unwrap(), f_st.f2(2, 0).unwrap());
+    assert!(matches!(f_st.f2(1, 2), Err(PopgenError::InvalidDeme)));
 }
 
 #[test]
