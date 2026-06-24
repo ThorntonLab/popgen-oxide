@@ -533,7 +533,18 @@ impl FStatistics {
         Some(self.pi_t()).zip(self.pi_s()).map(|(t, s)| (t - s) / t)
     }
 
+    fn internal_index_for(&self, deme: usize) -> Option<usize> {
+        match self.populations.len() {
+            0..100 => self.populations.iter().position(|(p, w)| p == &deme),
+            _more => self
+                .populations
+                .binary_search_by_key(&deme, |(p, w)| *p)
+                .ok(),
+        }
+    }
+
     /// Calculate F2(deme1, deme2).
+    /// The deme numbers must follow the indexes of demes used to create this type.
     ///
     /// We follow Equation 17 from
     /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
@@ -542,22 +553,26 @@ impl FStatistics {
     ///
     /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
     pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
+        let deme1_internal = self.internal_index_for(deme1).ok_or(PopgenError::InvalidDeme)?;
+        let deme2_internal = self.internal_index_for(deme2).ok_or(PopgenError::InvalidDeme)?;
+
         let divergence_12 = self
             .divergence_between
-            .get(&UnorderedPair::new(deme1, deme2))
+            .get(&UnorderedPair::new(deme1_internal, deme2_internal))
             .ok_or(PopgenError::InvalidDeme)?;
         let diversity_11 = self
             .diversity_within
-            .get(deme1)
+            .get(deme1_internal)
             .ok_or(PopgenError::InvalidDeme)?;
         let diversity_22 = self
             .diversity_within
-            .get(deme2)
+            .get(deme2_internal)
             .ok_or(PopgenError::InvalidDeme)?;
         Ok(divergence_12 - (diversity_11 + diversity_22) / 2.)
     }
 
     /// Calculate F3(deme1; deme2, deme3).
+    /// The deme numbers must follow the indexes of demes used to create this type.
     ///
     /// We follow Equation 20b from
     /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/),
@@ -577,6 +592,7 @@ impl FStatistics {
     }
 
     /// Calculate F4(deme1, deme2; deme3, deme4).
+    /// The deme numbers must follow the indexes of demes used to create this type.
     ///
     /// We follow Equation 24b from
     /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
