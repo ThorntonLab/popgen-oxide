@@ -355,8 +355,7 @@ where
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 #[derive(Clone, Debug)]
-pub struct FStatistics<'backing> {
-    backing: &'backing MultiPopulationCounts,
+pub struct FStatistics {
     /// (population number, weight) pairs
     populations: Vec<(usize, f64)>,
     // total pi_t derivable from other terms, no need to store anything new
@@ -369,10 +368,9 @@ pub struct FStatistics<'backing> {
     pi_b: (f64, f64),
 }
 
-impl<'backing> FStatistics<'backing> {
-    pub(crate) fn new_viewing(populations: &'backing MultiPopulationCounts) -> Self {
+impl FStatistics {
+    fn new() -> Self {
         Self {
-            backing: populations,
             populations: vec![],
             diversity_within: vec![],
             pi_s: (0.0, 0.0),
@@ -386,13 +384,14 @@ impl<'backing> FStatistics<'backing> {
     ///
     /// # Errors
     /// See [`crate::stats::GlobalPi`].
-    pub(crate) fn try_add_population(
+    fn try_add_population(
         &mut self,
+        populations: &MultiPopulationCounts,
         population_num: usize,
         weight: f64,
     ) -> Result<(), PopgenError> {
         let diversity_new_site =
-            Diversity::try_from_iter_sites(self.backing.iter_sites_in(population_num))?.as_raw();
+            Diversity::try_from_iter_sites(populations.iter_sites_in(population_num))?.as_raw();
         self.diversity_within.push(diversity_new_site);
 
         self.pi_s.0 += weight * weight * diversity_new_site;
@@ -400,10 +399,9 @@ impl<'backing> FStatistics<'backing> {
 
         // there are more possible pairs of populations now
         for (i, (existing_pop, existing_pop_weight)) in self.populations.iter().enumerate() {
-            let divergence_ij = self
-                .backing
+            let divergence_ij = populations
                 .iter_sites_in(*existing_pop)
-                .zip(self.backing.iter_sites_in(population_num))
+                .zip(populations.iter_sites_in(population_num))
                 .map(|(s1, s2)| {
                     if s1.total_alleles == 0 || s2.total_alleles == 0 {
                         return Err(PopgenError::EmptySiteCounts);
@@ -449,15 +447,15 @@ impl<'backing> FStatistics<'backing> {
     /// - If no sites are selected for inclusion.
     /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
     pub fn try_from_populations(
-        populations: &'backing MultiPopulationCounts,
+        populations: &MultiPopulationCounts,
         mut pred: impl FnMut(usize) -> Option<f64>,
     ) -> Result<Self, PopgenError> {
-        let mut ret = Self::new_viewing(populations);
+        let mut ret = Self::new();
 
         let mut any = false;
         for pop_i in 0..populations.num_populations() {
             if let Some(weight) = pred(pop_i) {
-                ret.try_add_population(pop_i, weight)?;
+                ret.try_add_population(populations, pop_i, weight)?;
                 any = true;
             }
         }
@@ -535,7 +533,45 @@ impl<'backing> FStatistics<'backing> {
         Some(self.pi_t()).zip(self.pi_s()).map(|(t, s)| (t - s) / t)
     }
 
+    fn internal_index_for(&self, deme: usize) -> Option<usize> {
+        match self.populations.len() {
+            0..100 => self.populations.iter().position(|(p, _w)| p == &deme),
+            _more => self
+                .populations
+                .binary_search_by_key(&deme, |(p, _w)| *p)
+                .ok(),
+        }
+    }
+
+    /// Get the diversity of this deme among its samples.
+    /// The deme number must follow the indexes of demes used to create this type.
+    ///
+    /// # Errors
+    ///
+    //// * If `deme` is out of range, return [`PopgenError::InvalidDeme`]
+    pub fn pi_within(&self, deme: usize) -> PopgenResult<f64> {
+        Ok(self.diversity_within[self
+            .internal_index_for(deme)
+            .ok_or(PopgenError::InvalidDeme)?])
+    }
+
+    /// Get the [`Diversity`] of these two demes, comparing a sample from one against a sample from the other.
+    /// The deme numbers must follow the indexes of demes used to create this type.
+    ///
+    /// # Errors
+    ///
+    /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
+    pub fn pi_between(&self, deme1: usize, deme2: usize) -> PopgenResult<f64> {
+        Ok(self.divergence_between[&UnorderedPair::new(
+            self.internal_index_for(deme1)
+                .ok_or(PopgenError::InvalidDeme)?,
+            self.internal_index_for(deme2)
+                .ok_or(PopgenError::InvalidDeme)?,
+        )])
+    }
+
     /// Calculate F2(deme1, deme2).
+    /// The deme numbers must follow the indexes of demes used to create this type.
     ///
     /// We follow Equation 17 from
     /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
@@ -544,22 +580,30 @@ impl<'backing> FStatistics<'backing> {
     ///
     /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
     pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
+        let deme1_internal = self
+            .internal_index_for(deme1)
+            .ok_or(PopgenError::InvalidDeme)?;
+        let deme2_internal = self
+            .internal_index_for(deme2)
+            .ok_or(PopgenError::InvalidDeme)?;
+
         let divergence_12 = self
             .divergence_between
-            .get(&UnorderedPair::new(deme1, deme2))
+            .get(&UnorderedPair::new(deme1_internal, deme2_internal))
             .ok_or(PopgenError::InvalidDeme)?;
         let diversity_11 = self
             .diversity_within
-            .get(deme1)
+            .get(deme1_internal)
             .ok_or(PopgenError::InvalidDeme)?;
         let diversity_22 = self
             .diversity_within
-            .get(deme2)
+            .get(deme2_internal)
             .ok_or(PopgenError::InvalidDeme)?;
         Ok(divergence_12 - (diversity_11 + diversity_22) / 2.)
     }
 
     /// Calculate F3(deme1; deme2, deme3).
+    /// The deme numbers must follow the indexes of demes used to create this type.
     ///
     /// We follow Equation 20b from
     /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/),
@@ -579,6 +623,7 @@ impl<'backing> FStatistics<'backing> {
     }
 
     /// Calculate F4(deme1, deme2; deme3, deme4).
+    /// The deme numbers must follow the indexes of demes used to create this type.
     ///
     /// We follow Equation 24b from
     /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
