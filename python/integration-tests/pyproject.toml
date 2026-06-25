@@ -1,0 +1,24 @@
+[build-system]
+requires = ["maturin>=1.14,<2.0"]
+build-backend = "maturin"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-xdist",
+    "tskit >= 1.0.0",
+    "msprime >= 1.0.0",
+    "hypothesis>=6.155.7",
+]
+
+[project]
+name = "integration-tests"
+requires-python = ">=3.13"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+dynamic = ["version"]
+dependencies = [
+]

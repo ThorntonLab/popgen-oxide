@@ -1,0 +1,77 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+name: Integration tests using Python
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-integration-tests:
+    name: Install Python module and run tests
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./python/integration-tests
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+        rust:
+          - stable
+        python: [ "3.13d" ]
+    steps:
+      - uses: actions/checkout@v6.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2.8.2
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          activate-environment: true
+          version: "latest"
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: |
+          uv sync --all-groups
+      - name: Run tests
+        run: |
+          uv run python -m pytest -n 2 tests
+  clippy:
+    name: clippy for the pyo3 module
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy
+      - uses: Swatinem/rust-cache@v2.9.1
+      - uses: taiki-e/install-action@cargo-hack
+      - name: clippy (all targets, feature powerset)
+        run: cargo hack clippy --manifest-path python/integration-tests/Cargo.toml --all-targets --feature-powerset -- -D warnings
+  fmt:
+    name: rustfmt pyo3 module
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt
+      - run: |
+          cargo fmt --check
