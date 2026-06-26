@@ -1005,6 +1005,73 @@ fn test_7_site_iter() {
 }
 
 #[test]
+fn test_7_windows() {
+    let site0 = SiteData::new(
+        60.0,
+        "G",
+        vec![
+            MutationData::new(5, 20.1, "A"),
+            MutationData::new(4, 10.1, "G"),
+            MutationData::new(1, 0.1, "C"),
+        ],
+    );
+    let site1 = SiteData::new(
+        40.0,
+        "T",
+        vec![
+            MutationData::new(3, 20.1, "T"),
+            MutationData::new(2, 0.1, "G"),
+            MutationData::new(4, 10.1, "G"),
+        ],
+    );
+    let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
+    let counts = crate::MultiSiteCounts::try_from_tree_sequence_windows(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+        std::iter::once((50., 100.)),
+        None,
+    )
+    .unwrap();
+    assert_eq!(counts.len(), 1);
+
+    let counts_two_windows = crate::MultiSiteCounts::try_from_tree_sequence_windows(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+        vec![(0., 50.), (50., 100.)].into_iter(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(counts_two_windows.len(), 2);
+
+    let reduced = ts
+        .keep_intervals(std::iter::once((50., 100.)))
+        .unwrap()
+        .unwrap()
+        .tree_sequence(tskit::TreeSequenceFlags::default().build_indexes())
+        .unwrap();
+    let reduced_counts = crate::MultiSiteCounts::try_from_tree_sequence(
+        &reduced,
+        reduced
+            .node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+        None,
+    )
+    .unwrap();
+    assert_eq!(counts[0].len(), reduced_counts.len());
+    for (i, j) in counts[0].iter().zip(reduced_counts.iter()) {
+        assert_eq!(i, j)
+    }
+    for (i, j) in counts_two_windows[1].iter().zip(reduced_counts.iter()) {
+        assert_eq!(i, j)
+    }
+}
+
+#[test]
 fn test_7_site_iter_reversed() {
     let site0 = SiteData::new(
         60.0,

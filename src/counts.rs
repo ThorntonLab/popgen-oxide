@@ -77,6 +77,21 @@ impl MultiSiteCounts {
         from_tree_sequence::try_from_tree_sequence_with_site_iter(ts, samples, sites, options)
     }
 
+    #[cfg(feature = "tskit")]
+    pub fn try_from_tree_sequence_windows<N, W, P>(
+        ts: &tskit::TreeSequence,
+        samples: N,
+        windows: W,
+        options: Option<FromTreeSequenceOptions>,
+    ) -> Result<Vec<Self>, PopgenError>
+    where
+        N: Iterator<Item = tskit::NodeId>,
+        W: Iterator<Item = (P, P)>,
+        P: Into<tskit::Position>,
+    {
+        crate::from_tree_sequence::try_from_tree_sequence_windows(ts, samples, windows, options)
+    }
+
     /// Add a site from an iterator of potentially missing allele IDs.
     /// # Errors
     /// - If `samples` is empty.
