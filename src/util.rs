@@ -25,8 +25,11 @@ impl<T> StrictlyLowerTriangular<T> {
     }
 
     /// Extend `self` by providing, for new matrix size `N+1`, the values corresponding to `(i, N+1)` for all `i < N+1`.
+    ///
+    /// The iterator is always consumed.
+    /// The first error produced by the iterator, if any, is propagated.
+    ///
     /// If the iterator does not contain precisely `N` elements, the function panics.
-    /// The iterator is always consumed. The first error produced by the iterator, if any, is propagated.
     pub fn try_extend<I, E>(&mut self, elems: I) -> Result<(), E>
     where
         I: Iterator<Item = Result<T, E>>,
