@@ -21,6 +21,7 @@ pub type PopgenResult<T> = Result<T, PopgenError>;
 
 #[cfg(feature = "tskit")]
 pub mod from_tskit {
+    pub use super::from_tree_sequence::FromTreeSequenceError as TskitConversionError;
     pub use super::from_tree_sequence::FromTreeSequenceOptions;
 }
 
@@ -30,7 +31,7 @@ pub enum PopgenError {
     #[cfg(feature = "noodles")]
     NoodlesVCF(std::io::Error),
     #[cfg(feature = "tskit")]
-    Tskit(::tskit::TskitError),
+    Tskit(crate::from_tskit::TskitConversionError),
     Io(std::io::Error),
     NegativeCount(Count),
     TotalAllelesDeficient,
@@ -60,7 +61,7 @@ impl std::fmt::Display for PopgenError {
             PopgenError::InvalidDeme => write!(f, "invalid deme label or index"),
             PopgenError::LibraryError(msg) => write!(f, "{msg}"),
             #[cfg(feature = "tskit")]
-            PopgenError::Tskit(e) => write!(f, "tskit error: {}", e),
+            PopgenError::Tskit(e) => write!(f, "tskit conversion error: {}", e),
             #[cfg(feature = "noodles")]
             PopgenError::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
         }
