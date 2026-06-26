@@ -19,7 +19,7 @@ impl<T> StrictlyLowerTriangular<T> {
     pub fn get(&self, x: usize, y: usize) -> &T {
         let (x, y) = match x.cmp(&y) {
             Ordering::Greater => (y, x),
-            _ => (x, y)
+            _ => (x, y),
         };
         &self.0[Self::base_for(y) + x]
     }
