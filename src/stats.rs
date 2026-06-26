@@ -1,7 +1,6 @@
-use crate::util::UnorderedPair;
+use crate::util::StrictlyLowerTriangular;
 use crate::{Count, MultiPopulationCounts, MultiSiteCounts, PopgenError, PopgenResult, SiteCounts};
 use std::cmp::max;
-use std::collections::HashMap;
 
 /// A statistic calculable from and applicable to one site/locus.
 pub trait SiteStatistic {
@@ -364,7 +363,7 @@ pub struct FStatistics {
     // keep numerator and denominator apart for incremental update
     pi_s: (f64, f64),
     /// for pi_b
-    divergence_between: HashMap<UnorderedPair<usize>, f64>,
+    divergence_between: StrictlyLowerTriangular<f64>,
     pi_b: (f64, f64),
 }
 
@@ -374,7 +373,7 @@ impl FStatistics {
             populations: vec![],
             diversity_within: vec![],
             pi_s: (0.0, 0.0),
-            divergence_between: Default::default(),
+            divergence_between: StrictlyLowerTriangular::new(),
             pi_b: (0.0, 0.0),
         }
     }
@@ -398,43 +397,47 @@ impl FStatistics {
         self.pi_s.1 += weight * weight;
 
         // there are more possible pairs of populations now
-        for (i, (existing_pop, existing_pop_weight)) in self.populations.iter().enumerate() {
-            let divergence_ij = populations
-                .iter_sites_in(*existing_pop)
-                .zip(populations.iter_sites_in(population_num))
-                .map(|(s1, s2)| {
-                    if s1.total_alleles == 0 || s2.total_alleles == 0 {
-                        return Err(PopgenError::EmptySiteCounts);
-                    }
+        self.divergence_between
+            .try_extend(
+                self.populations
+                    .iter()
+                    .map(|(existing_pop, existing_pop_weight)| {
+                        let divergence_ij = populations
+                            .iter_sites_in(*existing_pop)
+                            .zip(populations.iter_sites_in(population_num))
+                            .map(|(s1, s2)| {
+                                if s1.total_alleles == 0 || s2.total_alleles == 0 {
+                                    return Err(PopgenError::EmptySiteCounts);
+                                }
 
-                    // do complement of diversity, i.e. expected homozygosity
+                                // do complement of diversity, i.e. expected homozygosity
 
-                    let total_comparisons = (s1.counts().iter().sum::<Count>()
-                        * s2.counts().iter().sum::<Count>())
-                        as i32;
-                    if total_comparisons == 0 {
-                        return Err(PopgenError::EmptySiteCounts);
-                    }
+                                let total_comparisons = (s1.counts().iter().sum::<Count>()
+                                    * s2.counts().iter().sum::<Count>())
+                                    as i32;
+                                if total_comparisons == 0 {
+                                    return Err(PopgenError::EmptySiteCounts);
+                                }
 
-                    let num_homozygous = (0..max(s1.counts.len(), s2.counts.len()))
-                        .map(|variant_num| {
-                            // how many homozygous pairs?
-                            s1.counts.get(variant_num).unwrap_or(&0)
-                                * s2.counts.get(variant_num).unwrap_or(&0)
-                        })
-                        .sum::<i64>();
+                                let num_homozygous = (0..max(s1.counts.len(), s2.counts.len()))
+                                    .map(|variant_num| {
+                                        // how many homozygous pairs?
+                                        s1.counts.get(variant_num).unwrap_or(&0)
+                                            * s2.counts.get(variant_num).unwrap_or(&0)
+                                    })
+                                    .sum::<i64>();
 
-                    Ok(1. - num_homozygous as f64 / (total_comparisons as f64))
-                })
-                .sum::<Result<f64, PopgenError>>()?;
+                                Ok(1. - num_homozygous as f64 / (total_comparisons as f64))
+                            })
+                            .sum::<Result<f64, PopgenError>>()?;
 
-            // TODO: just use a linear vector?
-            self.divergence_between
-                .insert(UnorderedPair::new(i, self.populations.len()), divergence_ij);
+                        self.pi_b.0 += weight * existing_pop_weight * divergence_ij;
+                        self.pi_b.1 += weight * existing_pop_weight;
 
-            self.pi_b.0 += weight * existing_pop_weight * divergence_ij;
-            self.pi_b.1 += weight * existing_pop_weight;
-        }
+                        PopgenResult::Ok(divergence_ij)
+                    }),
+            )?;
+
         self.populations.push((population_num, weight));
         Ok(())
     }
@@ -562,12 +565,12 @@ impl FStatistics {
     ///
     /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
     pub fn pi_between(&self, deme1: usize, deme2: usize) -> PopgenResult<f64> {
-        Ok(self.divergence_between[&UnorderedPair::new(
+        Ok(*self.divergence_between.get(
             self.internal_index_for(deme1)
                 .ok_or(PopgenError::InvalidDeme)?,
             self.internal_index_for(deme2)
                 .ok_or(PopgenError::InvalidDeme)?,
-        )])
+        ))
     }
 
     /// Calculate F2(deme1, deme2).
@@ -587,10 +590,7 @@ impl FStatistics {
             .internal_index_for(deme2)
             .ok_or(PopgenError::InvalidDeme)?;
 
-        let divergence_12 = self
-            .divergence_between
-            .get(&UnorderedPair::new(deme1_internal, deme2_internal))
-            .ok_or(PopgenError::InvalidDeme)?;
+        let divergence_12 = self.divergence_between.get(deme1_internal, deme2_internal);
         let diversity_11 = self
             .diversity_within
             .get(deme1_internal)
