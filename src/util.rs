@@ -15,6 +15,8 @@ impl<T> StrictlyLowerTriangular<T> {
     }
 
     /// Get the element corresponding to the unordered pair (x, y).
+    /// If this element exists, the order of elements does not matter.
+    /// Because this is a strictly triangular matrix, `x` may not equal `y`.
     /// Panics if this is out of range.
     pub fn get(&self, x: usize, y: usize) -> &T {
         let (x, y) = match x.cmp(&y) {
@@ -28,11 +30,12 @@ impl<T> StrictlyLowerTriangular<T> {
     ///
     /// The iterator is always consumed.
     /// The first error produced by the iterator, if any, is propagated.
+    /// A rollback to the state before this function was called is not guaranteed.
     ///
     /// If the iterator does not contain precisely `N` elements, the function panics.
     pub fn try_extend<I, E>(&mut self, elems: I) -> Result<(), E>
     where
-        I: Iterator<Item = Result<T, E>>,
+        I: IntoIterator<Item = Result<T, E>>,
     {
         self.0.reserve(self.1);
         let expected_new_len = self.0.len() + self.1;
@@ -47,4 +50,48 @@ impl<T> StrictlyLowerTriangular<T> {
         self.1 += 1;
         Ok(())
     }
+}
+
+#[test]
+fn tri_sanity() {
+    let mut tri = StrictlyLowerTriangular::<usize>::new();
+    tri.try_extend(std::iter::empty::<Result<_, ()>>()).unwrap();
+    tri.try_extend(std::iter::once(Ok::<_, ()>(1))).unwrap();
+
+    assert_eq!(tri.get(0, 1), &1);
+    assert_eq!(tri.get(1, 0), &1);
+
+    tri.try_extend([2, 3].into_iter().map(Ok::<_, ()>)).unwrap();
+    assert_eq!(tri.get(0, 2), &2);
+    assert_eq!(tri.get(2, 0), &2);
+    assert_eq!(tri.get(1, 2), &3);
+    assert_eq!(tri.get(2, 1), &3);
+}
+
+#[test]
+#[should_panic]
+fn tri_panic_1() {
+    let mut tri = StrictlyLowerTriangular::<()>::new();
+    // should be empty
+    tri.try_extend([Ok::<_, ()>(())]).unwrap();
+}
+
+#[test]
+#[should_panic]
+fn tri_panic_2() {
+    let mut tri = StrictlyLowerTriangular::<()>::new();
+    tri.try_extend(std::iter::empty::<Result<_, ()>>()).unwrap();
+
+    // should have length 1
+    tri.try_extend([(), ()].into_iter().map(Ok::<_, ()>))
+        .unwrap();
+}
+
+#[test]
+fn tri_err_propagate() {
+    let mut tri = StrictlyLowerTriangular::new();
+    tri.try_extend(std::iter::empty::<Result<_, ()>>()).unwrap();
+    tri.try_extend(std::iter::once(Ok::<_, ()>(()))).unwrap();
+
+    tri.try_extend([Ok(()), Err(())]).unwrap_err();
 }
