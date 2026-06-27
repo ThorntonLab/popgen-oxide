@@ -9,7 +9,6 @@ pub struct FromTreeSequenceOptions {}
 #[derive(Debug)]
 pub enum FromTreeSequenceError {
     Tskit(::tskit::TskitError),
-    UnexpectedNullNode,
     NodeIdOutOfRange { which: tskit::NodeId },
     SiteMissingAncestralState,
     MutationMissingDerivedState,
@@ -20,7 +19,6 @@ impl std::fmt::Display for FromTreeSequenceError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             FromTreeSequenceError::Tskit(e) => write!(f, "tskit error: {e}"),
-            FromTreeSequenceError::UnexpectedNullNode => write!(f, "unexpected null node"),
             FromTreeSequenceError::NodeIdOutOfRange { which } => {
                 write!(f, "node id {which} out of range")
             }
@@ -151,7 +149,7 @@ where
         // Should be an Err condition!
         if node_id == tskit::NodeId::NULL {
             return Err(crate::PopgenError::Tskit(
-                FromTreeSequenceError::UnexpectedNullNode,
+                FromTreeSequenceError::NodeIdOutOfRange { which: node_id },
             ));
         }
         // Should be an Err condition!
