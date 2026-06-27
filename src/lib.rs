@@ -21,7 +21,7 @@ pub type PopgenResult<T> = Result<T, PopgenError>;
 
 #[cfg(feature = "tskit")]
 pub mod from_tskit {
-    pub use super::from_tree_sequence::FromTreeSequenceError as TskitConversionError;
+    pub use super::from_tree_sequence::FromTreeSequenceError;
     pub use super::from_tree_sequence::FromTreeSequenceOptions;
 }
 
@@ -31,7 +31,7 @@ pub enum PopgenError {
     #[cfg(feature = "noodles")]
     NoodlesVCF(std::io::Error),
     #[cfg(feature = "tskit")]
-    Tskit(crate::from_tskit::TskitConversionError),
+    Tskit(crate::from_tskit::FromTreeSequenceError),
     Io(std::io::Error),
     NegativeCount(Count),
     TotalAllelesDeficient,
