@@ -15,6 +15,12 @@ pub enum FromTreeSequenceError {
     UnsortedPositions,
 }
 
+impl From<FromTreeSequenceError> for PopgenError {
+    fn from(e: FromTreeSequenceError) -> Self {
+        Self::Tskit(e)
+    }
+}
+
 impl std::fmt::Display for FromTreeSequenceError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -148,18 +154,14 @@ where
     for node_id in iter {
         // Should be an Err condition!
         if node_id == tskit::NodeId::NULL {
-            return Err(crate::PopgenError::Tskit(
-                FromTreeSequenceError::NodeIdOutOfRange { which: node_id },
-            ));
+            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id }.into());
         }
         // Should be an Err condition!
         assert!(node_id.as_usize() < num_nodes);
         if let Some(value) = td.num_sample_descendants.get_mut(node_id.as_usize()) {
             *value += 1;
         } else {
-            return Err(crate::PopgenError::Tskit(
-                FromTreeSequenceError::NodeIdOutOfRange { which: node_id },
-            ));
+            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id }.into());
         }
         num_sampled_genomes += 1;
     }
@@ -258,9 +260,7 @@ where
         *ts.sites()
             .ancestral_state(site)
             .as_ref()
-            .ok_or(PopgenError::Tskit(
-                FromTreeSequenceError::SiteMissingAncestralState,
-            ))?,
+            .ok_or(FromTreeSequenceError::SiteMissingAncestralState)?,
     );
     Ok(())
 }
@@ -291,13 +291,11 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         if num_samples_inheriting_derived_state > 0
             && num_samples_inheriting_derived_state < self.num_sampled_genomes
         {
-            let derived_state =
-                *ts.mutations()
-                    .derived_state(mutation.id())
-                    .as_ref()
-                    .ok_or(PopgenError::Tskit(
-                        FromTreeSequenceError::MutationMissingDerivedState,
-                    ))?;
+            let derived_state = *ts
+                .mutations()
+                .derived_state(mutation.id())
+                .as_ref()
+                .ok_or(FromTreeSequenceError::MutationMissingDerivedState)?;
             match self
                 .alleles_at_site
                 .iter()
@@ -401,13 +399,11 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
             self.num_samples_inheriting_derived_state_at_site.push(nd);
         }
         if any_sample_sets_polymorphic {
-            let derived_state =
-                *ts.mutations()
-                    .derived_state(mutation.id())
-                    .as_ref()
-                    .ok_or(PopgenError::Tskit(
-                        FromTreeSequenceError::MutationMissingDerivedState,
-                    ))?;
+            let derived_state = *ts
+                .mutations()
+                .derived_state(mutation.id())
+                .as_ref()
+                .ok_or(FromTreeSequenceError::MutationMissingDerivedState)?;
             match self
                 .alleles_at_site
                 .iter()
@@ -539,7 +535,7 @@ where
             if site_ref.position() < right {
                 if let Some(lp) = lastpos.as_ref() {
                     if *lp >= site_ref.position() {
-                        return Err(PopgenError::Tskit(FromTreeSequenceError::UnsortedPositions));
+                        return Err(FromTreeSequenceError::UnsortedPositions.into());
                     }
                 }
                 sample_sets.initialize_site(ts, site_ref.id())?;
