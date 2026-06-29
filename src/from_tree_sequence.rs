@@ -1,9 +1,45 @@
 use crate::{MultiPopulationCounts, MultiSiteCounts, PopgenError, PopgenResult};
 
-#[derive(Debug, Default)]
 /// Options affecting the behavior of
 /// [crate::MultiSiteCounts::try_from_tree_sequence]
+#[derive(Debug, Default)]
 pub struct FromTreeSequenceOptions {}
+
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum FromTreeSequenceError {
+    Tskit(::tskit::TskitError),
+    NodeIdOutOfRange { which: tskit::NodeId },
+    SiteMissingAncestralState,
+    MutationMissingDerivedState,
+    UnsortedPositions,
+}
+
+impl From<FromTreeSequenceError> for PopgenError {
+    fn from(e: FromTreeSequenceError) -> Self {
+        Self::Tskit(e)
+    }
+}
+
+impl std::fmt::Display for FromTreeSequenceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            FromTreeSequenceError::Tskit(e) => write!(f, "tskit error: {e}"),
+            FromTreeSequenceError::NodeIdOutOfRange { which } => {
+                write!(f, "node id {which} out of range")
+            }
+            FromTreeSequenceError::SiteMissingAncestralState => {
+                write!(f, "site is missing ancestral state")
+            }
+            FromTreeSequenceError::MutationMissingDerivedState => {
+                write!(f, "mutation is missing derived state")
+            }
+            FromTreeSequenceError::UnsortedPositions => {
+                write!(f, "positions are not in increasing order")
+            }
+        }
+    }
+}
 
 fn update_right<P, E>(right: f64, index: usize, position_slice: &P, diff_slice: &E) -> f64
 where
@@ -118,16 +154,14 @@ where
     for node_id in iter {
         // Should be an Err condition!
         if node_id == tskit::NodeId::NULL {
-            return Err(crate::PopgenError::LibraryError("null node id".to_owned()));
+            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id }.into());
         }
         // Should be an Err condition!
         assert!(node_id.as_usize() < num_nodes);
         if let Some(value) = td.num_sample_descendants.get_mut(node_id.as_usize()) {
             *value += 1;
         } else {
-            return Err(crate::PopgenError::LibraryError(format!(
-                "node id {node_id} out of range"
-            )));
+            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id }.into());
         }
         num_sampled_genomes += 1;
     }
@@ -222,9 +256,12 @@ where
     // goes away. So what we do instead is get a slice
     // for the same row whose lifetime depends on
     // the tree sequence!
-    alleles_at_site.push(*ts.sites().ancestral_state(site).as_ref().ok_or(
-        PopgenError::LibraryError("site is missing ancestral state".to_string()),
-    )?);
+    alleles_at_site.push(
+        *ts.sites()
+            .ancestral_state(site)
+            .as_ref()
+            .ok_or(FromTreeSequenceError::SiteMissingAncestralState)?,
+    );
     Ok(())
 }
 
@@ -254,9 +291,11 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         if num_samples_inheriting_derived_state > 0
             && num_samples_inheriting_derived_state < self.num_sampled_genomes
         {
-            let derived_state = *ts.mutations().derived_state(mutation.id()).as_ref().ok_or(
-                PopgenError::LibraryError("mutation is missing derived state".to_string()),
-            )?;
+            let derived_state = *ts
+                .mutations()
+                .derived_state(mutation.id())
+                .as_ref()
+                .ok_or(FromTreeSequenceError::MutationMissingDerivedState)?;
             match self
                 .alleles_at_site
                 .iter()
@@ -360,9 +399,11 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
             self.num_samples_inheriting_derived_state_at_site.push(nd);
         }
         if any_sample_sets_polymorphic {
-            let derived_state = *ts.mutations().derived_state(mutation.id()).as_ref().ok_or(
-                PopgenError::LibraryError("mutation missing derived state".to_string()),
-            )?;
+            let derived_state = *ts
+                .mutations()
+                .derived_state(mutation.id())
+                .as_ref()
+                .ok_or(FromTreeSequenceError::MutationMissingDerivedState)?;
             match self
                 .alleles_at_site
                 .iter()
@@ -494,9 +535,7 @@ where
             if site_ref.position() < right {
                 if let Some(lp) = lastpos.as_ref() {
                     if *lp >= site_ref.position() {
-                        return Err(PopgenError::LibraryError(
-                            "unsorted site positions".to_string(),
-                        ));
+                        return Err(FromTreeSequenceError::UnsortedPositions.into());
                     }
                 }
                 sample_sets.initialize_site(ts, site_ref.id())?;
