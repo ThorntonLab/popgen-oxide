@@ -172,3 +172,40 @@ def test_diversity_windows(anc_seed, mut_seed, np_seed, num_windows):
                         d-j) <= 1e-9, f"{w} {i} {d} != {j}, {tsdiv} -> {tsdiv[::2]} vs {div}"
                     break
             assert found is True
+
+
+@given(anc_seed=integers(1, 42000000), mut_seed=integers(1, 42000000), np_seed=integers(0, 42000000), num_windows=integers(4, 15))
+def test_diversity_windows_after_last_site(anc_seed, mut_seed, np_seed, num_windows):
+    yaml = """
+    time_units: generations
+    demes:
+     - name: the_one_deme
+       epochs:
+        - start_size: 10000
+    """
+    np.random.seed(np_seed)
+    graph = demes.loads(yaml)
+    demog = msprime.Demography.from_demes(graph)
+    ts = msprime.sim_ancestry(samples=[msprime.SampleSet(100)], sequence_length=1000000, demography=demog,
+                              recombination_rate=1.2e-8, random_seed=anc_seed)
+    ts = msprime.sim_mutations(ts, rate=1.2e-8, random_seed=mut_seed)
+
+    last_site = np.random.uniform(0, ts.sequence_length)
+    while last_site == 0 or last_site == ts.sequence_length:
+        last_site = np.random.uniform(0, ts.sequence_length)
+    sites = [i.id for i in ts.sites() if i.position >= last_site]
+    ts = ts.delete_sites(sites, False)
+
+    samples = [i for i in ts.samples()]
+    windows = np.linspace(0.0, ts.sequence_length, num_windows, endpoint=True)
+    tsdiv = ts.diversity(
+        sample_sets=samples, span_normalise=False, windows=windows)
+    tsholder = integration_tests.ts_holder_from_tables(ts.tables.copy())
+    windows_tupled = [(i, j)
+                      for i, j in zip(windows[0:], windows[1:])]
+    windowed_counts = integration_tests.counts_from_ts_holder_windowed_general(
+        tsholder, samples, windows_tupled)
+    div = windowed_counts.diversity()
+    assert len(tsdiv) == len(div)
+    for i, j in zip(tsdiv, div):
+        assert np.fabs(i-j) <= 1e-9

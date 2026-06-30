@@ -1072,6 +1072,39 @@ fn test_7_windows() {
 }
 
 #[test]
+fn test_7_empty_windows() {
+    let site0 = SiteData::new(
+        60.0,
+        "G",
+        vec![
+            MutationData::new(5, 20.1, "A"),
+            MutationData::new(4, 10.1, "G"),
+            MutationData::new(1, 0.1, "C"),
+        ],
+    );
+    let site1 = SiteData::new(
+        40.0,
+        "T",
+        vec![
+            MutationData::new(3, 20.1, "T"),
+            MutationData::new(2, 0.1, "G"),
+            MutationData::new(4, 10.1, "G"),
+        ],
+    );
+    let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
+    let counts = crate::MultiSiteCounts::try_from_tree_sequence_windows(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+        vec![(0., 50.), (50., 65.), (65., 100.)].into_iter(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(counts.len(), 3);
+}
+
+#[test]
 fn test_7_site_iter_reversed() {
     let site0 = SiteData::new(
         60.0,

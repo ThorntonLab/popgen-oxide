@@ -17,14 +17,20 @@ struct SingleSampleCountCollection(Vec<SingleSampleCounts>);
 
 #[pymethods]
 impl SingleSampleCountCollection {
+    /// For the purposes of testing, we treat empty count objects
+    /// as having a diversity of 0.0
     pub fn diversity(&self) -> Vec<f64> {
         self.0
             .iter()
-            .map(|c| {
-                popgen::stats::Diversity::try_from_iter_sites(c.counts.iter())
-                    .unwrap()
-                    .as_raw()
-            })
+            .map(
+                |c| match popgen::stats::Diversity::try_from_iter_sites(c.counts.iter()) {
+                    Ok(div) => div.as_raw(),
+                    Err(popgen::PopgenError::EmptySiteCounts) => {
+                        popgen::stats::Diversity::default().as_raw()
+                    }
+                    Err(e) => panic!("unexpected error {e:?}"),
+                },
+            )
             .collect::<Vec<_>>()
     }
 }
@@ -132,11 +138,16 @@ mod integration_tests {
     }
 
     #[pyfunction]
+    /// For the purposes of testing, we treat empty count objects
+    /// as having a diversity of 0.0
     fn diversity(counts: &SingleSampleCounts) -> PyResult<f64> {
-        Ok(
-            popgen::stats::Diversity::try_from_iter_sites(counts.counts.iter())
-                .unwrap()
-                .as_raw(),
-        )
+        let div = match popgen::stats::Diversity::try_from_iter_sites(counts.counts.iter()) {
+            Ok(div) => div.as_raw(),
+            Err(popgen::PopgenError::EmptySiteCounts) => {
+                popgen::stats::Diversity::default().as_raw()
+            }
+            Err(e) => panic!("unexpected error {e:?}"),
+        };
+        Ok(div)
     }
 }
