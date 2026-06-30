@@ -83,33 +83,51 @@ mod integration_tests {
         Ok(SingleSampleCounts { counts })
     }
 
+    /// This is windows the "tskit-python" way,
+    /// meaning that the windows must span the entire sequence length
+    /// of the input
     #[pyfunction]
-    /// NOTE: the implementation is extremely inefficient!
     fn counts_from_ts_holder_windowed(
         holder: &TreeSequenceHolder,
         samples: Vec<i32>,
         windows: Vec<f64>,
     ) -> PyResult<SingleSampleCountCollection> {
-        let mut vcounts = vec![];
         assert!(!windows.is_empty());
         assert!(windows[0] == 0.0);
         assert!(windows[windows.len() - 1] == holder.ts.tables().sequence_length());
-        for w in windows.windows(2) {
-            assert!(w[0] < w[1]);
-            assert!(w[0] >= 0.);
-            assert!(w[1] <= holder.ts.tables().sequence_length());
-            let counts = popgen::MultiSiteCounts::try_from_tree_sequence_site_iter(
-                &holder.ts,
-                samples.iter().map(|i| i.into()),
-                holder
-                    .ts
-                    .site_iter()
-                    .filter(|s| s.position() >= w[0] && s.position() < w[1]),
-                None,
-            )
-            .unwrap();
-            vcounts.push(SingleSampleCounts { counts });
-        }
+        let counts = popgen::MultiSiteCounts::try_from_tree_sequence_windows(
+            &holder.ts,
+            samples.iter().map(|i| i.into()),
+            windows.windows(2).map(|w| (w[0], w[1])),
+            None,
+        )
+        .unwrap();
+        let vcounts = counts
+            .into_iter()
+            .map(|c| SingleSampleCounts { counts: c })
+            .collect::<Vec<_>>();
+        Ok(SingleSampleCountCollection(vcounts))
+    }
+
+    /// More general windowing fn.
+    #[pyfunction]
+    fn counts_from_ts_holder_windowed_general(
+        holder: &TreeSequenceHolder,
+        samples: Vec<i32>,
+        windows: Vec<(f64, f64)>,
+    ) -> PyResult<SingleSampleCountCollection> {
+        assert!(!windows.is_empty());
+        let counts = popgen::MultiSiteCounts::try_from_tree_sequence_windows(
+            &holder.ts,
+            samples.iter().map(|i| i.into()),
+            windows.into_iter(),
+            None,
+        )
+        .unwrap();
+        let vcounts = counts
+            .into_iter()
+            .map(|c| SingleSampleCounts { counts: c })
+            .collect::<Vec<_>>();
         Ok(SingleSampleCountCollection(vcounts))
     }
 
