@@ -775,6 +775,11 @@ where
             }
         }
         if current_site.is_none() {
+            // If we are out of sites and there are remaining windows,
+            // push empty counts to the return value.
+            for _ in windows {
+                counts.push(MultiSiteCounts::default())
+            }
             break;
         };
         left = right;
