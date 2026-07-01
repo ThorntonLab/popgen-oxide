@@ -74,6 +74,6 @@ fn watterson_theta_from_random_data_with_missing_data() {
 
 #[test]
 fn wattherson_theta_try_from_iter_empty_is_err() {
-    let c = crate::MultiSiteCounts::default();
+    let c = crate::SampleAlleleCounts::default();
     assert!(WattersonTheta::try_from_iter_sites(c.iter()).is_err());
 }

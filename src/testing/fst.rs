@@ -1,7 +1,7 @@
 use crate::stats::GlobalStatistic;
 use crate::stats::{Diversity, FStatistics};
 use crate::testing::testdata::RandomSiteOptions;
-use crate::{MultiPopulationCounts, PopgenError};
+use crate::{MultiSampleAlleleCounts, PopgenError};
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -9,7 +9,7 @@ use std::collections::HashMap;
 fn f_st_no_pops() {
     // equivalently, could have populations but exclude them all...
     // but this is simpler
-    let counts = MultiPopulationCounts::default();
+    let counts = MultiSampleAlleleCounts::default();
     assert!(matches!(
         FStatistics::try_from_populations(&counts, |_| Some(1.0)),
         Err(PopgenError::CalculationError)
@@ -21,7 +21,7 @@ fn f_st_empty_pops() {
     for n_pops in [1, 2, 5] {
         assert!(matches!(
             FStatistics::try_from_populations(
-                &MultiPopulationCounts::of_empty_populations(n_pops),
+                &MultiSampleAlleleCounts::of_empty_populations(n_pops),
                 |_| { Some(1.0) }
             ),
             Err(PopgenError::EmptySiteCounts)
@@ -31,7 +31,7 @@ fn f_st_empty_pops() {
 
 #[test]
 fn f_st() {
-    let mut populations = MultiPopulationCounts::of_empty_populations(3);
+    let mut populations = MultiSampleAlleleCounts::of_empty_populations(3);
 
     let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
     let weights = [1.0, 2.0, 3.0];
@@ -110,7 +110,7 @@ fn f_st() {
 
 #[test]
 fn f_st_skip_indices() {
-    let mut populations = MultiPopulationCounts::of_empty_populations(3);
+    let mut populations = MultiSampleAlleleCounts::of_empty_populations(3);
 
     let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
     let weights = [Some(1.0), None, Some(3.0)];
@@ -157,7 +157,7 @@ fn f_st_from_random_data() {
                 })
                 .collect::<Vec<_>>();
 
-            let mut counts = MultiPopulationCounts::of_empty_populations(n_pops);
+            let mut counts = MultiSampleAlleleCounts::of_empty_populations(n_pops);
             #[expect(
                 clippy::needless_range_loop,
                 reason = "https://github.com/rust-lang/rust-clippy/issues/16344"

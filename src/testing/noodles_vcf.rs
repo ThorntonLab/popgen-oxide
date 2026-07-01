@@ -1,5 +1,5 @@
 use crate::adapter::vcf::{record_to_genotypes_adapter, VCFToPopulationsAdapter};
-use crate::counts::MultiSiteCounts;
+use crate::counts::SampleAlleleCounts;
 use crate::{AlleleID, PopgenResult};
 use noodles::vcf::header::record::value::map::{Contig, Format};
 use noodles::vcf::header::record::value::Map;
@@ -137,7 +137,10 @@ where
     Some(String::from_utf8(buf).unwrap())
 }
 
-fn counts_from_vcf(vcf_buf: &str, ploidy: usize) -> (Vec<Vec<Option<AlleleID>>>, MultiSiteCounts) {
+fn counts_from_vcf(
+    vcf_buf: &str,
+    ploidy: usize,
+) -> (Vec<Vec<Option<AlleleID>>>, SampleAlleleCounts) {
     let mut reader = noodles::vcf::io::reader::Builder::default()
         .build_from_reader(vcf_buf.as_bytes())
         .unwrap();
@@ -150,7 +153,7 @@ fn counts_from_vcf(vcf_buf: &str, ploidy: usize) -> (Vec<Vec<Option<AlleleID>>>,
         .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy))
         .collect::<PopgenResult<Vec<_>>>()
         .unwrap();
-    let counts = MultiSiteCounts::try_from_tabular(all_alleles.iter().cloned()).unwrap();
+    let counts = SampleAlleleCounts::try_from_tabular(all_alleles.iter().cloned()).unwrap();
     (all_alleles, counts)
 }
 
