@@ -76,7 +76,7 @@ pub trait GlobalStatistic {
 ///
 /// # Example
 /// ```
-/// # use popgen::{PopgenResult, SiteCounts};
+/// # use popgen::{PopgenResult, AlleleCounts};
 /// # use popgen::stats::{GlobalStatistic, SiteComposable};
 /// #
 /// // a very simple statistic
@@ -91,7 +91,7 @@ pub trait GlobalStatistic {
 /// }
 ///
 /// impl GlobalStatistic for NumSites {
-///     fn try_add_site(&mut self, site: SiteCounts) -> PopgenResult<()> {
+///     fn try_add_site(&mut self, site: AlleleCounts) -> PopgenResult<()> {
 ///         self.0 += 1;
 ///         Ok(())
 ///     }
