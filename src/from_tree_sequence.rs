@@ -1,7 +1,7 @@
 use crate::{MultiSampleAlleleCounts, PopgenError, PopgenResult, SampleAlleleCounts};
 
 /// Options affecting the behavior of
-/// [crate::MultiSiteCounts::try_from_tree_sequence]
+/// [crate::SampleAlleleCounts::try_from_tree_sequence]
 #[derive(Debug, Default)]
 pub struct FromTreeSequenceOptions {}
 
