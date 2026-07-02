@@ -187,6 +187,9 @@ where
 }
 
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
+///
+/// Note that this statistic is **not defined** over an empty dataset; the denominator is the number of valid pairwise comparisons, which is 0 in this case.
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to deliberately replace [`PopgenError::EmptySiteCounts`].
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
 pub struct Diversity(f64);
@@ -227,6 +230,9 @@ impl SiteComposable for Diversity {
 }
 
 /// Watterson's theta: see [Watterson's article](https://doi.org/10.1016%2F0040-5809%2875%2990020-9) and [Wikipedia](https://en.wikipedia.org/wiki/Watterson_estimator)
+///
+/// This statistic will never return [`PopgenError::EmptySiteCounts`], because it has a well-defined meaning under 0 sites.
+/// The value returned by [`Default`] carries this meaning.
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
 pub struct WattersonTheta(f64);
@@ -275,6 +281,9 @@ impl SiteComposable for WattersonTheta {
 
 /// Tajima's D, as proposed in [Tajima 1989](https://academic.oup.com/genetics/article/123/3/585/5998755?login=false).
 /// See also [Wikipedia](https://en.wikipedia.org/wiki/Tajima%27s_D#Mathematical_details) for the equations restated.
+///
+/// Note that this statistic is **not defined** over an empty dataset, because it depends on [`Diversity`] (see that documentation).
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to deliberately replace [`PopgenError::EmptySiteCounts`].
 #[derive(Debug, Copy, Clone, Default)]
 pub struct TajimasD {
     k_hat: Diversity,
@@ -449,7 +458,7 @@ impl FStatistics {
     /// Populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
     /// The newly created struct immutably borrows from `self`.
     /// # Errors
-    /// - If no sites are selected for inclusion.
+    /// - If no populations are selected for inclusion.
     /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
     pub fn try_from_populations(
         populations: &MultiSampleAlleleCounts,
