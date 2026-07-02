@@ -200,7 +200,7 @@ where
 /// Note that this statistic is **not defined** over an empty dataset; the denominator is the number of valid pairwise comparisons, which is 0 in this case.
 /// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to deliberately replace [`PopgenError::EmptySiteCounts`].
 ///
-/// Because we add data site-by-site, and diversity is additive over sites, the default value is the additive identity:
+/// The default value is `0.0`:
 /// ```
 /// # use popgen::stats::Diversity;
 /// use popgen::stats::GlobalStatistic;
@@ -251,7 +251,7 @@ impl SiteComposable for Diversity {
 /// Note that this statistic is **not defined** over an empty dataset, because this would require the `-1`st harmonic number.
 /// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to deliberately replace [`PopgenError::EmptySiteCounts`]
 ///
-/// Because we add data site-by-site, and Watterson's theta is additive over sites, the default value is the additive identity:
+/// The default value is `0.0`:
 /// ```
 /// # use popgen::stats::WattersonsTheta;
 /// use popgen::stats::GlobalStatistic;
