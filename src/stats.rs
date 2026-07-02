@@ -229,9 +229,9 @@ impl SiteComposable for Diversity {
 /// Watterson's theta: see [Watterson's article](https://doi.org/10.1016%2F0040-5809%2875%2990020-9) and [Wikipedia](https://en.wikipedia.org/wiki/Watterson_estimator)
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
-pub struct WattersonTheta(f64);
+pub struct WattersonsTheta(f64);
 
-impl GlobalStatistic for WattersonTheta {
+impl GlobalStatistic for WattersonsTheta {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // trying our very hardest to encourage optimization and SIMD here
@@ -266,7 +266,7 @@ impl GlobalStatistic for WattersonTheta {
     }
 }
 
-impl SiteComposable for WattersonTheta {
+impl SiteComposable for WattersonsTheta {
     fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
         self.0 += other.0;
         Ok(())
@@ -278,7 +278,7 @@ impl SiteComposable for WattersonTheta {
 #[derive(Debug, Copy, Clone, Default)]
 pub struct TajimasD {
     k_hat: Diversity,
-    theta: WattersonTheta,
+    theta: WattersonsTheta,
     num_samples: usize,
     num_sites: usize,
 }
@@ -338,7 +338,7 @@ impl GlobalStatistic for TajimasD {
 impl SiteComposable for TajimasD
 where
     Diversity: SiteComposable,
-    WattersonTheta: SiteComposable,
+    WattersonsTheta: SiteComposable,
 {
     fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
         self.k_hat.try_combine(&other.k_hat)?;
