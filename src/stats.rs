@@ -14,24 +14,33 @@ pub trait SiteStatistic {
 pub trait GlobalStatistic {
     /// Instantiate a `Self` from an iterator over [`AlleleCounts`].
     ///
-    /// The implementation depends on [`GlobalStatistic::try_add_site`].
+    /// The default implementation depends on [`GlobalStatistic::try_add_site`].
+    /// It also errors on an empty iterator, because the semantics of an empty iterator are unclear:
+    /// * Were all sites monomorphic?
+    /// * Were there no samples in this region?
+    /// * Was data filtered out for another reason?
+    /// * Is the statistic implementing this trait well-defined for such an empty input?
+    ///   The default implementation assumes it is not.
+    ///
+    /// Implementors are free to re-implement this function to change those semantics, including handling [`PopgenError`] variants as they deem appropriate.
     ///
     /// # Errors
     ///
-    /// * If the iterator is empty, implementors may return [`PopgenError::EmptySiteCounts`],
-    ///   because many statistics are not meaningfully defined over 0 sites.
+    /// * If the iterator is empty, implementors may return [`PopgenError::EmptySiteCounts`] (see above for potential reasons).
     /// * Any error resulting from adding a single site ([`Self::try_add_site`]) may also be raised.
-    fn try_from_iter_sites<'counts, I>(iter: I) -> Result<Self, PopgenError>
+    fn try_from_iter_sites<'counts, I>(mut iter: I) -> Result<Self, PopgenError>
     where
         I: Iterator<Item = AlleleCounts<'counts>>,
         Self: Default,
     {
-        let mut p = iter.peekable();
-        if p.peek().is_some() {
+        let first = iter.next();
+        if let Some(f) = first {
             let mut ret = Self::default();
-            for site in p {
+            ret.try_add_site(f)?;
+            for site in iter {
                 ret.try_add_site(site)?
             }
+
             Ok(ret)
         } else {
             Err(PopgenError::EmptySiteCounts)
@@ -187,6 +196,17 @@ where
 }
 
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
+///
+/// Note that this statistic is **not defined** over an empty dataset; the denominator is the number of valid pairwise comparisons, which is 0 in this case.
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
+///
+/// The default value is `0.0`:
+/// ```
+/// # use popgen::stats::Diversity;
+/// use popgen::stats::GlobalStatistic;
+///
+/// assert_eq!(Diversity::default().as_raw(), 0.0);
+/// ```
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
 pub struct Diversity(f64);
@@ -227,6 +247,17 @@ impl SiteComposable for Diversity {
 }
 
 /// Watterson's theta: see [Watterson's article](https://doi.org/10.1016%2F0040-5809%2875%2990020-9) and [Wikipedia](https://en.wikipedia.org/wiki/Watterson_estimator)
+///
+/// Note that this statistic is **not defined** over an empty dataset, because there would be zero samples.
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
+///
+/// The default value is `0.0`:
+/// ```
+/// # use popgen::stats::WattersonsTheta;
+/// use popgen::stats::GlobalStatistic;
+///
+/// assert_eq!(WattersonsTheta::default().as_raw(), 0.0);
+/// ```
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
 pub struct WattersonsTheta(f64);
@@ -275,6 +306,11 @@ impl SiteComposable for WattersonsTheta {
 
 /// Tajima's D, as proposed in [Tajima 1989](https://academic.oup.com/genetics/article/123/3/585/5998755?login=false).
 /// See also [Wikipedia](https://en.wikipedia.org/wiki/Tajima%27s_D#Mathematical_details) for the equations restated.
+///
+/// Note that this statistic is **not defined** over an empty dataset, because it depends on [`Diversity`] (see that documentation).
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
+///
+/// Tajima's D is derived from [`Diversity`] and [`WattersonsTheta`], and [`Diversity`] is not defined over an empty dataset, so the default value is not meaningful.
 #[derive(Debug, Copy, Clone, Default)]
 pub struct TajimasD {
     k_hat: Diversity,
@@ -449,7 +485,7 @@ impl FStatistics {
     /// Populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
     /// The newly created struct immutably borrows from `self`.
     /// # Errors
-    /// - If no sites are selected for inclusion.
+    /// - If no populations are selected for inclusion.
     /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
     pub fn try_from_populations(
         populations: &MultiSampleAlleleCounts,
