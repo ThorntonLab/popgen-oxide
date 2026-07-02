@@ -190,6 +190,14 @@ where
 ///
 /// Note that this statistic is **not defined** over an empty dataset; the denominator is the number of valid pairwise comparisons, which is 0 in this case.
 /// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to deliberately replace [`PopgenError::EmptySiteCounts`].
+///
+/// Because we add data site-by-site, and diversity is additive over sites, the default value is the additive identity:
+/// ```
+/// # use popgen::stats::Diversity;
+/// use popgen::stats::GlobalStatistic;
+///
+/// assert_eq!(Diversity::default().as_raw(), 0.0);
+/// ```
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
 pub struct Diversity(f64);
@@ -233,6 +241,14 @@ impl SiteComposable for Diversity {
 ///
 /// This statistic will never return [`PopgenError::EmptySiteCounts`], because it has a well-defined meaning under 0 sites.
 /// The value returned by [`Default`] carries this meaning.
+///
+/// Because we add data site-by-site, and Watterson's theta is additive over sites, the default value is the additive identity:
+/// ```
+/// # use popgen::stats::WattersonTheta;
+/// use popgen::stats::GlobalStatistic;
+///
+/// assert_eq!(WattersonTheta::default().as_raw(), 0.0);
+/// ```
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
 pub struct WattersonsTheta(f64);
@@ -284,6 +300,14 @@ impl SiteComposable for WattersonsTheta {
 ///
 /// Note that this statistic is **not defined** over an empty dataset, because it depends on [`Diversity`] (see that documentation).
 /// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to deliberately replace [`PopgenError::EmptySiteCounts`].
+///
+/// Because we add data site-by-site, and diversity is additive over sites, the default value is the additive identity:
+/// ```
+/// # use popgen::stats::TajimasD;
+/// use popgen::stats::GlobalStatistic;
+///
+/// assert_eq!(TajimasD::default().as_raw(), 0.0);
+/// ```
 #[derive(Debug, Copy, Clone, Default)]
 pub struct TajimasD {
     k_hat: Diversity,
