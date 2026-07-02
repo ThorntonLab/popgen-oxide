@@ -198,7 +198,7 @@ where
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 ///
 /// Note that this statistic is **not defined** over an empty dataset; the denominator is the number of valid pairwise comparisons, which is 0 in this case.
-/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to deliberately replace [`PopgenError::EmptySiteCounts`].
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
 ///
 /// The default value is `0.0`:
 /// ```
@@ -249,7 +249,7 @@ impl SiteComposable for Diversity {
 /// Watterson's theta: see [Watterson's article](https://doi.org/10.1016%2F0040-5809%2875%2990020-9) and [Wikipedia](https://en.wikipedia.org/wiki/Watterson_estimator)
 ///
 /// Note that this statistic is **not defined** over an empty dataset, because this would require the `-1`st harmonic number.
-/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to deliberately replace [`PopgenError::EmptySiteCounts`]
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
 ///
 /// The default value is `0.0`:
 /// ```
@@ -308,7 +308,7 @@ impl SiteComposable for WattersonsTheta {
 /// See also [Wikipedia](https://en.wikipedia.org/wiki/Tajima%27s_D#Mathematical_details) for the equations restated.
 ///
 /// Note that this statistic is **not defined** over an empty dataset, because it depends on [`Diversity`] (see that documentation).
-/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to deliberately replace [`PopgenError::EmptySiteCounts`].
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
 ///
 /// Tajima's D is derived from [`Diversity`] and [`WattersonTheta`], and [`Diversity`] is not defined over an empty dataset, so the default value is not meaningful.
 #[derive(Debug, Copy, Clone, Default)]
