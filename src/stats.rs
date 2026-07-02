@@ -22,7 +22,7 @@ pub trait GlobalStatistic {
     /// * Is the statistic implementing this trait well-defined for such an empty input?
     ///   The default implementation assumes it is not.
     ///
-    /// Implementors are free to re-implement this function to change those semantics.
+    /// Implementors are free to re-implement this function to change those semantics, including handling [`PopgenError`] variants as they deem appropriate.
     ///
     /// # Errors
     ///
