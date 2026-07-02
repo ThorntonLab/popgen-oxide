@@ -253,10 +253,10 @@ impl SiteComposable for Diversity {
 ///
 /// Because we add data site-by-site, and Watterson's theta is additive over sites, the default value is the additive identity:
 /// ```
-/// # use popgen::stats::WattersonTheta;
+/// # use popgen::stats::WattersonsTheta;
 /// use popgen::stats::GlobalStatistic;
 ///
-/// assert_eq!(WattersonTheta::default().as_raw(), 0.0);
+/// assert_eq!(WattersonsTheta::default().as_raw(), 0.0);
 /// ```
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
