@@ -1,4 +1,4 @@
-use crate::stats::{Diversity, GlobalStatistic, SiteComposable, WattersonTheta};
+use crate::stats::{Diversity, GlobalStatistic, SiteComposable, WattersonsTheta};
 use crate::PopgenError;
 use proptest::collection::vec;
 use proptest::proptest;
@@ -97,13 +97,13 @@ fn watterson_theta_equivalent_concurrent(
     );
 
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-    let theta = counts.iter().try_fold(WattersonTheta::default(), |mut theta, s| {
+    let theta = counts.iter().try_fold(WattersonsTheta::default(), |mut theta, s| {
         theta.try_add_site(s)?;
         Ok::<_, PopgenError>(theta)
     });
 
     let mut components = counts.iter().map(|s| {
-        let mut theta = WattersonTheta::default();
+        let mut theta = WattersonsTheta::default();
         theta.try_add_site(s)?;
         Ok::<_, PopgenError>(theta)
     }).collect::<Vec<_>>();
@@ -127,7 +127,7 @@ fn watterson_theta_equivalent_concurrent(
     let parallel = if !components.is_empty() {
         components.remove(0)
     } else {
-        Ok(WattersonTheta::default())
+        Ok(WattersonsTheta::default())
     };
 
     match theta {
