@@ -310,7 +310,7 @@ impl SiteComposable for WattersonsTheta {
 /// Note that this statistic is **not defined** over an empty dataset, because it depends on [`Diversity`] (see that documentation).
 /// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
 ///
-/// Tajima's D is derived from [`Diversity`] and [`WattersonTheta`], and [`Diversity`] is not defined over an empty dataset, so the default value is not meaningful.
+/// Tajima's D is derived from [`Diversity`] and [`WattersonsTheta`], and [`Diversity`] is not defined over an empty dataset, so the default value is not meaningful.
 #[derive(Debug, Copy, Clone, Default)]
 pub struct TajimasD {
     k_hat: Diversity,
