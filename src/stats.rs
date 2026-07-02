@@ -248,7 +248,7 @@ impl SiteComposable for Diversity {
 
 /// Watterson's theta: see [Watterson's article](https://doi.org/10.1016%2F0040-5809%2875%2990020-9) and [Wikipedia](https://en.wikipedia.org/wiki/Watterson_estimator)
 ///
-/// Note that this statistic is **not defined** over an empty dataset, because this would require the `-1`st harmonic number.
+/// Note that this statistic is **not defined** over an empty dataset, because there would be zero samples.
 /// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
 ///
 /// The default value is `0.0`:
