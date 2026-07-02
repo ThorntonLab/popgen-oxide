@@ -8,7 +8,7 @@ struct TreeSequenceHolder {
 
 #[pyclass]
 struct SingleSampleCounts {
-    counts: popgen::MultiSiteCounts,
+    counts: popgen::SampleAlleleCounts,
 }
 
 #[pyclass]
@@ -62,7 +62,7 @@ mod integration_tests {
 
     #[pyfunction]
     fn counts_from_ts_holder(holder: &TreeSequenceHolder) -> PyResult<SingleSampleCounts> {
-        let counts = popgen::MultiSiteCounts::try_from_tree_sequence(
+        let counts = popgen::SampleAlleleCounts::try_from_tree_sequence(
             &holder.ts,
             holder
                 .ts
@@ -80,7 +80,7 @@ mod integration_tests {
         holder: &TreeSequenceHolder,
         samples: Vec<i32>,
     ) -> PyResult<SingleSampleCounts> {
-        let counts = popgen::MultiSiteCounts::try_from_tree_sequence(
+        let counts = popgen::SampleAlleleCounts::try_from_tree_sequence(
             &holder.ts,
             samples.into_iter().map(|i| i.into()),
             None,
@@ -101,7 +101,7 @@ mod integration_tests {
         assert!(!windows.is_empty());
         assert!(windows[0] == 0.0);
         assert!(windows[windows.len() - 1] == holder.ts.tables().sequence_length());
-        let counts = popgen::MultiSiteCounts::try_from_tree_sequence_windows(
+        let counts = popgen::SampleAlleleCounts::try_from_tree_sequence_windows(
             &holder.ts,
             samples.iter().map(|i| i.into()),
             windows.windows(2).map(|w| (w[0], w[1])),
@@ -123,7 +123,7 @@ mod integration_tests {
         windows: Vec<(f64, f64)>,
     ) -> PyResult<SingleSampleCountCollection> {
         assert!(!windows.is_empty());
-        let counts = popgen::MultiSiteCounts::try_from_tree_sequence_windows(
+        let counts = popgen::SampleAlleleCounts::try_from_tree_sequence_windows(
             &holder.ts,
             samples.iter().map(|i| i.into()),
             windows.into_iter(),

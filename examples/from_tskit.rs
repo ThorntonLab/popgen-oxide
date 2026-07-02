@@ -1,7 +1,7 @@
-use popgen::MultiSiteCounts;
+use popgen::SampleAlleleCounts;
 
 fn process_nodes_from_ts(ts: &tskit::TreeSequence) {
-    let counts = MultiSiteCounts::try_from_tree_sequence(
+    let counts = SampleAlleleCounts::try_from_tree_sequence(
         ts,
         ts.node_iter().filter_map(|n| {
             if n.flags().is_sample() {
@@ -45,7 +45,7 @@ fn process_individuals_from_ts(ts: &tskit::TreeSequence) {
         }
     }
     if ts.individuals().num_rows() > 0 {
-        let counts = MultiSiteCounts::try_from_tree_sequence(
+        let counts = SampleAlleleCounts::try_from_tree_sequence(
             ts,
             ts.individual_iter().flat_map(|i| IndividualNodeIter {
                 ind: i,

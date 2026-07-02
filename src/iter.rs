@@ -1,13 +1,13 @@
-use crate::{MultiSiteCounts, SiteCounts};
+use crate::{AlleleCounts, SampleAlleleCounts};
 
-pub struct MultiSiteCountsIter<'inner> {
-    pub(crate) inner: &'inner MultiSiteCounts,
+pub struct SampleAlleleCountsIter<'inner> {
+    pub(crate) inner: &'inner SampleAlleleCounts,
     // index of next for forward iter, index of next for reverse iter
     pub(crate) next_site_ind: (usize, usize),
 }
 
-impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
-    type Item = SiteCounts<'inner>;
+impl<'inner> Iterator for SampleAlleleCountsIter<'inner> {
+    type Item = AlleleCounts<'inner>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let ret = self.inner.get(self.next_site_ind.0)?;
@@ -33,7 +33,7 @@ impl<'inner> Iterator for MultiSiteCountsIter<'inner> {
     }
 }
 
-impl DoubleEndedIterator for MultiSiteCountsIter<'_> {
+impl DoubleEndedIterator for SampleAlleleCountsIter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let ret = self.inner.get(self.next_site_ind.1)?;
 
@@ -48,7 +48,7 @@ impl DoubleEndedIterator for MultiSiteCountsIter<'_> {
     }
 }
 
-impl ExactSizeIterator for MultiSiteCountsIter<'_> {
+impl ExactSizeIterator for SampleAlleleCountsIter<'_> {
     fn len(&self) -> usize {
         if self.inner.is_empty() {
             0
@@ -60,26 +60,26 @@ impl ExactSizeIterator for MultiSiteCountsIter<'_> {
 
 #[test]
 fn test_iteration_over_empty() {
-    let counts = MultiSiteCounts::default();
+    let counts = SampleAlleleCounts::default();
     assert_eq!(counts.iter().count(), 0)
 }
 
 #[test]
 fn test_reverse_iteration_over_empty() {
-    let counts = MultiSiteCounts::default();
+    let counts = SampleAlleleCounts::default();
     assert_eq!(counts.iter().rev().count(), 0)
 }
 
 #[test]
 fn test_count() {
-    let mut counts = MultiSiteCounts::default();
+    let mut counts = SampleAlleleCounts::default();
     counts.add_site_from_counts([1, 2, 3], 6).unwrap();
     assert_eq!(counts.iter().count(), 1);
 }
 
 #[cfg(test)]
-fn make_nonempty_counts() -> MultiSiteCounts {
-    let mut counts = MultiSiteCounts::default();
+fn make_nonempty_counts() -> SampleAlleleCounts {
+    let mut counts = SampleAlleleCounts::default();
     counts.add_site_from_counts([1, 2, 3], 6).unwrap();
     counts.add_site_from_counts([1, 1, 1], 3).unwrap();
     counts.add_site_from_counts([1, 5, 1], 7).unwrap();
@@ -130,7 +130,7 @@ fn test_exhaust_back() {
 
 #[test]
 fn test_single_site_getters() {
-    let mut counts = MultiSiteCounts::default();
+    let mut counts = SampleAlleleCounts::default();
     counts.add_site_from_counts([9, 8, 7], 35).unwrap();
     let site = counts.get(0).unwrap();
     assert_eq!(site.counts(), &[9, 8, 7]);

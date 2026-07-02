@@ -1,5 +1,5 @@
 use noodles::vcf;
-use popgen::{adapter::vcf::record_to_genotypes_adapter, MultiSiteCounts};
+use popgen::{adapter::vcf::record_to_genotypes_adapter, SampleAlleleCounts};
 
 static VCF_FILE: &str = r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
@@ -25,6 +25,6 @@ fn main() {
         .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy).unwrap());
 
     // this constructor is iterator-based
-    let counts = MultiSiteCounts::try_from_tabular(all_alleles).unwrap();
+    let counts = SampleAlleleCounts::try_from_tabular(all_alleles).unwrap();
     counts.iter().for_each(|c| println!("{c:?}"));
 }

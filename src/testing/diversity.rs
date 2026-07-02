@@ -74,6 +74,6 @@ fn pi_allele_frequency_of_one() {
 
 #[test]
 fn pi_try_from_iter_empty_is_err() {
-    let c = crate::MultiSiteCounts::default();
+    let c = crate::SampleAlleleCounts::default();
     assert!(Diversity::try_from_iter_sites(c.iter()).is_err());
 }

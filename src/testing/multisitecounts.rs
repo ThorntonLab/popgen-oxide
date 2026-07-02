@@ -1,6 +1,6 @@
-use crate::{AlleleID, SiteCounts};
+use crate::{AlleleCounts, AlleleID};
 
-use crate::counts::MultiSiteCounts;
+use crate::counts::SampleAlleleCounts;
 use rand::rng;
 use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
@@ -40,7 +40,7 @@ fn load_raw() {
         ),
     ];
 
-    let counts = MultiSiteCounts::try_from_tabular(sites).unwrap();
+    let counts = SampleAlleleCounts::try_from_tabular(sites).unwrap();
 
     assert_eq!(counts.len(), 2);
     assert!(!counts.is_empty());
@@ -48,14 +48,14 @@ fn load_raw() {
     let mut iter = counts.iter();
     assert_eq!(
         iter.next().unwrap(),
-        SiteCounts {
+        AlleleCounts {
             counts: &[8, 7],
             total_alleles: 8 + 7 + 4,
         }
     );
     assert_eq!(
         iter.next().unwrap(),
-        SiteCounts {
+        AlleleCounts {
             counts: &[341, 69, 926],
             total_alleles: 341 + 69 + 926 + 300,
         }
@@ -65,7 +65,7 @@ fn load_raw() {
 
 #[test]
 fn empty_counts() {
-    let counts = MultiSiteCounts::default();
+    let counts = SampleAlleleCounts::default();
 
     assert!(counts.is_empty());
     assert_eq!(counts.len(), 0);
@@ -74,7 +74,7 @@ fn empty_counts() {
 #[test]
 #[should_panic]
 fn bad_site_negative_count() {
-    let mut counts = MultiSiteCounts::default();
+    let mut counts = SampleAlleleCounts::default();
 
     counts.add_site_from_counts([-1, -2, -3], 100).unwrap();
 }
@@ -82,14 +82,14 @@ fn bad_site_negative_count() {
 #[test]
 #[should_panic]
 fn bad_site_empty_count() {
-    let mut counts = MultiSiteCounts::default();
+    let mut counts = SampleAlleleCounts::default();
     counts.add_site_from_counts([], 100).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn bad_site_deficient_total() {
-    let mut counts = MultiSiteCounts::default();
+    let mut counts = SampleAlleleCounts::default();
 
     counts.add_site_from_counts([1, 2, 3], 1).unwrap();
 }

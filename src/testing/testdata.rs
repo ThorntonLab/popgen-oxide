@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::MultiSiteCounts;
+use crate::SampleAlleleCounts;
 use rand::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -133,8 +133,8 @@ pub fn random_site_rng(
     }
 }
 
-pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> MultiSiteCounts {
-    let mut mcounts = MultiSiteCounts::default();
+pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> SampleAlleleCounts {
+    let mut mcounts = SampleAlleleCounts::default();
     for s in sites {
         // The number of INDIVIDUAL genotypes at this site
         let num_samples = s.iter().count();

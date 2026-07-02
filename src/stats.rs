@@ -1,16 +1,18 @@
 use crate::util::StrictlyLowerTriangular;
-use crate::{Count, MultiPopulationCounts, MultiSiteCounts, PopgenError, PopgenResult, SiteCounts};
+use crate::{
+    AlleleCounts, Count, MultiSampleAlleleCounts, PopgenError, PopgenResult, SampleAlleleCounts,
+};
 use std::cmp::max;
 
 /// A statistic calculable from and applicable to one site/locus.
 pub trait SiteStatistic {
-    fn from_site(site: SiteCounts) -> Self;
+    fn from_site(site: AlleleCounts) -> Self;
     fn as_raw(&self) -> f64;
 }
 
 /// A statistic calculable from and applicable to a collection of sites/loci.
 pub trait GlobalStatistic {
-    /// Instantiate a `Self` from an iterator over [`SiteCounts`].
+    /// Instantiate a `Self` from an iterator over [`AlleleCounts`].
     ///
     /// The implementation depends on [`GlobalStatistic::try_add_site`].
     ///
@@ -21,7 +23,7 @@ pub trait GlobalStatistic {
     /// * Any error resulting from adding a single site ([`Self::try_add_site`]) may also be raised.
     fn try_from_iter_sites<'counts, I>(iter: I) -> Result<Self, PopgenError>
     where
-        I: Iterator<Item = SiteCounts<'counts>>,
+        I: Iterator<Item = AlleleCounts<'counts>>,
         Self: Default,
     {
         let mut p = iter.peekable();
@@ -36,7 +38,7 @@ pub trait GlobalStatistic {
         }
     }
 
-    /// Update the value of a statistic from a [`SiteCounts`]
+    /// Update the value of a statistic from a [`AlleleCounts`]
     ///
     /// # Errors
     ///
@@ -48,13 +50,13 @@ pub trait GlobalStatistic {
     /// In general, one cannot assume that an update can be rolled
     /// back in the event of an error.
     ///
-    /// [`MultiSiteCounts`] and [`crate::MultiPopulationCounts`] are designed
+    /// [`SampleAlleleCounts`] and [`crate::MultiSampleAlleleCounts`] are designed
     /// such that `site` cannot contain empty data. However, it is valuable
     /// for implementations of this function to at least do the following:
     /// ```no_compile
     /// debug_assert!(!site.counts().is_empty());
     /// ```
-    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError>;
+    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError>;
     fn as_raw(&self) -> f64;
 }
 
@@ -74,7 +76,7 @@ pub trait GlobalStatistic {
 ///
 /// # Example
 /// ```
-/// # use popgen::{PopgenResult, SiteCounts};
+/// # use popgen::{PopgenResult, AlleleCounts};
 /// # use popgen::stats::{GlobalStatistic, SiteComposable};
 /// #
 /// // a very simple statistic
@@ -89,7 +91,7 @@ pub trait GlobalStatistic {
 /// }
 ///
 /// impl GlobalStatistic for NumSites {
-///     fn try_add_site(&mut self, site: SiteCounts) -> PopgenResult<()> {
+///     fn try_add_site(&mut self, site: AlleleCounts) -> PopgenResult<()> {
 ///         self.0 += 1;
 ///         Ok(())
 ///     }
@@ -112,7 +114,7 @@ pub fn windowed<Stat, GetWindow, E>(
 ) -> PopgenResult<Result<Vec<Stat>, E>>
 where
     Stat: SiteComposable + Default + Clone,
-    GetWindow: FnMut(i64, i64) -> Result<MultiSiteCounts, E>,
+    GetWindow: FnMut(i64, i64) -> Result<SampleAlleleCounts, E>,
 {
     let use_add_remove = window_size > stride;
     let mut intersection = None::<Stat>;
@@ -190,7 +192,7 @@ where
 pub struct Diversity(f64);
 
 impl GlobalStatistic for Diversity {
-    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // technically should divide both by two here and below but it cancels out
         let num_pairs = {
@@ -230,7 +232,7 @@ impl SiteComposable for Diversity {
 pub struct WattersonTheta(f64);
 
 impl GlobalStatistic for WattersonTheta {
-    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // trying our very hardest to encourage optimization and SIMD here
         // also optimizing with the typical two-element slice in mind
@@ -282,7 +284,7 @@ pub struct TajimasD {
 }
 
 impl GlobalStatistic for TajimasD {
-    fn try_add_site(&mut self, site: SiteCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         self.k_hat.try_add_site(site.clone())?;
         self.theta.try_add_site(site.clone())?;
@@ -349,8 +351,8 @@ where
 
 /// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953) and [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
 ///
-/// Construction of this type from an arbitrary collection of [`MultiSiteCounts`] is not sound,
-/// because the invariant of [`crate::counts::MultiPopulationCounts`] is required.
+/// Construction of this type from an arbitrary collection of [`SampleAlleleCounts`] is not sound,
+/// because the invariant of [`crate::counts::MultiSampleAlleleCounts`] is required.
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 #[derive(Clone, Debug)]
@@ -385,7 +387,7 @@ impl FStatistics {
     /// See [`crate::stats::GlobalPi`].
     fn try_add_population(
         &mut self,
-        populations: &MultiPopulationCounts,
+        populations: &MultiSampleAlleleCounts,
         population_num: usize,
         weight: f64,
     ) -> Result<(), PopgenError> {
@@ -442,7 +444,7 @@ impl FStatistics {
         Ok(())
     }
 
-    /// Stream selected populations of a [`MultiPopulationCounts`] into a computation of [`FStatistics`].
+    /// Stream selected populations of a [`MultiSampleAlleleCounts`] into a computation of [`FStatistics`].
     ///
     /// Populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
     /// The newly created struct immutably borrows from `self`.
@@ -450,7 +452,7 @@ impl FStatistics {
     /// - If no sites are selected for inclusion.
     /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
     pub fn try_from_populations(
-        populations: &MultiPopulationCounts,
+        populations: &MultiSampleAlleleCounts,
         mut pred: impl FnMut(usize) -> Option<f64>,
     ) -> Result<Self, PopgenError> {
         let mut ret = Self::new();

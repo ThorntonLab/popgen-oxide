@@ -4,7 +4,7 @@
 use tskit::prelude::StreamingIterator;
 
 #[cfg(test)]
-use crate::counts::SiteCounts;
+use crate::counts::AlleleCounts;
 
 #[cfg(test)]
 struct MutationData {
@@ -65,7 +65,7 @@ struct SiteCountContents {
 }
 
 #[cfg(test)]
-fn validate_site_counts(counts: &crate::counts::SiteCounts, expected: &SiteCountContents) {
+fn validate_site_counts(counts: &crate::counts::AlleleCounts, expected: &SiteCountContents) {
     let num_alleles = expected
         .derived
         .iter()
@@ -619,7 +619,8 @@ where
 {
     let samples = options.collect::<Vec<_>>();
     let counts =
-        crate::MultiSiteCounts::try_from_tree_sequence(ts, samples.iter().cloned(), None).unwrap();
+        crate::SampleAlleleCounts::try_from_tree_sequence(ts, samples.iter().cloned(), None)
+            .unwrap();
     // Instead of relying on the internal node sample-ness status,
     // we define our set of "sample/focal" nodes externally from
     // the tree sequence.
@@ -749,7 +750,7 @@ fn test_3() {
 
     // Multi-sample-set test
     {
-        let mcounts = crate::MultiPopulationCounts::try_from_tree_sequence(
+        let mcounts = crate::MultiSampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -757,7 +758,7 @@ fn test_3() {
             None,
         )
         .unwrap();
-        let counts0 = crate::MultiSiteCounts::try_from_tree_sequence(
+        let counts0 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [0, 3].into_iter().map(|i| i.into()),
             None,
@@ -766,7 +767,7 @@ fn test_3() {
         let a = mcounts.iter_sites_in(0).collect::<Vec<_>>();
         let b = counts0.iter().collect::<Vec<_>>();
         assert_eq!(a, b);
-        let counts1 = crate::MultiSiteCounts::try_from_tree_sequence(
+        let counts1 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [1, 2].into_iter().map(|i| i.into()),
             None,
@@ -802,7 +803,7 @@ fn test_4() {
     test_non_sample_nodes_and_subsets(&ts);
     // Multi-sample-set test
     {
-        let mcounts = crate::MultiPopulationCounts::try_from_tree_sequence(
+        let mcounts = crate::MultiSampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -810,7 +811,7 @@ fn test_4() {
             None,
         )
         .unwrap();
-        let counts0 = crate::MultiSiteCounts::try_from_tree_sequence(
+        let counts0 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [0, 3].into_iter().map(|i| i.into()),
             None,
@@ -819,7 +820,7 @@ fn test_4() {
         let a = extract_subsample(&mcounts, 0);
         let b = counts0.iter().collect::<Vec<_>>();
         assert_eq!(a, b);
-        let counts1 = crate::MultiSiteCounts::try_from_tree_sequence(
+        let counts1 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [1, 2].into_iter().map(|i| i.into()),
             None,
@@ -862,7 +863,7 @@ fn test_5() {
     test_non_sample_nodes_and_subsets(&ts);
     // Multi-sample-set test
     {
-        let mcounts = crate::MultiPopulationCounts::try_from_tree_sequence(
+        let mcounts = crate::MultiSampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -870,7 +871,7 @@ fn test_5() {
             None,
         )
         .unwrap();
-        let counts0 = crate::MultiSiteCounts::try_from_tree_sequence(
+        let counts0 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [0, 3].into_iter().map(|i| i.into()),
             None,
@@ -879,7 +880,7 @@ fn test_5() {
         let a = extract_subsample(&mcounts, 0);
         let b = counts0.iter().collect::<Vec<_>>();
         assert_eq!(a, b);
-        let counts1 = crate::MultiSiteCounts::try_from_tree_sequence(
+        let counts1 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [1, 2].into_iter().map(|i| i.into()),
             None,
@@ -974,7 +975,7 @@ fn test_7_site_iter() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    let counts = crate::MultiSiteCounts::try_from_tree_sequence_site_iter(
+    let counts = crate::SampleAlleleCounts::try_from_tree_sequence_site_iter(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -989,7 +990,7 @@ fn test_7_site_iter() {
         .unwrap()
         .tree_sequence(tskit::TreeSequenceFlags::default().build_indexes())
         .unwrap();
-    let reduced_counts = crate::MultiSiteCounts::try_from_tree_sequence(
+    let reduced_counts = crate::SampleAlleleCounts::try_from_tree_sequence(
         &reduced,
         reduced
             .node_iter()
@@ -1025,7 +1026,7 @@ fn test_7_windows() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    let counts = crate::MultiSiteCounts::try_from_tree_sequence_windows(
+    let counts = crate::SampleAlleleCounts::try_from_tree_sequence_windows(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -1036,7 +1037,7 @@ fn test_7_windows() {
     .unwrap();
     assert_eq!(counts.len(), 1);
 
-    let counts_two_windows = crate::MultiSiteCounts::try_from_tree_sequence_windows(
+    let counts_two_windows = crate::SampleAlleleCounts::try_from_tree_sequence_windows(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -1053,7 +1054,7 @@ fn test_7_windows() {
         .unwrap()
         .tree_sequence(tskit::TreeSequenceFlags::default().build_indexes())
         .unwrap();
-    let reduced_counts = crate::MultiSiteCounts::try_from_tree_sequence(
+    let reduced_counts = crate::SampleAlleleCounts::try_from_tree_sequence(
         &reduced,
         reduced
             .node_iter()
@@ -1092,7 +1093,7 @@ fn test_7_empty_windows() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    let counts = crate::MultiSiteCounts::try_from_tree_sequence_windows(
+    let counts = crate::SampleAlleleCounts::try_from_tree_sequence_windows(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -1125,7 +1126,7 @@ fn test_7_site_iter_reversed() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    assert!(crate::MultiSiteCounts::try_from_tree_sequence_site_iter(
+    assert!(crate::SampleAlleleCounts::try_from_tree_sequence_site_iter(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -1283,7 +1284,10 @@ fn test_13() {
 }
 
 #[cfg(test)]
-fn extract_subsample(data: &crate::MultiPopulationCounts, sample: usize) -> Vec<SiteCounts<'_>> {
+fn extract_subsample(
+    data: &crate::MultiSampleAlleleCounts,
+    sample: usize,
+) -> Vec<AlleleCounts<'_>> {
     // We need to filter out sites that are monomorphic in
     // the focal sample set
     data.iter_sites_in(sample)
@@ -1448,7 +1452,7 @@ mod with_ancient_samples {
             ],
         );
 
-        let counts = crate::MultiSiteCounts::try_from_tree_sequence_site_iter(
+        let counts = crate::SampleAlleleCounts::try_from_tree_sequence_site_iter(
             &ts,
             ts.node_iter()
                 .filter(|n| n.flags().is_sample())
@@ -1466,7 +1470,7 @@ mod with_ancient_samples {
             .unwrap()
             .tree_sequence(tskit::TreeSequenceFlags::default().build_indexes())
             .unwrap();
-        let reduced_counts = crate::MultiSiteCounts::try_from_tree_sequence(
+        let reduced_counts = crate::SampleAlleleCounts::try_from_tree_sequence(
             &reduced,
             reduced
                 .node_iter()
@@ -1502,20 +1506,20 @@ fn test_null_node_ids() {
     );
     let samples = [ts.sample_nodes()[0], tskit::NodeId::NULL];
     assert!(
-        crate::MultiSiteCounts::try_from_tree_sequence(&ts, samples.into_iter(), None).is_err()
+        crate::SampleAlleleCounts::try_from_tree_sequence(&ts, samples.into_iter(), None).is_err()
     );
 }
 
 #[test]
 fn test_issue_112() {
     let ts = tskit::TreeSequence::load("tskit_testing_data/issue_112.trees").unwrap();
-    let counts = crate::MultiSiteCounts::try_from_tree_sequence(
+    let counts = crate::SampleAlleleCounts::try_from_tree_sequence(
         &ts,
         ts.sample_nodes().iter().cloned(),
         None,
     )
     .unwrap();
-    let counts2 = crate::MultiSiteCounts::try_from_tree_sequence(
+    let counts2 = crate::SampleAlleleCounts::try_from_tree_sequence(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())

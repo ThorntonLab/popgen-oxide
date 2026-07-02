@@ -1,7 +1,7 @@
 use crate::stats::GlobalStatistic;
 use crate::stats::TajimasD;
 use crate::AlleleID;
-use crate::MultiSiteCounts;
+use crate::SampleAlleleCounts;
 use rand::rng;
 use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
@@ -40,7 +40,7 @@ fn tajimas_d() {
     .map(|site| shuffled_site(site.into_iter(), &mut rng))
     .collect::<Vec<_>>();
 
-    let allele_counts = MultiSiteCounts::try_from_tabular(sites).unwrap();
+    let allele_counts = SampleAlleleCounts::try_from_tabular(sites).unwrap();
 
     let d = TajimasD::try_from_iter_sites(allele_counts.iter()).unwrap();
     assert!((d.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);

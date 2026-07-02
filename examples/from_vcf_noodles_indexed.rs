@@ -1,6 +1,6 @@
 use noodles::core::{Position, Region};
 use popgen::adapter::vcf::record_to_genotypes_adapter;
-use popgen::MultiSiteCounts;
+use popgen::SampleAlleleCounts;
 use std::io::Write;
 
 /*
@@ -46,7 +46,7 @@ fn main() {
         .records()
         .map(Result::unwrap)
         .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy).unwrap());
-    let counts = MultiSiteCounts::try_from_tabular(alleles).unwrap();
+    let counts = SampleAlleleCounts::try_from_tabular(alleles).unwrap();
     counts.iter().for_each(|c| println!("{c:?}"));
 
     // clean up our file

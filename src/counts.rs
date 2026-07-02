@@ -1,4 +1,4 @@
-use crate::iter::MultiSiteCountsIter;
+use crate::iter::SampleAlleleCountsIter;
 #[cfg(feature = "tskit")]
 use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
@@ -7,7 +7,7 @@ use std::cmp::max;
 pub type Count = i64;
 
 #[derive(Debug, Default, Clone)]
-pub struct MultiSiteCounts {
+pub struct SampleAlleleCounts {
     // probably don't need to track this
     // positions: Vec<i64>,
     counts: Vec<Count>,
@@ -17,7 +17,7 @@ pub struct MultiSiteCounts {
     total_alleles: Vec<i32>,
 }
 
-impl MultiSiteCounts {
+impl SampleAlleleCounts {
     /// Convenience wrapper which repeatedly invokes [`Self::add_site`].
     /// # Errors
     /// The error conditions from [`Self::add_site`] apply here.
@@ -126,7 +126,7 @@ impl MultiSiteCounts {
     ///
     /// # Errors
     /// - Passed site counts must be valid.
-    ///   See [`SiteCounts::try_new`].
+    ///   See [`AlleleCounts::try_new`].
     ///
     /// If any error occurs, the underlying struct has not been modified.
     // NOTE: any pub function that calls this one (probably)
@@ -142,7 +142,7 @@ impl MultiSiteCounts {
         }
 
         // check the conditions
-        let _ = SiteCounts::try_new(counts, total_alleles)?;
+        let _ = AlleleCounts::try_new(counts, total_alleles)?;
 
         self.add_site_from_counts_unchecked(counts, total_alleles);
         Ok(())
@@ -166,8 +166,8 @@ impl MultiSiteCounts {
         self.total_alleles.is_empty()
     }
 
-    pub fn iter(&self) -> MultiSiteCountsIter<'_> {
-        MultiSiteCountsIter {
+    pub fn iter(&self) -> SampleAlleleCountsIter<'_> {
+        SampleAlleleCountsIter {
             inner: self,
             next_site_ind: (
                 0,
@@ -195,8 +195,8 @@ impl MultiSiteCounts {
     /// Get the allele counts at a specific site index.
     ///
     /// Returns [`None`] if the site index is invalid.
-    pub fn get(&self, site: usize) -> Option<SiteCounts<'_>> {
-        Some(SiteCounts {
+    pub fn get(&self, site: usize) -> Option<AlleleCounts<'_>> {
+        Some(AlleleCounts {
             counts: self.counts_slice_at(site)?,
             total_alleles: self.total_alleles[site],
         })
@@ -205,15 +205,15 @@ impl MultiSiteCounts {
 
 /// A borrowed collection of allele counts and the total number of alleles (to describe, by implication, number of missing alleles).
 ///
-/// This type is returned when requesting views into [`MultiSiteCounts`] and [`MultiPopulationCounts`].
+/// This type is returned when requesting views into [`SampleAlleleCounts`] and [`MultiSampleAlleleCounts`].
 /// It can also be built from user-provided data via [`Self::try_new`].
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct SiteCounts<'inner> {
+pub struct AlleleCounts<'inner> {
     pub(crate) counts: &'inner [Count],
     pub(crate) total_alleles: i32,
 }
 
-impl<'inner> SiteCounts<'inner> {
+impl<'inner> AlleleCounts<'inner> {
     /// Build a new `Self`, viewing a slice of counts and total alleles provided by the user.
     ///
     /// # Errors
@@ -260,7 +260,7 @@ impl<'inner> SiteCounts<'inner> {
 /// particularly, e.g., that the allele assigned ID 0 in one population has also been assigned ID 0 in another population.
 /// Alleles which appear in one population but not the other will have a count of 0 in that other population.
 #[derive(Debug, Default, Clone)]
-pub struct MultiPopulationCounts {
+pub struct MultiSampleAlleleCounts {
     // positions: Vec<usize>
     // ragged array (site, population) -> some collection of counts
     counts: Vec<Count>,
@@ -271,7 +271,7 @@ pub struct MultiPopulationCounts {
     num_populations: usize,
 }
 
-impl MultiPopulationCounts {
+impl MultiSampleAlleleCounts {
     /// Create a new [`Self`] containing `how_many` populations, but containing no data.
     pub fn of_empty_populations(how_many: usize) -> Self {
         Self {
@@ -288,7 +288,7 @@ impl MultiPopulationCounts {
     ///
     /// # Errors
     /// This function will fail **without rollback guarantees** if the provided slices do not match in length.
-    /// The sites must also be individually valid; see [`SiteCounts::try_new`].
+    /// The sites must also be individually valid; see [`AlleleCounts::try_new`].
     /// Failure due to an invalid site does not provide rollback guarantees.
     pub fn extend_populations_from_site<Counts>(
         &mut self,
@@ -315,7 +315,7 @@ impl MultiPopulationCounts {
                 Some(_) => {}
             }
 
-            let _ = SiteCounts::try_new(counts, total_alleles)?;
+            let _ = AlleleCounts::try_new(counts, total_alleles)?;
 
             self.counts.extend(counts);
             self.total_alleles.push(total_alleles);
@@ -365,11 +365,11 @@ impl MultiPopulationCounts {
             .unwrap_or(0)
     }
 
-    /// Attempt to get a [`SiteCounts`] from `Self`.
+    /// Attempt to get a [`AlleleCounts`] from `Self`.
     ///
     /// # Errors
     /// If any index is out of bounds.
-    pub fn get(&self, site_num: usize, population_num: usize) -> Option<SiteCounts<'_>> {
+    pub fn get(&self, site_num: usize, population_num: usize) -> Option<AlleleCounts<'_>> {
         let counts_start = *self.count_starts.get(site_num)?;
         let counts_all_pops = match self.count_starts.get(site_num + 1) {
             None => &self.counts[counts_start..],
@@ -383,15 +383,15 @@ impl MultiPopulationCounts {
             .total_alleles
             .get(site_num * population_num + population_num)?;
 
-        Some(SiteCounts {
+        Some(AlleleCounts {
             counts: counts_this_pop,
             total_alleles,
         })
     }
 
-    /// Convenience method to produce an iterator over [`SiteCounts`] in one population.
+    /// Convenience method to produce an iterator over [`AlleleCounts`] in one population.
     /// Empty if `population_num` is out of bounds.
-    pub fn iter_sites_in(&self, population_num: usize) -> impl Iterator<Item = SiteCounts<'_>> {
+    pub fn iter_sites_in(&self, population_num: usize) -> impl Iterator<Item = AlleleCounts<'_>> {
         (0..self.num_sites()).flat_map(move |site_n| self.get(site_n, population_num))
     }
 }
