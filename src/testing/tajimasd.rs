@@ -1,5 +1,6 @@
-use crate::stats::GlobalStatistic;
+use crate::stats::StatRepresentation;
 use crate::stats::TajimasD;
+use crate::stats::UnpolarisedSiteStat;
 use crate::AlleleID;
 use crate::SampleAlleleCounts;
 use rand::rng;

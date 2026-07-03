@@ -2,7 +2,7 @@
 
 use noodles::vcf;
 use popgen::adapter::vcf::record_to_genotypes_adapter;
-use popgen::stats::{Diversity, GlobalStatistic, SiteComposable};
+use popgen::stats::{Diversity, SiteComposable, UnpolarisedSiteStat};
 use popgen::{PopgenError, SampleAlleleCounts};
 use rayon::iter::ParallelBridge;
 use rayon::iter::ParallelIterator;

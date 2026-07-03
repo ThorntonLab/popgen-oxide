@@ -1,4 +1,5 @@
-use popgen::stats::GlobalStatistic;
+use popgen::stats::StatRepresentation;
+use popgen::stats::UnpolarisedSiteStat;
 use pyo3::prelude::*;
 
 #[pyclass]
@@ -38,7 +39,8 @@ impl SingleSampleCountCollection {
 /// A Python module implemented in Rust.
 #[pymodule]
 mod integration_tests {
-    use popgen::stats::GlobalStatistic;
+    use popgen::stats::StatRepresentation;
+    use popgen::stats::UnpolarisedSiteStat;
     use pyo3::prelude::*;
 
     use crate::{SingleSampleCountCollection, SingleSampleCounts, TreeSequenceHolder};
