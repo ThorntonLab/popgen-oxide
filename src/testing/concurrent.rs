@@ -1,4 +1,6 @@
-use crate::stats::{Diversity, GlobalStatistic, SiteComposable, WattersonsTheta};
+use crate::stats::{
+    Diversity, SiteComposable, StatRepresentation, UnpolarisedSiteStat, WattersonsTheta,
+};
 use crate::PopgenError;
 use proptest::collection::vec;
 use proptest::proptest;

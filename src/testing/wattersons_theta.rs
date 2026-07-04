@@ -1,4 +1,5 @@
-use crate::stats::GlobalStatistic;
+use crate::stats::StatRepresentation;
+use crate::stats::UnpolarisedSiteStat;
 use crate::stats::WattersonsTheta;
 
 #[test]

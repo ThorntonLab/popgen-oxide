@@ -4,17 +4,12 @@ use crate::{
 };
 use std::cmp::max;
 
-/// A statistic calculable from and applicable to one site/locus.
-pub trait SiteStatistic {
-    fn from_site(site: AlleleCounts) -> Self;
-    fn as_raw(&self) -> f64;
-}
-
-/// A statistic calculable from and applicable to a collection of sites/loci.
-pub trait GlobalStatistic {
+/// A statistic calculable by iterating over variation at individual sites
+/// without needing to distinguish ancestral from derived allele states.
+pub trait UnpolarisedSiteStat {
     /// Instantiate a `Self` from an iterator over [`AlleleCounts`].
     ///
-    /// The default implementation depends on [`GlobalStatistic::try_add_site`].
+    /// The default implementation depends on [`UnpolarisedSiteStat::try_add_site`].
     /// It also errors on an empty iterator, because the semantics of an empty iterator are unclear:
     /// * Were all sites monomorphic?
     /// * Were there no samples in this region?
@@ -66,16 +61,29 @@ pub trait GlobalStatistic {
     /// debug_assert!(!site.counts().is_empty());
     /// ```
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError>;
-    fn as_raw(&self) -> f64;
 }
 
-/// A [`GlobalStatistic`], with the following additional guarantees:
+/// Obtain a low-level ("raw") representation of a statistic.
+/// The lifetime accomodates the concept that a statistic may not be one-dimensional,
+/// for example needing to yield a slice.
+///
+/// # Notes
+///
+/// * This trait is not required to be implemented by a statistic.
+/// * A developer could also choose to implemement [`From`] to consume
+///   a statistic type into a low-level type.
+pub trait StatRepresentation<'stat> {
+    type Output;
+    fn as_raw(&'stat self) -> Self::Output;
+}
+
+/// A [`UnpolarisedSiteStat`], with the following additional guarantees:
 /// - The statistic can be updated with at least one site when given a reference to another `Self` to which site(s) have already been added.
 /// - This composition remains correct under reordering (commutation and association).
 ///
 /// It is also possible to implement this trait if a sufficient *portion* of computation can be done
 /// under the above conditions.
-/// Such types can use [`GlobalStatistic::as_raw`] to perform inexpensive finalizing computations
+/// Such types can use [`StatRepresentation::as_raw`] to perform inexpensive finalizing computations
 /// if needed.
 /// For an example of this use case, see [`TajimasD`].
 ///
@@ -86,7 +94,7 @@ pub trait GlobalStatistic {
 /// # Example
 /// ```
 /// # use popgen::{PopgenResult, AlleleCounts};
-/// # use popgen::stats::{GlobalStatistic, SiteComposable};
+/// # use popgen::stats::{UnpolarisedSiteStat, SiteComposable, StatRepresentation};
 /// #
 /// // a very simple statistic
 /// #[derive(Default)]  // to define the result over 0 sites
@@ -99,18 +107,21 @@ pub trait GlobalStatistic {
 ///     }
 /// }
 ///
-/// impl GlobalStatistic for NumSites {
+/// impl UnpolarisedSiteStat for NumSites {
 ///     fn try_add_site(&mut self, site: AlleleCounts) -> PopgenResult<()> {
 ///         self.0 += 1;
 ///         Ok(())
 ///     }
+/// }
 ///
-///     fn as_raw(&self) -> f64 {
-///         self.0 as f64
+/// impl<'statistic> StatRepresentation<'statistic> for NumSites {
+///     type Output = u64;
+///     fn as_raw(&'statistic self) -> Self::Output {
+///         self.0
 ///     }
 /// }
 /// ```
-pub trait SiteComposable: GlobalStatistic {
+pub trait SiteComposable: UnpolarisedSiteStat {
     fn try_combine(&mut self, other: &Self) -> crate::PopgenResult<()>;
 }
 
@@ -203,7 +214,8 @@ where
 /// The default value is `0.0`:
 /// ```
 /// # use popgen::stats::Diversity;
-/// use popgen::stats::GlobalStatistic;
+/// use popgen::stats::UnpolarisedSiteStat;
+/// use popgen::stats::StatRepresentation;
 ///
 /// assert_eq!(Diversity::default().as_raw(), 0.0);
 /// ```
@@ -211,7 +223,7 @@ where
 #[repr(transparent)]
 pub struct Diversity(f64);
 
-impl GlobalStatistic for Diversity {
+impl UnpolarisedSiteStat for Diversity {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // technically should divide both by two here and below but it cancels out
@@ -230,8 +242,11 @@ impl GlobalStatistic for Diversity {
             Ok(())
         }
     }
+}
 
-    fn as_raw(&self) -> f64 {
+impl<'statistic> StatRepresentation<'statistic> for Diversity {
+    type Output = f64;
+    fn as_raw(&'statistic self) -> Self::Output {
         self.0
     }
 }
@@ -254,7 +269,8 @@ impl SiteComposable for Diversity {
 /// The default value is `0.0`:
 /// ```
 /// # use popgen::stats::WattersonsTheta;
-/// use popgen::stats::GlobalStatistic;
+/// use popgen::stats::UnpolarisedSiteStat;
+/// use popgen::stats::StatRepresentation;
 ///
 /// assert_eq!(WattersonsTheta::default().as_raw(), 0.0);
 /// ```
@@ -262,7 +278,7 @@ impl SiteComposable for Diversity {
 #[repr(transparent)]
 pub struct WattersonsTheta(f64);
 
-impl GlobalStatistic for WattersonsTheta {
+impl UnpolarisedSiteStat for WattersonsTheta {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         // trying our very hardest to encourage optimization and SIMD here
@@ -291,8 +307,11 @@ impl GlobalStatistic for WattersonsTheta {
 
         Ok(())
     }
+}
 
-    fn as_raw(&self) -> f64 {
+impl<'statistic> StatRepresentation<'statistic> for WattersonsTheta {
+    type Output = f64;
+    fn as_raw(&'statistic self) -> Self::Output {
         self.0
     }
 }
@@ -319,7 +338,7 @@ pub struct TajimasD {
     num_sites: usize,
 }
 
-impl GlobalStatistic for TajimasD {
+impl UnpolarisedSiteStat for TajimasD {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         self.k_hat.try_add_site(site.clone())?;
@@ -330,8 +349,11 @@ impl GlobalStatistic for TajimasD {
         self.num_samples = max(self.num_samples, site.total_alleles as usize);
         Ok(())
     }
+}
 
-    fn as_raw(&self) -> f64 {
+impl<'statistic> StatRepresentation<'statistic> for TajimasD {
+    type Output = f64;
+    fn as_raw(&'statistic self) -> Self::Output {
         // we are going to stick as closely as feasible to the exact nomenclature of the paper
 
         let n = self.num_samples;

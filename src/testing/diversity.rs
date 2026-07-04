@@ -1,5 +1,6 @@
 use crate::stats::Diversity;
-use crate::stats::GlobalStatistic;
+use crate::stats::StatRepresentation;
+use crate::stats::UnpolarisedSiteStat;
 
 use proptest::collection::vec;
 use proptest::prelude::*;
