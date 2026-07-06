@@ -1,6 +1,8 @@
 use crate::{AlleleCounts, AlleleID};
 
 use crate::counts::SampleAlleleCounts;
+use proptest::collection::vec;
+use proptest::prelude::*;
 use rand::rng;
 use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
@@ -93,3 +95,65 @@ fn bad_site_deficient_total() {
 
     counts.add_site_from_counts([1, 2, 3], 1).unwrap();
 }
+
+fn test_try_reduce_details(
+    seed: u64,
+    ploidy: usize,
+    num_samples: usize,
+    missing_data_rate_raw: f64,
+    num_sites: usize,
+    non_normalized_freqs: Vec<Vec<f64>>,
+    max_num_splits: usize,
+) {
+    use crate::traits::TryReduce;
+    use rand::prelude::*;
+
+    let mut rng = StdRng::seed_from_u64(seed);
+    let mut splitcounts = vec![];
+    for _ in 0..max_num_splits + 1 {
+        let sites = super::testdata::make_random_sites(
+            &mut rng,
+            ploidy,
+            num_samples,
+            missing_data_rate_raw,
+            num_sites,
+            non_normalized_freqs.clone(),
+        );
+        // convert to our normal format
+        let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
+        splitcounts.push(counts);
+    }
+
+    let mut mergedcounts = crate::counts::SampleAlleleCounts::default();
+    for i in splitcounts.iter().flat_map(|c| c.iter()) {
+        mergedcounts
+            .add_site_from_counts(i.counts(), i.total_alleles())
+            .unwrap();
+    }
+    let reduced_counts = splitcounts
+        .into_iter()
+        .try_fold(crate::counts::SampleAlleleCounts::default(), |a, b| {
+            a.try_reduce(b)
+        })
+        .unwrap();
+    assert_eq!(reduced_counts.len(), mergedcounts.len());
+    for (i, j) in reduced_counts.iter().zip(mergedcounts.iter()) {
+        assert_eq!(i.counts(), j.counts());
+        assert_eq!(i.total_alleles(), j.total_alleles());
+    }
+}
+
+proptest!(
+    #[test]
+    fn test_try_reduce(
+        seed in 0..u64::MAX,
+        ploidy in 1_usize..10,
+        num_samples in 1_usize..50,
+        missing_data_rate_raw in 0_f64..1.0 - f64::EPSILON,
+        num_sites in 4_usize..10,
+        non_normalized_freqs in vec(vec(f64::EPSILON..1_f64, 1..10), 10),
+        max_num_splits in 1_usize..4
+    ) {
+        test_try_reduce_details(seed, ploidy, num_samples, missing_data_rate_raw, num_sites, non_normalized_freqs, max_num_splits);
+    }
+);

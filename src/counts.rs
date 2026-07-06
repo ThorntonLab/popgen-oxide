@@ -1,4 +1,5 @@
 use crate::iter::SampleAlleleCountsIter;
+use crate::traits::TryReduce;
 #[cfg(feature = "tskit")]
 use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
@@ -199,6 +200,35 @@ impl SampleAlleleCounts {
         Some(AlleleCounts {
             counts: self.counts_slice_at(site)?,
             total_alleles: self.total_alleles[site],
+        })
+    }
+}
+
+impl TryReduce for SampleAlleleCounts {
+    type Error = PopgenError;
+    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        let counts_len_left = self.counts.len();
+        let mut counts = self.counts;
+        counts.extend(other.counts);
+
+        let mut count_starts = self.count_starts;
+        count_starts.extend(
+            other
+                .count_starts
+                .into_iter()
+                .map(|cs| counts_len_left + cs),
+        );
+
+        let mut total_alleles = self.total_alleles;
+        total_alleles.extend(other.total_alleles);
+
+        Ok(Self {
+            counts,
+            count_starts,
+            total_alleles,
         })
     }
 }
