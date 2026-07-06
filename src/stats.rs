@@ -401,7 +401,7 @@ where
     fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
         self.k_hat.try_combine(&other.k_hat)?;
         self.theta.try_combine(&other.theta)?;
-        self.num_samples += other.num_samples;
+        self.num_samples = max(self.num_samples, other.num_samples);
         self.num_sites += other.num_sites;
         Ok(())
     }
