@@ -10,6 +10,7 @@ mod counts;
 mod from_tree_sequence;
 pub mod iter;
 pub mod stats;
+pub mod traits;
 mod util;
 
 #[cfg(test)]

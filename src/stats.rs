@@ -1,7 +1,6 @@
+use crate::traits::TryReduce;
 use crate::util::StrictlyLowerTriangular;
-use crate::{
-    AlleleCounts, Count, MultiSampleAlleleCounts, PopgenError, PopgenResult, SampleAlleleCounts,
-};
+use crate::{AlleleCounts, Count, MultiSampleAlleleCounts, PopgenError, PopgenResult};
 use std::cmp::max;
 
 /// A statistic calculable by iterating over variation at individual sites
@@ -54,7 +53,7 @@ pub trait UnpolarisedSiteStat {
     /// In general, one cannot assume that an update can be rolled
     /// back in the event of an error.
     ///
-    /// [`SampleAlleleCounts`] and [`crate::MultiSampleAlleleCounts`] are designed
+    /// [`crate::SampleAlleleCounts`] and [`crate::MultiSampleAlleleCounts`] are designed
     /// such that `site` cannot contain empty data. However, it is valuable
     /// for implementations of this function to at least do the following:
     /// ```no_compile
@@ -75,135 +74,6 @@ pub trait UnpolarisedSiteStat {
 pub trait StatRepresentation<'stat> {
     type Output;
     fn as_raw(&'stat self) -> Self::Output;
-}
-
-/// A [`UnpolarisedSiteStat`], with the following additional guarantees:
-/// - The statistic can be updated with at least one site when given a reference to another `Self` to which site(s) have already been added.
-/// - This composition remains correct under reordering (commutation and association).
-///
-/// It is also possible to implement this trait if a sufficient *portion* of computation can be done
-/// under the above conditions.
-/// Such types can use [`StatRepresentation::as_raw`] to perform inexpensive finalizing computations
-/// if needed.
-/// For an example of this use case, see [`TajimasD`].
-///
-/// # Errors
-///
-/// - The statistic is not required to be in a valid state after [`try_combine`](Self::try_combine) fails.
-///
-/// # Example
-/// ```
-/// # use popgen::{PopgenResult, AlleleCounts};
-/// # use popgen::stats::{UnpolarisedSiteStat, SiteComposable, StatRepresentation};
-/// #
-/// // a very simple statistic
-/// #[derive(Default)]  // to define the result over 0 sites
-/// struct NumSites(u64);
-///
-/// impl SiteComposable for NumSites {
-///     fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
-///         self.0 += other.0;
-///         Ok(())
-///     }
-/// }
-///
-/// impl UnpolarisedSiteStat for NumSites {
-///     fn try_add_site(&mut self, site: AlleleCounts) -> PopgenResult<()> {
-///         self.0 += 1;
-///         Ok(())
-///     }
-/// }
-///
-/// impl<'statistic> StatRepresentation<'statistic> for NumSites {
-///     type Output = u64;
-///     fn as_raw(&'statistic self) -> Self::Output {
-///         self.0
-///     }
-/// }
-/// ```
-pub trait SiteComposable: UnpolarisedSiteStat {
-    fn try_combine(&mut self, other: &Self) -> crate::PopgenResult<()>;
-}
-
-pub fn windowed<Stat, GetWindow, E>(
-    window_size: i64,
-    stride: i64,
-    start_pos: i64,
-    end_pos: i64,
-    mut get_window: GetWindow,
-) -> PopgenResult<Result<Vec<Stat>, E>>
-where
-    Stat: SiteComposable + Default + Clone,
-    GetWindow: FnMut(i64, i64) -> Result<SampleAlleleCounts, E>,
-{
-    let use_add_remove = window_size > stride;
-    let mut intersection = None::<Stat>;
-
-    let mut ret = Vec::with_capacity(((end_pos - start_pos + 1) / stride + 1) as usize);
-
-    let mut window_start = start_pos;
-    // TODO: parallelize this under some condition
-
-    while window_start < end_pos {
-        let mut accum = Stat::default();
-        if !use_add_remove {
-            let counts = match get_window(window_start, (window_start + window_size).min(end_pos)) {
-                Ok(window) => window,
-                Err(e) => return Ok(Err(e)),
-            };
-            for site in counts.iter() {
-                accum.try_add_site(site)?;
-            }
-        } else {
-            let new_intersection = match get_window(
-                window_start + window_size - stride,
-                window_start + window_size,
-            ) {
-                Ok(window) => window,
-                Err(e) => return Ok(Err(e)),
-            }
-            .iter()
-            .try_fold(Stat::default(), |mut stat, site| {
-                stat.try_add_site(site)?;
-                PopgenResult::Ok(stat)
-            })?;
-
-            if let Some(ref intersection) = intersection {
-                accum.try_combine(intersection)?;
-
-                let new_part = match get_window(window_start + stride, window_start + window_size) {
-                    Ok(window) => window,
-                    Err(e) => return Ok(Err(e)),
-                };
-                new_part
-                    .iter()
-                    .try_fold(Stat::default(), |mut stat, site| {
-                        stat.try_add_site(site)?;
-                        PopgenResult::Ok(stat)
-                    })?;
-            } else {
-                let first_part = match get_window(window_start, window_start + window_size - stride)
-                {
-                    Ok(window) => window,
-                    Err(e) => return Ok(Err(e)),
-                };
-                first_part
-                    .iter()
-                    .try_fold(Stat::default(), |mut stat, site| {
-                        stat.try_add_site(site)?;
-                        PopgenResult::Ok(stat)
-                    })?;
-
-                accum.try_combine(&new_intersection)?;
-                intersection = Some(new_intersection);
-            }
-
-            ret.push(accum);
-            window_start += stride;
-        }
-    }
-
-    Ok(Ok(ret))
 }
 
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
@@ -244,20 +114,25 @@ impl UnpolarisedSiteStat for Diversity {
     }
 }
 
+impl TryReduce for Diversity {
+    type Error = crate::PopgenError;
+    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        let rv = self.as_raw() + other.as_raw();
+        if !rv.is_finite() || rv < 0.0 {
+            Err(PopgenError::CalculationError)
+        } else {
+            Ok(Diversity(rv))
+        }
+    }
+}
+
 impl<'statistic> StatRepresentation<'statistic> for Diversity {
     type Output = f64;
     fn as_raw(&'statistic self) -> Self::Output {
         self.0
-    }
-}
-
-impl SiteComposable for Diversity {
-    fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
-        if self.0.is_nan() || other.0.is_nan() {
-            return Err(PopgenError::CalculationError);
-        }
-        self.0 += other.as_raw();
-        Ok(())
     }
 }
 
@@ -316,10 +191,18 @@ impl<'statistic> StatRepresentation<'statistic> for WattersonsTheta {
     }
 }
 
-impl SiteComposable for WattersonsTheta {
-    fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
-        self.0 += other.0;
-        Ok(())
+impl TryReduce for WattersonsTheta {
+    type Error = crate::PopgenError;
+    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        let rv = self.as_raw() + other.as_raw();
+        if !rv.is_finite() || rv < 0.0 {
+            Err(PopgenError::CalculationError)
+        } else {
+            Ok(Self(rv))
+        }
     }
 }
 
@@ -386,30 +269,44 @@ impl<'statistic> StatRepresentation<'statistic> for TajimasD {
         #[allow(non_snake_case)]
         let S = self.num_sites as f64;
 
-        // eqn 38
-        #[allow(non_snake_case)]
-        let D = d / (e_1 * S + e_2 * S * (S - 1.)).sqrt();
-        D
+        let denom = e_1 * S + e_2 * S * (S - 1.);
+        if denom > 0. {
+            // eqn 38
+            d / denom.sqrt()
+        } else {
+            // We return not-a-number instead of inf
+            // when the denominator is invalid.
+            f64::NAN
+        }
     }
 }
 
-impl SiteComposable for TajimasD
+impl TryReduce for TajimasD
 where
-    Diversity: SiteComposable,
-    WattersonsTheta: SiteComposable,
+    Diversity: TryReduce,
+    WattersonsTheta: TryReduce,
 {
-    fn try_combine(&mut self, other: &Self) -> PopgenResult<()> {
-        self.k_hat.try_combine(&other.k_hat)?;
-        self.theta.try_combine(&other.theta)?;
-        self.num_samples = max(self.num_samples, other.num_samples);
-        self.num_sites += other.num_sites;
-        Ok(())
+    type Error = PopgenError;
+    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        let k_hat = self.k_hat.try_reduce(other.k_hat)?;
+        let theta = self.theta.try_reduce(other.theta)?;
+        let num_sites = self.num_sites + other.num_sites;
+        let num_samples = max(self.num_samples, other.num_samples);
+        Ok(Self {
+            k_hat,
+            theta,
+            num_sites,
+            num_samples,
+        })
     }
 }
 
 /// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953) and [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
 ///
-/// Construction of this type from an arbitrary collection of [`SampleAlleleCounts`] is not sound,
+/// Construction of this type from an arbitrary collection of [`crate::SampleAlleleCounts`] is not sound,
 /// because the invariant of [`crate::counts::MultiSampleAlleleCounts`] is required.
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]

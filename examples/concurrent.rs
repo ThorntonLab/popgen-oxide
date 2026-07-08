@@ -2,7 +2,8 @@
 
 use noodles::vcf;
 use popgen::adapter::vcf::record_to_genotypes_adapter;
-use popgen::stats::{Diversity, SiteComposable, UnpolarisedSiteStat};
+use popgen::stats::{Diversity, UnpolarisedSiteStat};
+use popgen::traits::TryReduce;
 use popgen::{PopgenError, SampleAlleleCounts};
 use rayon::iter::ParallelBridge;
 use rayon::iter::ParallelIterator;
@@ -34,10 +35,7 @@ fn main() {
             diversity.try_add_site(multi.get(0).unwrap())?;
             Ok::<_, PopgenError>(diversity)
         })
-        .try_reduce(Diversity::default, |mut a, b| {
-            a.try_combine(&b)?;
-            Ok::<_, PopgenError>(a)
-        })
+        .try_reduce(Diversity::default, |a, b| a.try_reduce(b))
         .unwrap();
 
     dbg!(out);

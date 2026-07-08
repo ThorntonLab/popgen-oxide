@@ -78,3 +78,49 @@ fn pi_try_from_iter_empty_is_err() {
     let c = crate::SampleAlleleCounts::default();
     assert!(Diversity::try_from_iter_sites(c.iter()).is_err());
 }
+
+proptest!(
+    #[test]
+    fn test_try_reduce(
+        seed in 0..u64::MAX,
+        ploidy in 1_usize..10,
+        num_samples in 1_usize..50,
+        missing_data_rate_raw in 0_f64..1.0 - f64::EPSILON,
+        num_sites in 4_usize..10,
+        non_normalized_freqs in vec(vec(f64::EPSILON..1_f64, 1..10), 10),
+        max_num_splits in 1_usize..4
+    ) {
+        use rand::prelude::*;
+        use crate::traits::TryReduce;
+
+        let mut rng = StdRng::seed_from_u64(seed);
+        let sites = super::testdata::make_random_sites(
+            &mut rng,
+            ploidy,
+            num_samples,
+            missing_data_rate_raw,
+            num_sites,
+            non_normalized_freqs,
+        );
+        // convert to our normal format
+        let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
+
+        // get the calcs
+        let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter());
+        if let Ok(value) = diversity_from_counts {
+            let splitlen = counts.len() / max_num_splits;
+            let mut div_split = vec![];
+            for nsplits in 0..max_num_splits {
+                let takelen = if nsplits < max_num_splits - 1 {
+                    splitlen
+                } else {
+                    counts.len() - nsplits * splitlen
+                };
+                let div = Diversity::try_from_iter_sites(counts.iter().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
+                div_split.push(div);
+            }
+            let reduced = div_split.iter().fold(Diversity::default(), |acc, &i| acc.try_reduce(i).unwrap());
+            assert!((value.as_raw() - reduced.as_raw()).abs() <= 1e-9, "{value:?} != {reduced:?} ({div_split:?}) {splitlen} {counts:?}")
+        }
+    }
+);

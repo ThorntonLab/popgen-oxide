@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc aa1d791afa949179e521ce4d6ed0a39bfe5f11634778d61dd8b75001ab97b0e5 # shrinks to seed = 0, ploidy = 1, num_samples = 1, missing_data_rate_raw = 0.0, num_sites = 4, non_normalized_freqs = [[2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16]], max_num_splits = 1
+cc 4c966627c81ea41598c84b64edeee8f8805bc2ff9e9f7bfc2c3a24c1aed116c3 # shrinks to seed = 1664368686530901036, ploidy = 1, num_samples = 3, missing_data_rate_raw = 0.0, num_sites = 4, non_normalized_freqs = [[2.220446049250313e-16], [2.220446049250313e-16], [0.3682375378934376, 0.3158659154424388], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16], [2.220446049250313e-16]], max_num_splits = 1

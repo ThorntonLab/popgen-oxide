@@ -1,6 +1,5 @@
-use crate::stats::{
-    Diversity, SiteComposable, StatRepresentation, UnpolarisedSiteStat, WattersonsTheta,
-};
+use crate::stats::{Diversity, StatRepresentation, UnpolarisedSiteStat, WattersonsTheta};
+use crate::traits::TryReduce;
 use crate::PopgenError;
 use proptest::collection::vec;
 use proptest::proptest;
@@ -52,8 +51,9 @@ fn diversity_equivalent_concurrent(
             (Err(one), Ok(_)) | (Ok(_), Err(one)) | (Err(one), Err(_)) => {
                 components.push(Err(one));
             },
-            (Ok(mut one), Ok(two)) => {
-                components.push(one.try_combine(&two).map(|_| one));
+            (Ok(one), Ok(two)) => {
+                one.try_reduce(two).unwrap();
+                components.push(one.try_reduce(two));
             },
         }
     }
@@ -71,7 +71,7 @@ fn diversity_equivalent_concurrent(
         Ok(diversity) => {
             let diversity_raw = diversity.as_raw();
             let parallel_raw = parallel.unwrap().as_raw();
-            assert!((diversity_raw - parallel_raw).abs() < 0.00001)
+            assert!((diversity_raw - parallel_raw).abs() < 0.00001, "{diversity_raw} {parallel_raw}")
         },
     }
 }
@@ -120,8 +120,8 @@ fn watterson_theta_equivalent_concurrent(
             (Err(one), Ok(_)) | (Ok(_), Err(one)) | (Err(one), Err(_)) => {
                 components.push(Err(one));
             },
-            (Ok(mut one), Ok(two)) => {
-                components.push(one.try_combine(&two).map(|_| one));
+            (Ok(one), Ok(two)) => {
+                components.push(one.try_reduce(two));
             },
         }
     }
@@ -139,7 +139,7 @@ fn watterson_theta_equivalent_concurrent(
         Ok(theta) => {
             let theta_raw = theta.as_raw();
             let parallel_raw = parallel.unwrap().as_raw();
-            assert!((theta_raw - parallel_raw).abs() < 0.00001)
+            assert!((theta_raw - parallel_raw).abs() < 0.00001, "{theta_raw} != {parallel_raw}")
         },
     }
 }
