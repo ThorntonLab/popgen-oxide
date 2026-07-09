@@ -1,4 +1,4 @@
-use crate::{MultiSampleAlleleCounts, PopgenError, PopgenResult, SampleAlleleCounts};
+use crate::{AlleleCounts, MultiSampleAlleleCounts, PopgenError, PopgenResult, SampleAlleleCounts};
 
 /// Options affecting the behavior of
 /// [crate::SampleAlleleCounts::try_from_tree_sequence]
@@ -344,8 +344,10 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
             .count()
             > 1
         {
-            self.counts
-                .add_site_from_counts(&self.allele_counts, self.num_sampled_genomes as i32)?;
+            self.counts.add_site_from_counts(AlleleCounts::try_new(
+                &self.allele_counts,
+                self.num_sampled_genomes as i32,
+            )?);
         }
         Ok(())
     }
@@ -761,8 +763,10 @@ where
                         > 1
                     {
                         let i = counts.len() - 1;
-                        counts[i]
-                            .add_site_from_counts(&allele_counts, num_sampled_genomes as i32)?;
+                        counts[i].add_site_from_counts(AlleleCounts::try_new(
+                            &allele_counts,
+                            num_sampled_genomes as i32,
+                        )?);
                     }
                     lastpos = Some(site_ref.position());
                     current_site = site_iter.next();

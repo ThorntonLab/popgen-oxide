@@ -119,34 +119,15 @@ impl SampleAlleleCounts {
 
         // we should not get NegativeCount or TotalAllelesDeficient here (could check that),
         // but we certainly could get other error variants
-        self.add_site_from_counts(counts_this_site, total_alleles)
+        let counts = AlleleCounts::try_new(&*counts_this_site, total_alleles)?;
+        self.add_site_from_counts(counts);
+        Ok(())
     }
 
-    /// Add a site with counts of present alleles as described by `counts` and `total_alleles`
-    /// alleles in total, including missing data.
-    ///
-    /// # Errors
-    /// - Passed site counts must be valid.
-    ///   See [`AlleleCounts::try_new`].
-    ///
-    /// If any error occurs, the underlying struct has not been modified.
-    // NOTE: any pub function that calls this one (probably)
-    // should be fallible
-    pub fn add_site_from_counts(
-        &mut self,
-        counts: impl AsRef<[Count]>,
-        total_alleles: i32,
-    ) -> PopgenResult<()> {
-        let counts = counts.as_ref();
-        if counts.is_empty() || total_alleles == 0 {
-            return Err(PopgenError::EmptySiteCounts);
-        }
-
-        // check the conditions
-        let _ = AlleleCounts::try_new(counts, total_alleles)?;
-
-        self.add_site_from_counts_unchecked(counts, total_alleles);
-        Ok(())
+    /// Add a site with counts of present alleles as described by `counts`.
+    /// Consumers holding a slice of counts and a count of total alleles should use [`AlleleCounts::try_new`] to obtain `AlleleCounts`.
+    pub fn add_site_from_counts(&mut self, counts: AlleleCounts) {
+        self.add_site_from_counts_unchecked(counts.counts(), counts.total_alleles());
     }
 
     fn add_site_from_counts_unchecked(&mut self, counts: &[Count], total_alleles: i32) {

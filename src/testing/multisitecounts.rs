@@ -76,24 +76,19 @@ fn empty_counts() {
 #[test]
 #[should_panic]
 fn bad_site_negative_count() {
-    let mut counts = SampleAlleleCounts::default();
-
-    counts.add_site_from_counts([-1, -2, -3], 100).unwrap();
+    AlleleCounts::try_new(&[-1, -2, -3], 100).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn bad_site_empty_count() {
-    let mut counts = SampleAlleleCounts::default();
-    counts.add_site_from_counts([], 100).unwrap();
+    AlleleCounts::try_new(&[], 100).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn bad_site_deficient_total() {
-    let mut counts = SampleAlleleCounts::default();
-
-    counts.add_site_from_counts([1, 2, 3], 1).unwrap();
+    AlleleCounts::try_new(&[1, 2, 3], 1).unwrap();
 }
 
 fn test_try_reduce_details(
@@ -126,9 +121,7 @@ fn test_try_reduce_details(
 
     let mut mergedcounts = crate::counts::SampleAlleleCounts::default();
     for i in splitcounts.iter().flat_map(|c| c.iter()) {
-        mergedcounts
-            .add_site_from_counts(i.counts(), i.total_alleles())
-            .unwrap();
+        mergedcounts.add_site_from_counts(i);
     }
     let reduced_counts = splitcounts
         .into_iter()
