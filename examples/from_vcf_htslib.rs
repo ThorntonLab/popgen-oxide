@@ -2,6 +2,7 @@
 
 use std::io::Write;
 
+use popgen::AlleleCounts;
 use rust_htslib::bcf;
 use rust_htslib::bcf::Read;
 
@@ -52,9 +53,9 @@ fn main() {
                 total_alleles += 1;
             }
         }
-        counts
-            .add_site_from_counts(site_counts_from_record.as_slice(), total_alleles)
-            .unwrap();
+        counts.add_site_from_counts(
+            AlleleCounts::try_new(site_counts_from_record.as_slice(), total_alleles).unwrap(),
+        );
     }
     println!("{counts:?}");
 }
