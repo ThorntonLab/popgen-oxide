@@ -119,7 +119,7 @@ impl SampleAlleleCounts {
 
         // we should not get NegativeCount or TotalAllelesDeficient here (could check that),
         // but we certainly could get other error variants
-        let counts = AlleleCounts::try_new(&*counts_this_site, total_alleles)?;
+        let counts = AlleleCounts::try_new(&counts_this_site, total_alleles)?;
         self.add_site_from_counts(counts);
         Ok(())
     }
