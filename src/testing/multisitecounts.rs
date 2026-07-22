@@ -48,20 +48,15 @@ fn load_raw() {
     assert!(!counts.is_empty());
 
     let mut iter = counts.iter();
-    assert_eq!(
-        iter.next().unwrap(),
-        AlleleCounts {
-            counts: &[8, 7],
-            total_alleles: 8 + 7 + 4,
-        }
-    );
-    assert_eq!(
-        iter.next().unwrap(),
-        AlleleCounts {
-            counts: &[341, 69, 926],
-            total_alleles: 341 + 69 + 926 + 300,
-        }
-    );
+
+    let ac1 = iter.next().unwrap();
+    assert_eq!(ac1.counts(), &[8, 7]);
+    assert_eq!(ac1.total_alleles(), 8 + 7 + 4,);
+
+    let ac2 = iter.next().unwrap();
+    assert_eq!(ac2.counts(), &[341, 69, 926]);
+    assert_eq!(ac2.total_alleles(), 341 + 69 + 926 + 300);
+
     assert!(iter.next().is_none());
 }
 

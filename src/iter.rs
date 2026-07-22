@@ -92,7 +92,7 @@ fn make_nonempty_counts() -> SampleAlleleCounts {
 fn test_iter_count() {
     let counts = make_nonempty_counts();
     assert_eq!(counts.iter().count(), counts.len());
-    assert_eq!(counts.iter().filter(|c| c.counts[1] == 5).count(), 1);
+    assert_eq!(counts.iter().filter(|c| c.counts()[1] == 5).count(), 1);
 
     let mut iter = counts.iter();
     let _ = iter.next().unwrap();

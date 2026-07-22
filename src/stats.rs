@@ -98,12 +98,12 @@ impl UnpolarisedSiteStat for Diversity {
         debug_assert!(!site.counts().is_empty());
         // technically should divide both by two here and below but it cancels out
         let num_pairs = {
-            let count: i64 = site.counts.iter().sum();
+            let count: i64 = site.counts().iter().sum();
             count * (count - 1)
         };
 
         // the number of pairs where the two samples are homozygous, summed over every genotype
-        let num_homozygous_pairs: Count = site.counts.iter().map(|count| count * (count - 1)).sum();
+        let num_homozygous_pairs: Count = site.counts().iter().map(|count| count * (count - 1)).sum();
 
         self.0 += 1f64 - (num_homozygous_pairs as f64 / num_pairs as f64);
         if self.0.is_nan() {
@@ -158,7 +158,7 @@ impl UnpolarisedSiteStat for WattersonsTheta {
         debug_assert!(!site.counts().is_empty());
         // trying our very hardest to encourage optimization and SIMD here
         // also optimizing with the typical two-element slice in mind
-        let mut iter = site.counts.chunks_exact(2);
+        let mut iter = site.counts().chunks_exact(2);
         let mut num_variants = 0;
         let mut total_samples = 0;
         for w in iter.by_ref() {
@@ -229,7 +229,7 @@ impl UnpolarisedSiteStat for TajimasD {
 
         self.num_sites += 1;
         // this is not perfect but that's fine
-        self.num_samples = max(self.num_samples, site.total_alleles as usize);
+        self.num_samples = max(self.num_samples, site.total_alleles() as usize);
         Ok(())
     }
 }
@@ -363,7 +363,7 @@ impl FStatistics {
                             .iter_sites_in(*existing_pop)
                             .zip(populations.iter_sites_in(population_num))
                             .map(|(s1, s2)| {
-                                if s1.total_alleles == 0 || s2.total_alleles == 0 {
+                                if s1.total_alleles() == 0 || s2.total_alleles() == 0 {
                                     return Err(PopgenError::EmptySiteCounts);
                                 }
 
@@ -376,11 +376,11 @@ impl FStatistics {
                                     return Err(PopgenError::EmptySiteCounts);
                                 }
 
-                                let num_homozygous = (0..max(s1.counts.len(), s2.counts.len()))
+                                let num_homozygous = (0..max(s1.counts().len(), s2.counts().len()))
                                     .map(|variant_num| {
                                         // how many homozygous pairs?
-                                        s1.counts.get(variant_num).unwrap_or(&0)
-                                            * s2.counts.get(variant_num).unwrap_or(&0)
+                                        s1.counts().get(variant_num).unwrap_or(&0)
+                                            * s2.counts().get(variant_num).unwrap_or(&0)
                                     })
                                     .sum::<i64>();
 
