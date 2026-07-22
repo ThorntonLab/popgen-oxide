@@ -145,7 +145,7 @@ mod integration_tests {
     fn diversity(counts: &SingleSampleCounts) -> PyResult<f64> {
         let div = match varistat::stats::Diversity::try_from_iter_sites(counts.counts.iter()) {
             Ok(div) => div.as_raw(),
-            Err(varistat::PopgenError::EmptySiteCounts) => {
+            Err(varistat::VaristatError::EmptySiteCounts) => {
                 varistat::stats::Diversity::default().as_raw()
             }
             Err(e) => panic!("unexpected error {e:?}"),
