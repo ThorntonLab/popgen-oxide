@@ -220,8 +220,8 @@ impl TryReduce for SampleAlleleCounts {
 /// It can also be built from user-provided data via [`Self::try_new`].
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct AlleleCounts<'inner> {
-    pub(crate) counts: &'inner [Count],
-    pub(crate) total_alleles: i32,
+    counts: &'inner [Count],
+    total_alleles: i32,
 }
 
 impl<'inner> AlleleCounts<'inner> {
@@ -255,10 +255,12 @@ impl<'inner> AlleleCounts<'inner> {
         })
     }
 
+    #[inline]
     pub fn counts(&self) -> &[Count] {
         self.counts
     }
 
+    #[inline]
     pub fn total_alleles(&self) -> i32 {
         self.total_alleles
     }
