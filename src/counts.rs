@@ -255,10 +255,12 @@ impl<'inner> AlleleCounts<'inner> {
         })
     }
 
+    #[inline]
     pub fn counts(&self) -> &[Count] {
         self.counts
     }
 
+    #[inline]
     pub fn total_alleles(&self) -> i32 {
         self.total_alleles
     }
