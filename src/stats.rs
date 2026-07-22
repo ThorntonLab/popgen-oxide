@@ -1,6 +1,6 @@
 use crate::traits::TryReduce;
 use crate::util::StrictlyLowerTriangular;
-use crate::{AlleleCounts, Count, MultiSampleAlleleCounts, PopgenError, PopgenResult};
+use crate::{AlleleCounts, Count, MultiSampleAlleleCounts, VaristatError, VaristatResult};
 use std::cmp::max;
 
 /// A statistic calculable by iterating over variation at individual sites
@@ -16,13 +16,13 @@ pub trait UnpolarisedSiteStat {
     /// * Is the statistic implementing this trait well-defined for such an empty input?
     ///   The default implementation assumes it is not.
     ///
-    /// Implementors are free to re-implement this function to change those semantics, including handling [`PopgenError`] variants as they deem appropriate.
+    /// Implementors are free to re-implement this function to change those semantics, including handling [`VaristatError`] variants as they deem appropriate.
     ///
     /// # Errors
     ///
-    /// * If the iterator is empty, implementors may return [`PopgenError::EmptySiteCounts`] (see above for potential reasons).
+    /// * If the iterator is empty, implementors may return [`VaristatError::EmptySiteCounts`] (see above for potential reasons).
     /// * Any error resulting from adding a single site ([`Self::try_add_site`]) may also be raised.
-    fn try_from_iter_sites<'counts, I>(mut iter: I) -> Result<Self, PopgenError>
+    fn try_from_iter_sites<'counts, I>(mut iter: I) -> Result<Self, VaristatError>
     where
         I: Iterator<Item = AlleleCounts<'counts>>,
         Self: Default,
@@ -37,7 +37,7 @@ pub trait UnpolarisedSiteStat {
 
             Ok(ret)
         } else {
-            Err(PopgenError::EmptySiteCounts)
+            Err(VaristatError::EmptySiteCounts)
         }
     }
 
@@ -45,7 +45,7 @@ pub trait UnpolarisedSiteStat {
     ///
     /// # Errors
     ///
-    /// * Implementations should return [`PopgenError::CalculationError`]
+    /// * Implementations should return [`VaristatError::CalculationError`]
     ///   if updating results in an invalid value.
     ///
     /// # Notes
@@ -59,7 +59,7 @@ pub trait UnpolarisedSiteStat {
     /// ```no_compile
     /// debug_assert!(!site.counts().is_empty());
     /// ```
-    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError>;
+    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), VaristatError>;
 }
 
 /// Obtain a low-level ("raw") representation of a statistic.
@@ -79,13 +79,13 @@ pub trait StatRepresentation<'stat> {
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 ///
 /// Note that this statistic is **not defined** over an empty dataset; the denominator is the number of valid pairwise comparisons, which is 0 in this case.
-/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`VaristatError::EmptySiteCounts`].
 ///
 /// The default value is `0.0`:
 /// ```
-/// # use popgen::stats::Diversity;
-/// use popgen::stats::UnpolarisedSiteStat;
-/// use popgen::stats::StatRepresentation;
+/// # use varistat::stats::Diversity;
+/// use varistat::stats::UnpolarisedSiteStat;
+/// use varistat::stats::StatRepresentation;
 ///
 /// assert_eq!(Diversity::default().as_raw(), 0.0);
 /// ```
@@ -94,7 +94,7 @@ pub trait StatRepresentation<'stat> {
 pub struct Diversity(f64);
 
 impl UnpolarisedSiteStat for Diversity {
-    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), VaristatError> {
         debug_assert!(!site.counts().is_empty());
 
         let mut sum = 0_i64;
@@ -111,7 +111,7 @@ impl UnpolarisedSiteStat for Diversity {
         self.0 += 1f64 - (n_homozygous as f64) / (n_comparisons as f64);
 
         if self.0.is_nan() {
-            Err(PopgenError::CalculationError)
+            Err(VaristatError::CalculationError)
         } else {
             Ok(())
         }
@@ -119,14 +119,14 @@ impl UnpolarisedSiteStat for Diversity {
 }
 
 impl TryReduce for Diversity {
-    type Error = crate::PopgenError;
+    type Error = crate::VaristatError;
     fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
         let rv = self.as_raw() + other.as_raw();
         if !rv.is_finite() || rv < 0.0 {
-            Err(PopgenError::CalculationError)
+            Err(VaristatError::CalculationError)
         } else {
             Ok(Diversity(rv))
         }
@@ -143,13 +143,13 @@ impl<'statistic> StatRepresentation<'statistic> for Diversity {
 /// Watterson's theta: see [Watterson's article](https://doi.org/10.1016%2F0040-5809%2875%2990020-9) and [Wikipedia](https://en.wikipedia.org/wiki/Watterson_estimator)
 ///
 /// Note that this statistic is **not defined** over an empty dataset, because there would be zero samples.
-/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`VaristatError::EmptySiteCounts`].
 ///
 /// The default value is `0.0`:
 /// ```
-/// # use popgen::stats::WattersonsTheta;
-/// use popgen::stats::UnpolarisedSiteStat;
-/// use popgen::stats::StatRepresentation;
+/// # use varistat::stats::WattersonsTheta;
+/// use varistat::stats::UnpolarisedSiteStat;
+/// use varistat::stats::StatRepresentation;
 ///
 /// assert_eq!(WattersonsTheta::default().as_raw(), 0.0);
 /// ```
@@ -158,7 +158,7 @@ impl<'statistic> StatRepresentation<'statistic> for Diversity {
 pub struct WattersonsTheta(f64);
 
 impl UnpolarisedSiteStat for WattersonsTheta {
-    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), VaristatError> {
         debug_assert!(!site.counts().is_empty());
 
         // requires rust 1.88
@@ -195,14 +195,14 @@ impl<'statistic> StatRepresentation<'statistic> for WattersonsTheta {
 }
 
 impl TryReduce for WattersonsTheta {
-    type Error = crate::PopgenError;
+    type Error = crate::VaristatError;
     fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
         let rv = self.as_raw() + other.as_raw();
         if !rv.is_finite() || rv < 0.0 {
-            Err(PopgenError::CalculationError)
+            Err(VaristatError::CalculationError)
         } else {
             Ok(Self(rv))
         }
@@ -213,7 +213,7 @@ impl TryReduce for WattersonsTheta {
 /// See also [Wikipedia](https://en.wikipedia.org/wiki/Tajima%27s_D#Mathematical_details) for the equations restated.
 ///
 /// Note that this statistic is **not defined** over an empty dataset, because it depends on [`Diversity`] (see that documentation).
-/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
+/// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`VaristatError::EmptySiteCounts`].
 ///
 /// Tajima's D is derived from [`Diversity`] and [`WattersonsTheta`], and [`Diversity`] is not defined over an empty dataset, so the default value is not meaningful.
 #[derive(Debug, Copy, Clone, Default)]
@@ -225,7 +225,7 @@ pub struct TajimasD {
 }
 
 impl UnpolarisedSiteStat for TajimasD {
-    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
+    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), VaristatError> {
         debug_assert!(!site.counts().is_empty());
         self.k_hat.try_add_site(site.clone())?;
         self.theta.try_add_site(site.clone())?;
@@ -289,7 +289,7 @@ where
     Diversity: TryReduce,
     WattersonsTheta: TryReduce,
 {
-    type Error = PopgenError;
+    type Error = VaristatError;
     fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
@@ -348,7 +348,7 @@ impl FStatistics {
         populations: &MultiSampleAlleleCounts,
         population_num: usize,
         weight: f64,
-    ) -> Result<(), PopgenError> {
+    ) -> Result<(), VaristatError> {
         let diversity_new_site =
             Diversity::try_from_iter_sites(populations.iter_sites_in(population_num))?.as_raw();
         self.diversity_within.push(diversity_new_site);
@@ -367,7 +367,7 @@ impl FStatistics {
                             .zip(populations.iter_sites_in(population_num))
                             .map(|(s1, s2)| {
                                 if s1.total_alleles() == 0 || s2.total_alleles() == 0 {
-                                    return Err(PopgenError::EmptySiteCounts);
+                                    return Err(VaristatError::EmptySiteCounts);
                                 }
 
                                 // do complement of diversity, i.e. expected homozygosity
@@ -376,7 +376,7 @@ impl FStatistics {
                                     * s2.counts().iter().sum::<Count>())
                                     as i32;
                                 if total_comparisons == 0 {
-                                    return Err(PopgenError::EmptySiteCounts);
+                                    return Err(VaristatError::EmptySiteCounts);
                                 }
 
                                 let num_homozygous = (0..max(s1.counts().len(), s2.counts().len()))
@@ -389,12 +389,12 @@ impl FStatistics {
 
                                 Ok(1. - num_homozygous as f64 / (total_comparisons as f64))
                             })
-                            .sum::<Result<f64, PopgenError>>()?;
+                            .sum::<Result<f64, VaristatError>>()?;
 
                         self.pi_b.0 += weight * existing_pop_weight * divergence_ij;
                         self.pi_b.1 += weight * existing_pop_weight;
 
-                        PopgenResult::Ok(divergence_ij)
+                        VaristatResult::Ok(divergence_ij)
                     }),
             )?;
 
@@ -412,7 +412,7 @@ impl FStatistics {
     pub fn try_from_populations(
         populations: &MultiSampleAlleleCounts,
         mut pred: impl FnMut(usize) -> Option<f64>,
-    ) -> Result<Self, PopgenError> {
+    ) -> Result<Self, VaristatError> {
         let mut ret = Self::new();
 
         let mut any = false;
@@ -424,7 +424,7 @@ impl FStatistics {
         }
 
         if !any {
-            return Err(PopgenError::CalculationError);
+            return Err(VaristatError::CalculationError);
         }
 
         Ok(ret)
@@ -512,10 +512,10 @@ impl FStatistics {
     /// # Errors
     ///
     //// * If `deme` is out of range, return [`PopgenError::InvalidDeme`]
-    pub fn pi_within(&self, deme: usize) -> PopgenResult<f64> {
+    pub fn pi_within(&self, deme: usize) -> VaristatResult<f64> {
         Ok(self.diversity_within[self
             .internal_index_for(deme)
-            .ok_or(PopgenError::InvalidDeme)?])
+            .ok_or(VaristatError::InvalidDeme)?])
     }
 
     /// Get the [`Diversity`] of these two demes, comparing a sample from one against a sample from the other.
@@ -523,13 +523,13 @@ impl FStatistics {
     ///
     /// # Errors
     ///
-    /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
-    pub fn pi_between(&self, deme1: usize, deme2: usize) -> PopgenResult<f64> {
+    /// * If `deme1` or `deme2` is out of range, return [`VaristatError::InvalidDeme`]
+    pub fn pi_between(&self, deme1: usize, deme2: usize) -> VaristatResult<f64> {
         Ok(*self.divergence_between.get(
             self.internal_index_for(deme1)
-                .ok_or(PopgenError::InvalidDeme)?,
+                .ok_or(VaristatError::InvalidDeme)?,
             self.internal_index_for(deme2)
-                .ok_or(PopgenError::InvalidDeme)?,
+                .ok_or(VaristatError::InvalidDeme)?,
         ))
     }
 
@@ -541,24 +541,24 @@ impl FStatistics {
     ///
     /// # Errors
     ///
-    /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
-    pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
+    /// * If `deme1` or `deme2` is out of range, return [`VaristatError::InvalidDeme`]
+    pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, VaristatError> {
         let deme1_internal = self
             .internal_index_for(deme1)
-            .ok_or(PopgenError::InvalidDeme)?;
+            .ok_or(VaristatError::InvalidDeme)?;
         let deme2_internal = self
             .internal_index_for(deme2)
-            .ok_or(PopgenError::InvalidDeme)?;
+            .ok_or(VaristatError::InvalidDeme)?;
 
         let divergence_12 = self.divergence_between.get(deme1_internal, deme2_internal);
         let diversity_11 = self
             .diversity_within
             .get(deme1_internal)
-            .ok_or(PopgenError::InvalidDeme)?;
+            .ok_or(VaristatError::InvalidDeme)?;
         let diversity_22 = self
             .diversity_within
             .get(deme2_internal)
-            .ok_or(PopgenError::InvalidDeme)?;
+            .ok_or(VaristatError::InvalidDeme)?;
         Ok(divergence_12 - (diversity_11 + diversity_22) / 2.)
     }
 
@@ -574,8 +574,8 @@ impl FStatistics {
     ///
     /// # Errors
     ///
-    /// * If any deme index is out of range, return [`PopgenError::InvalidDeme`]
-    pub fn f3(&self, deme1: usize, deme2: usize, deme3: usize) -> Result<f64, PopgenError> {
+    /// * If any deme index is out of range, return [`VaristatError::InvalidDeme`]
+    pub fn f3(&self, deme1: usize, deme2: usize, deme3: usize) -> Result<f64, VaristatError> {
         let a = self.f2(deme1, deme2)?;
         let b = self.f2(deme1, deme3)?;
         let c = self.f2(deme2, deme3)?;
@@ -592,14 +592,14 @@ impl FStatistics {
     ///
     /// # Errors
     ///
-    /// * If any deme index is out of range, return [`PopgenError::InvalidDeme`]
+    /// * If any deme index is out of range, return [`VaristatError::InvalidDeme`]
     pub fn f4(
         &self,
         deme1: usize,
         deme2: usize,
         deme3: usize,
         deme4: usize,
-    ) -> Result<f64, PopgenError> {
+    ) -> Result<f64, VaristatError> {
         let a = self.f2(deme1, deme4)?;
         let b = self.f2(deme2, deme3)?;
         let c = self.f2(deme1, deme3)?;

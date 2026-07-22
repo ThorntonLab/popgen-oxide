@@ -2,7 +2,7 @@ use crate::iter::SampleAlleleCountsIter;
 use crate::traits::TryReduce;
 #[cfg(feature = "tskit")]
 use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions};
-use crate::{AlleleID, PopgenError, PopgenResult};
+use crate::{AlleleID, VaristatError, VaristatResult};
 use std::cmp::max;
 
 /// A number of alleles.
@@ -24,7 +24,7 @@ impl SampleAlleleCounts {
     /// Convenience wrapper which repeatedly invokes [`Self::add_site`].
     /// # Errors
     /// The error conditions from [`Self::add_site`] apply here.
-    pub fn try_from_tabular<Sites, Samples>(sites: Sites) -> PopgenResult<Self>
+    pub fn try_from_tabular<Sites, Samples>(sites: Sites) -> VaristatResult<Self>
     where
         Sites: IntoIterator<Item = Samples>,
         Samples: IntoIterator<Item = Option<AlleleID>>,
@@ -59,7 +59,7 @@ impl SampleAlleleCounts {
         ts: &tskit::TreeSequence,
         samples: N,
         options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError>
+    ) -> Result<Self, VaristatError>
     where
         N: Iterator<Item = tskit::NodeId>,
     {
@@ -72,7 +72,7 @@ impl SampleAlleleCounts {
         samples: N,
         sites: S,
         options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError>
+    ) -> Result<Self, VaristatError>
     where
         N: Iterator<Item = tskit::NodeId>,
         S: Iterator<Item = tskit::SiteRef<'ts>>,
@@ -86,7 +86,7 @@ impl SampleAlleleCounts {
         samples: N,
         windows: W,
         options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Vec<Self>, PopgenError>
+    ) -> Result<Vec<Self>, VaristatError>
     where
         N: Iterator<Item = tskit::NodeId>,
         W: Iterator<Item = (P, P)>,
@@ -99,7 +99,7 @@ impl SampleAlleleCounts {
     /// # Errors
     /// - If `samples` is empty.
     /// - If `samples` contains no present data (i.e. only ever yields `None`).
-    pub fn add_site<Samples>(&mut self, samples: Samples) -> PopgenResult<()>
+    pub fn add_site<Samples>(&mut self, samples: Samples) -> VaristatResult<()>
     where
         Samples: IntoIterator<Item = Option<AlleleID>>,
     {
@@ -188,7 +188,7 @@ impl SampleAlleleCounts {
 }
 
 impl TryReduce for SampleAlleleCounts {
-    type Error = PopgenError;
+    type Error = VaristatError;
     fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
@@ -234,21 +234,21 @@ impl<'inner> AlleleCounts<'inner> {
     /// - If `total_alleles` is less than the sum of elements of `counts`.
     /// - If `counts` is empty.
     /// - If `total_alleles == 0`.
-    pub fn try_new(counts: &'inner [Count], total_alleles: i64) -> Result<Self, PopgenError> {
+    pub fn try_new(counts: &'inner [Count], total_alleles: i64) -> Result<Self, VaristatError> {
         if counts.is_empty() || total_alleles == 0 {
-            return Err(PopgenError::EmptySiteCounts);
+            return Err(VaristatError::EmptySiteCounts);
         }
 
         let mut sum = 0;
         for c in counts {
             if c < &0 {
-                return Err(PopgenError::NegativeCount(*c));
+                return Err(VaristatError::NegativeCount(*c));
             }
             sum += c;
         }
 
         if sum > total_alleles {
-            return Err(PopgenError::TotalAllelesDeficient);
+            return Err(VaristatError::TotalAllelesDeficient);
         }
 
         Ok(Self {
@@ -308,7 +308,7 @@ impl MultiSampleAlleleCounts {
     pub fn extend_populations_from_site<Counts>(
         &mut self,
         mut get_counts: impl FnMut(usize) -> (Counts, Count),
-    ) -> PopgenResult<()>
+    ) -> VaristatResult<()>
     where
         Counts: AsRef<[Count]>,
     {
@@ -325,7 +325,7 @@ impl MultiSampleAlleleCounts {
                         .reserve(self.num_populations * inferred_slice_length.unwrap_or_default());
                 }
                 Some(stored) if stored != counts.len() => {
-                    return Err(PopgenError::MismatchedSliceLength);
+                    return Err(VaristatError::MismatchedSliceLength);
                 }
                 Some(_) => {}
             }
@@ -344,7 +344,7 @@ impl MultiSampleAlleleCounts {
         ts: &tskit::TreeSequence,
         samples: Outer,
         options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError>
+    ) -> Result<Self, VaristatError>
     where
         Outer: Iterator<Item = Inner>,
         Inner: Iterator<Item = tskit::NodeId>,
@@ -358,7 +358,7 @@ impl MultiSampleAlleleCounts {
         samples: Outer,
         sites: S,
         options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError>
+    ) -> Result<Self, VaristatError>
     where
         Outer: Iterator<Item = Inner>,
         Inner: Iterator<Item = tskit::NodeId>,

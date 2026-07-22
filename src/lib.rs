@@ -18,7 +18,7 @@ mod testing;
 
 pub use counts::*;
 
-pub type PopgenResult<T> = Result<T, PopgenError>;
+pub type VaristatResult<T> = Result<T, VaristatError>;
 
 #[cfg(feature = "tskit")]
 pub mod from_tskit {
@@ -28,7 +28,7 @@ pub mod from_tskit {
 
 #[non_exhaustive]
 #[derive(Debug)]
-pub enum PopgenError {
+pub enum VaristatError {
     #[cfg(feature = "noodles")]
     NoodlesVCF(std::io::Error),
     #[cfg(feature = "tskit")]
@@ -43,37 +43,37 @@ pub enum PopgenError {
     LibraryError(String),
 }
 
-impl std::fmt::Display for PopgenError {
+impl std::fmt::Display for VaristatError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PopgenError::NegativeCount(c) => {
+            VaristatError::NegativeCount(c) => {
                 write!(f, "inputted allele count may not be negative; got {}", c)
             }
-            PopgenError::TotalAllelesDeficient => write!(
+            VaristatError::TotalAllelesDeficient => write!(
                 f,
                 "stated total alleles is less than sum of counts of present variants"
             ),
-            PopgenError::Io(e) => write!(f, "io error: {}", e),
-            PopgenError::MismatchedSliceLength => {
+            VaristatError::Io(e) => write!(f, "io error: {}", e),
+            VaristatError::MismatchedSliceLength => {
                 write!(f, "slices were expected to be of the same length")
             }
-            PopgenError::EmptySiteCounts => write!(f, "empty site count data"),
-            PopgenError::CalculationError => write!(f, "calculation produced an invalid value"),
-            PopgenError::InvalidDeme => write!(f, "invalid deme label or index"),
-            PopgenError::LibraryError(msg) => write!(f, "{msg}"),
+            VaristatError::EmptySiteCounts => write!(f, "empty site count data"),
+            VaristatError::CalculationError => write!(f, "calculation produced an invalid value"),
+            VaristatError::InvalidDeme => write!(f, "invalid deme label or index"),
+            VaristatError::LibraryError(msg) => write!(f, "{msg}"),
             #[cfg(feature = "tskit")]
-            PopgenError::Tskit(e) => write!(f, "tskit conversion error: {}", e),
+            VaristatError::Tskit(e) => write!(f, "tskit conversion error: {}", e),
             #[cfg(feature = "noodles")]
-            PopgenError::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
+            VaristatError::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
         }
     }
 }
 
-impl std::error::Error for PopgenError {}
+impl std::error::Error for VaristatError {}
 
-impl From<std::io::Error> for PopgenError {
+impl From<std::io::Error> for VaristatError {
     fn from(e: std::io::Error) -> Self {
-        PopgenError::Io(e)
+        VaristatError::Io(e)
     }
 }
 

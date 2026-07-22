@@ -2,7 +2,7 @@ use crate::stats::StatRepresentation;
 use crate::stats::UnpolarisedSiteStat;
 use crate::stats::{Diversity, FStatistics};
 use crate::testing::testdata::RandomSiteOptions;
-use crate::{Count, MultiSampleAlleleCounts, PopgenError};
+use crate::{Count, MultiSampleAlleleCounts, VaristatError};
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -13,7 +13,7 @@ fn f_st_no_pops() {
     let counts = MultiSampleAlleleCounts::default();
     assert!(matches!(
         FStatistics::try_from_populations(&counts, |_| Some(1.0)),
-        Err(PopgenError::CalculationError)
+        Err(VaristatError::CalculationError)
     ));
 }
 
@@ -25,7 +25,7 @@ fn f_st_empty_pops() {
                 &MultiSampleAlleleCounts::of_empty_populations(n_pops),
                 |_| { Some(1.0) }
             ),
-            Err(PopgenError::EmptySiteCounts)
+            Err(VaristatError::EmptySiteCounts)
         ));
     }
 }
@@ -122,11 +122,11 @@ fn f_st_skip_indices() {
 
     let f_st = FStatistics::try_from_populations(&populations, |i| weights[i]).unwrap();
     assert!(f_st.pi_within(0).is_ok());
-    assert!(matches!(f_st.pi_within(1), Err(PopgenError::InvalidDeme)));
+    assert!(matches!(f_st.pi_within(1), Err(VaristatError::InvalidDeme)));
     assert!(f_st.pi_within(2).is_ok());
 
     assert_eq!(f_st.f2(0, 2).unwrap(), f_st.f2(2, 0).unwrap());
-    assert!(matches!(f_st.f2(1, 2), Err(PopgenError::InvalidDeme)));
+    assert!(matches!(f_st.f2(1, 2), Err(VaristatError::InvalidDeme)));
 }
 
 #[test]

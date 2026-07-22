@@ -1,13 +1,13 @@
 //! Example of concurrent computation enabled by the `SiteComposable` trait.
 
 use noodles::vcf;
-use popgen::adapter::vcf::record_to_genotypes_adapter;
-use popgen::stats::{Diversity, UnpolarisedSiteStat};
-use popgen::traits::TryReduce;
-use popgen::{PopgenError, SampleAlleleCounts};
 use rayon::iter::ParallelBridge;
 use rayon::iter::ParallelIterator;
 use std::io::Cursor;
+use varistat::adapter::vcf::record_to_genotypes_adapter;
+use varistat::stats::{Diversity, UnpolarisedSiteStat};
+use varistat::traits::TryReduce;
+use varistat::{SampleAlleleCounts, VaristatError};
 
 static VCF_FILE: &str = r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
@@ -33,7 +33,7 @@ fn main() {
             let mut multi = SampleAlleleCounts::default();
             multi.add_site(alleles).unwrap();
             diversity.try_add_site(multi.get(0).unwrap())?;
-            Ok::<_, PopgenError>(diversity)
+            Ok::<_, VaristatError>(diversity)
         })
         .try_reduce(Diversity::default, |a, b| a.try_reduce(b))
         .unwrap();
