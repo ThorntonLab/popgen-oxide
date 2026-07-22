@@ -96,17 +96,20 @@ pub struct Diversity(f64);
 impl UnpolarisedSiteStat for Diversity {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
-        // technically should divide both by two here and below but it cancels out
-        let num_pairs = {
-            let count: i64 = site.counts().iter().sum();
-            count * (count - 1)
-        };
 
-        // the number of pairs where the two samples are homozygous, summed over every genotype
-        let num_homozygous_pairs: Count =
-            site.counts().iter().map(|count| count * (count - 1)).sum();
+        let mut sum = 0_i64;
+        let mut n_homozygous = 0_i64;
 
-        self.0 += 1f64 - (num_homozygous_pairs as f64 / num_pairs as f64);
+        for c in site.counts() {
+            sum += c;
+            n_homozygous += c * (c - 1);
+        }
+
+        let n_comparisons = sum * (sum - 1);
+
+        // technically, there is a factor of two in both dividend and divisor, but we may ignore them together
+        self.0 += 1f64 - (n_homozygous as f64) / (n_comparisons as f64);
+
         if self.0.is_nan() {
             Err(PopgenError::CalculationError)
         } else {
