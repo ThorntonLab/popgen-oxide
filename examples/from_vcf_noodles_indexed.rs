@@ -1,7 +1,7 @@
 use noodles::core::{Position, Region};
+use std::io::Write;
 use varistat::adapter::vcf::record_to_genotypes_adapter;
 use varistat::SampleAlleleCounts;
-use std::io::Write;
 
 /*
 Since this crate is agnostic to input data format, there is no special handling for e.g. indexed VCF.

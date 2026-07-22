@@ -1,13 +1,13 @@
 //! Example of concurrent computation enabled by the `SiteComposable` trait.
 
 use noodles::vcf;
-use varistat::adapter::vcf::record_to_genotypes_adapter;
-use varistat::stats::{Diversity, UnpolarisedSiteStat};
-use varistat::traits::TryReduce;
-use varistat::{VaristatError, SampleAlleleCounts};
 use rayon::iter::ParallelBridge;
 use rayon::iter::ParallelIterator;
 use std::io::Cursor;
+use varistat::adapter::vcf::record_to_genotypes_adapter;
+use varistat::stats::{Diversity, UnpolarisedSiteStat};
+use varistat::traits::TryReduce;
+use varistat::{SampleAlleleCounts, VaristatError};
 
 static VCF_FILE: &str = r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">

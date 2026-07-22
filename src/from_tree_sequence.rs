@@ -1,5 +1,5 @@
 use crate::{
-    AlleleCounts, Count, MultiSampleAlleleCounts, VaristatError, VaristatResult, SampleAlleleCounts,
+    AlleleCounts, Count, MultiSampleAlleleCounts, SampleAlleleCounts, VaristatError, VaristatResult,
 };
 
 /// Options affecting the behavior of

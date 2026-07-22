@@ -2,9 +2,9 @@
 
 use std::io::Write;
 
-use varistat::AlleleCounts;
 use rust_htslib::bcf;
 use rust_htslib::bcf::Read;
+use varistat::AlleleCounts;
 
 static VCF_FILE: &str = r#"##fileformat=VCFv4.6
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
