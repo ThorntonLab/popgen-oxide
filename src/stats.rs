@@ -99,21 +99,15 @@ impl UnpolarisedSiteStat for Diversity {
 
         let mut sum = 0_i64;
         let mut n_homozygous = 0_i64;
-        let mut ch = site.counts().chunks_exact(2);
 
-        for c in &mut ch {
-            let a: [i64; 2] = c.try_into().unwrap();
-            sum += a[0];
-            n_homozygous += a[0] * (a[0] - 1);
-            sum += a[1];
-            n_homozygous += a[1] * (a[1] - 1);
-        }
-        for r in ch.remainder() {
-            sum += r;
-            n_homozygous += r * (r - 1);
+        for c in site.counts() {
+            sum += c;
+            n_homozygous += c * (c - 1);
         }
 
         let n_comparisons = sum * (sum - 1);
+
+        // technically, there is a factor of two in both dividend and divisor, but we may ignore them together
         self.0 += 1f64 - (n_homozygous as f64) / (n_comparisons as f64);
 
         if self.0.is_nan() {
