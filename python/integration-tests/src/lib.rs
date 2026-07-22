@@ -1,5 +1,5 @@
-use popgen::stats::StatRepresentation;
-use popgen::stats::UnpolarisedSiteStat;
+use varistat::stats::StatRepresentation;
+use varistat::stats::UnpolarisedSiteStat;
 use pyo3::prelude::*;
 
 #[pyclass]
@@ -9,7 +9,7 @@ struct TreeSequenceHolder {
 
 #[pyclass]
 struct SingleSampleCounts {
-    counts: popgen::SampleAlleleCounts,
+    counts: varistat::SampleAlleleCounts,
 }
 
 #[pyclass]
@@ -24,10 +24,10 @@ impl SingleSampleCountCollection {
         self.0
             .iter()
             .map(
-                |c| match popgen::stats::Diversity::try_from_iter_sites(c.counts.iter()) {
+                |c| match varistat::stats::Diversity::try_from_iter_sites(c.counts.iter()) {
                     Ok(div) => div.as_raw(),
-                    Err(popgen::PopgenError::EmptySiteCounts) => {
-                        popgen::stats::Diversity::default().as_raw()
+                    Err(varistat::VaristatError::EmptySiteCounts) => {
+                        varistat::stats::Diversity::default().as_raw()
                     }
                     Err(e) => panic!("unexpected error {e:?}"),
                 },
@@ -39,8 +39,8 @@ impl SingleSampleCountCollection {
 /// A Python module implemented in Rust.
 #[pymodule]
 mod integration_tests {
-    use popgen::stats::StatRepresentation;
-    use popgen::stats::UnpolarisedSiteStat;
+    use varistat::stats::StatRepresentation;
+    use varistat::stats::UnpolarisedSiteStat;
     use pyo3::prelude::*;
 
     use crate::{SingleSampleCountCollection, SingleSampleCounts, TreeSequenceHolder};
@@ -64,7 +64,7 @@ mod integration_tests {
 
     #[pyfunction]
     fn counts_from_ts_holder(holder: &TreeSequenceHolder) -> PyResult<SingleSampleCounts> {
-        let counts = popgen::SampleAlleleCounts::try_from_tree_sequence(
+        let counts = varistat::SampleAlleleCounts::try_from_tree_sequence(
             &holder.ts,
             holder
                 .ts
@@ -82,7 +82,7 @@ mod integration_tests {
         holder: &TreeSequenceHolder,
         samples: Vec<i32>,
     ) -> PyResult<SingleSampleCounts> {
-        let counts = popgen::SampleAlleleCounts::try_from_tree_sequence(
+        let counts = varistat::SampleAlleleCounts::try_from_tree_sequence(
             &holder.ts,
             samples.into_iter().map(|i| i.into()),
             None,
@@ -103,7 +103,7 @@ mod integration_tests {
         assert!(!windows.is_empty());
         assert!(windows[0] == 0.0);
         assert!(windows[windows.len() - 1] == holder.ts.tables().sequence_length());
-        let counts = popgen::SampleAlleleCounts::try_from_tree_sequence_windows(
+        let counts = varistat::SampleAlleleCounts::try_from_tree_sequence_windows(
             &holder.ts,
             samples.iter().map(|i| i.into()),
             windows.windows(2).map(|w| (w[0], w[1])),
@@ -125,7 +125,7 @@ mod integration_tests {
         windows: Vec<(f64, f64)>,
     ) -> PyResult<SingleSampleCountCollection> {
         assert!(!windows.is_empty());
-        let counts = popgen::SampleAlleleCounts::try_from_tree_sequence_windows(
+        let counts = varistat::SampleAlleleCounts::try_from_tree_sequence_windows(
             &holder.ts,
             samples.iter().map(|i| i.into()),
             windows.into_iter(),
@@ -143,10 +143,10 @@ mod integration_tests {
     /// For the purposes of testing, we treat empty count objects
     /// as having a diversity of 0.0
     fn diversity(counts: &SingleSampleCounts) -> PyResult<f64> {
-        let div = match popgen::stats::Diversity::try_from_iter_sites(counts.counts.iter()) {
+        let div = match varistat::stats::Diversity::try_from_iter_sites(counts.counts.iter()) {
             Ok(div) => div.as_raw(),
-            Err(popgen::PopgenError::EmptySiteCounts) => {
-                popgen::stats::Diversity::default().as_raw()
+            Err(varistat::PopgenError::EmptySiteCounts) => {
+                varistat::stats::Diversity::default().as_raw()
             }
             Err(e) => panic!("unexpected error {e:?}"),
         };

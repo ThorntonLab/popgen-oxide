@@ -1,5 +1,5 @@
 use crate::{
-    AlleleCounts, Count, MultiSampleAlleleCounts, PopgenError, PopgenResult, SampleAlleleCounts,
+    AlleleCounts, Count, MultiSampleAlleleCounts, VaristatError, VaristatResult, SampleAlleleCounts,
 };
 
 /// Options affecting the behavior of
@@ -24,7 +24,7 @@ pub enum FromTreeSequenceError {
     InvalidWindow((tskit::Position, tskit::Position)),
 }
 
-impl From<FromTreeSequenceError> for PopgenError {
+impl From<FromTreeSequenceError> for VaristatError {
     fn from(e: FromTreeSequenceError) -> Self {
         Self::Tskit(e)
     }
@@ -161,7 +161,7 @@ fn setup_samples_from_node_ids<I>(
     num_nodes: usize,
     iter: I,
     td: &mut TreeData,
-) -> Result<i32, crate::PopgenError>
+) -> Result<i32, crate::VaristatError>
 where
     I: Iterator<Item = tskit::NodeId>,
 {
@@ -188,7 +188,7 @@ where
 fn setup_samples<N>(
     ts: &tskit::TreeSequence,
     samples: N,
-) -> Result<(TreeData, i32), crate::PopgenError>
+) -> Result<(TreeData, i32), crate::VaristatError>
 where
     N: Iterator<Item = tskit::NodeId>,
 {
@@ -201,7 +201,7 @@ where
 fn setup_multi_sample_sets<Outer, Inner>(
     ts: &tskit::TreeSequence,
     samples: Outer,
-) -> Result<Vec<(TreeData, i32)>, crate::PopgenError>
+) -> Result<Vec<(TreeData, i32)>, crate::VaristatError>
 where
     Outer: Iterator<Item = Inner>,
     Inner: Iterator<Item = tskit::NodeId>,
@@ -240,7 +240,7 @@ trait SampleSets<'s> {
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
-    ) -> PopgenResult<()>
+    ) -> VaristatResult<()>
     where
         'ts: 's,
         's: 'a;
@@ -249,12 +249,12 @@ trait SampleSets<'s> {
         ts: &'ts tskit::TreeSequence,
         mutation_parent: &'a M,
         mutation: tskit::MutationRef<'a>,
-    ) -> PopgenResult<()>
+    ) -> VaristatResult<()>
     where
         'ts: 's,
         's: 'a,
         M: tskit::TableColumn<tskit::MutationId, tskit::MutationId>;
-    fn update_allele_counts(&mut self) -> PopgenResult<()>;
+    fn update_allele_counts(&mut self) -> VaristatResult<()>;
     fn output(self) -> Self::Output;
 }
 
@@ -262,7 +262,7 @@ fn setup_alleles_at_site<'ts, 'a>(
     ts: &'ts tskit::TreeSequence,
     site: tskit::SiteId,
     alleles_at_site: &mut Vec<&'a [u8]>,
-) -> PopgenResult<()>
+) -> VaristatResult<()>
 where
     'ts: 'a,
 {
@@ -297,7 +297,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         ts: &'ts tskit::TreeSequence,
         mutation_parent: &'a M,
         mutation: tskit::MutationRef<'a>,
-    ) -> PopgenResult<()>
+    ) -> VaristatResult<()>
     where
         'ts: 's,
         's: 'a,
@@ -333,7 +333,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         Ok(())
     }
 
-    fn update_allele_counts(&mut self) -> PopgenResult<()> {
+    fn update_allele_counts(&mut self) -> VaristatResult<()> {
         self.allele_counts[0] =
         // TODO: we should simply sum the desired quantity as we go along,
         // eliminating the need for an iteration here.
@@ -358,7 +358,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
-    ) -> PopgenResult<()>
+    ) -> VaristatResult<()>
     where
         'ts: 's,
         's: 'a,
@@ -392,7 +392,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         ts: &'ts tskit::TreeSequence,
         mutation_parent: &'a M,
         mutation: tskit::MutationRef<'a>,
-    ) -> PopgenResult<()>
+    ) -> VaristatResult<()>
     where
         'ts: 's,
         's: 'a,
@@ -455,7 +455,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         Ok(())
     }
 
-    fn update_allele_counts(&mut self) -> PopgenResult<()> {
+    fn update_allele_counts(&mut self) -> VaristatResult<()> {
         self.num_sampled_genomes
             .iter()
             .enumerate()
@@ -483,7 +483,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
-    ) -> PopgenResult<()>
+    ) -> VaristatResult<()>
     where
         'ts: 's,
         's: 'a,
@@ -503,7 +503,7 @@ fn try_from_tree_sequence_details<'s, S, I>(
     options: Option<FromTreeSequenceOptions>,
     site_iter: I, // NOTE: this iterator must iterate in order of INCREASING site position!
     sample_sets: S,
-) -> PopgenResult<S::Output>
+) -> VaristatResult<S::Output>
 where
     S: SampleSets<'s>,
     I: Iterator<Item = tskit::SiteRef<'s>>,
@@ -585,7 +585,7 @@ pub fn try_from_tree_sequence_with_site_iter<'ts, N, S>(
     samples: N,
     sites: S,
     options: Option<FromTreeSequenceOptions>,
-) -> PopgenResult<SampleAlleleCounts>
+) -> VaristatResult<SampleAlleleCounts>
 where
     N: Iterator<Item = tskit::NodeId>,
     S: Iterator<Item = tskit::SiteRef<'ts>>,
@@ -610,7 +610,7 @@ pub fn try_from_tree_sequence_windows<'ts, N, W, P>(
     samples: N,
     windows: W,
     options: Option<FromTreeSequenceOptions>,
-) -> Result<Vec<SampleAlleleCounts>, PopgenError>
+) -> Result<Vec<SampleAlleleCounts>, VaristatError>
 where
     N: Iterator<Item = tskit::NodeId>,
     W: Iterator<Item = (P, P)>,
@@ -795,7 +795,7 @@ pub fn try_from_tree_sequence_multi_with_site_iter<'ts, Outer, Inner, S>(
     samples: Outer,
     sites: S,
     options: Option<FromTreeSequenceOptions>,
-) -> Result<crate::MultiSampleAlleleCounts, PopgenError>
+) -> Result<crate::MultiSampleAlleleCounts, VaristatError>
 where
     Outer: Iterator<Item = Inner>,
     Inner: Iterator<Item = tskit::NodeId>,
