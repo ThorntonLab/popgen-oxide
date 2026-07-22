@@ -160,21 +160,20 @@ pub struct WattersonsTheta(f64);
 impl UnpolarisedSiteStat for WattersonsTheta {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
-        // trying our very hardest to encourage optimization and SIMD here
-        // also optimizing with the typical two-element slice in mind
-        let mut iter = site.counts().chunks_exact(2);
+
+        // requires rust 1.88
+        let (chunks, remainder) = site.counts().as_chunks::<2>();
+
         let mut num_variants = 0;
         let mut total_samples = 0;
-        for w in iter.by_ref() {
-            // big idea: with chunks_exact this cast is infallible and zero-cost
-            // this cast also enables use of 128-bit and SIMD instructions
-            let w: &[i64; 2] = w.try_into().expect("slice with incorrect length");
+        for w in chunks {
             w.iter().filter(|&&c| c > 0).for_each(|&c| {
                 num_variants += 1;
                 total_samples += c;
             })
         }
-        iter.remainder().iter().filter(|&&c| c > 0).for_each(|&c| {
+
+        remainder.iter().filter(|&&c| c > 0).for_each(|&c| {
             num_variants += 1;
             total_samples += c;
         });
