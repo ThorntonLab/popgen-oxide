@@ -2,7 +2,7 @@ use crate::stats::StatRepresentation;
 use crate::stats::UnpolarisedSiteStat;
 use crate::stats::{Diversity, FStatistics};
 use crate::testing::testdata::RandomSiteOptions;
-use crate::{MultiSampleAlleleCounts, PopgenError};
+use crate::{Count, MultiSampleAlleleCounts, PopgenError};
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -178,7 +178,7 @@ fn f_st_from_random_data() {
                         let counts_vec = (0..n_alleles)
                             .map(|allele_id| counts.get(&allele_id).cloned().unwrap_or_default())
                             .collect::<Vec<_>>();
-                        (Cow::Owned(counts_vec), alleles.len() as i32)
+                        (Cow::Owned(counts_vec), alleles.len() as Count)
                     })
                     .unwrap();
             }

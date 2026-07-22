@@ -32,7 +32,7 @@ fn sample_allele_counts_reduce() {
 
     let combined = counts1.try_reduce(counts2).unwrap();
     assert_eq!(combined.iter().count(), 6);
-    let expect: Vec<(&[Count], i32)> = vec![
+    let expect: Vec<(&[Count], Count)> = vec![
         (&[3], 3),
         (&[1, 2], 3),
         (&[1, 1, 1], 3),

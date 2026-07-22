@@ -1,10 +1,10 @@
 // NOTE: these tests require compiling
 // with the tskit feature
 
-use tskit::prelude::StreamingIterator;
-
 #[cfg(test)]
 use crate::counts::AlleleCounts;
+use crate::Count;
+use tskit::prelude::StreamingIterator;
 
 #[cfg(test)]
 struct MutationData {
@@ -53,14 +53,14 @@ impl SiteData {
 #[cfg(test)]
 #[derive(Debug)]
 struct DerivedCounts {
-    count: i64,
+    count: Count,
     number_of_sites: usize,
 }
 
 #[cfg(test)]
 #[derive(Debug)]
 struct SiteCountContents {
-    num_ancestral: i64,
+    num_ancestral: Count,
     derived: Vec<DerivedCounts>,
 }
 
