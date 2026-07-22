@@ -103,7 +103,8 @@ impl UnpolarisedSiteStat for Diversity {
         };
 
         // the number of pairs where the two samples are homozygous, summed over every genotype
-        let num_homozygous_pairs: Count = site.counts().iter().map(|count| count * (count - 1)).sum();
+        let num_homozygous_pairs: Count =
+            site.counts().iter().map(|count| count * (count - 1)).sum();
 
         self.0 += 1f64 - (num_homozygous_pairs as f64 / num_pairs as f64);
         if self.0.is_nan() {
