@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::{AlleleCounts, SampleAlleleCounts};
+use crate::{AlleleCounts, Count, SampleAlleleCounts};
 use rand::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -153,8 +153,8 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Sa
                 .for_each(|i| counts[i] += 1);
             // Probably overly strict but we might as well
             // never let anything invalid slide through test functions
-            let ploidy = i32::try_from(ploidy).unwrap();
-            let num_samples = i32::try_from(num_samples).unwrap();
+            let ploidy = Count::try_from(ploidy).unwrap();
+            let num_samples = Count::try_from(num_samples).unwrap();
             let total_alleles = ploidy.checked_mul(num_samples).unwrap();
             mcounts.add_site_from_counts(AlleleCounts::try_new(&counts, total_alleles).unwrap());
         }

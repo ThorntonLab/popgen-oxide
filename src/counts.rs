@@ -5,6 +5,8 @@ use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
 use std::cmp::max;
 
+/// A number of alleles.
+/// Expected to be non-negative.
 pub type Count = i64;
 
 #[derive(Debug, Default, Clone)]
@@ -15,7 +17,7 @@ pub struct SampleAlleleCounts {
     // start indices into counts at which the counts start for a specific site
     // counts and count_starts together produce a ragged 2d array
     count_starts: Vec<usize>,
-    total_alleles: Vec<i32>,
+    total_alleles: Vec<i64>,
 }
 
 impl SampleAlleleCounts {
@@ -130,7 +132,7 @@ impl SampleAlleleCounts {
         self.add_site_from_counts_unchecked(counts.counts(), counts.total_alleles());
     }
 
-    fn add_site_from_counts_unchecked(&mut self, counts: &[Count], total_alleles: i32) {
+    fn add_site_from_counts_unchecked(&mut self, counts: &[Count], total_alleles: i64) {
         self.counts.extend_from_slice(counts.as_ref());
         // count backwards in case counts_this_site.is_empty() or other strange case
         self.count_starts
@@ -221,7 +223,7 @@ impl TryReduce for SampleAlleleCounts {
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct AlleleCounts<'inner> {
     counts: &'inner [Count],
-    total_alleles: i32,
+    total_alleles: i64,
 }
 
 impl<'inner> AlleleCounts<'inner> {
@@ -232,7 +234,7 @@ impl<'inner> AlleleCounts<'inner> {
     /// - If `total_alleles` is less than the sum of elements of `counts`.
     /// - If `counts` is empty.
     /// - If `total_alleles == 0`.
-    pub fn try_new(counts: &'inner [Count], total_alleles: i32) -> Result<Self, PopgenError> {
+    pub fn try_new(counts: &'inner [Count], total_alleles: i64) -> Result<Self, PopgenError> {
         if counts.is_empty() || total_alleles == 0 {
             return Err(PopgenError::EmptySiteCounts);
         }
@@ -245,7 +247,7 @@ impl<'inner> AlleleCounts<'inner> {
             sum += c;
         }
 
-        if sum as i32 > total_alleles {
+        if sum > total_alleles {
             return Err(PopgenError::TotalAllelesDeficient);
         }
 
@@ -261,7 +263,7 @@ impl<'inner> AlleleCounts<'inner> {
     }
 
     #[inline]
-    pub fn total_alleles(&self) -> i32 {
+    pub fn total_alleles(&self) -> i64 {
         self.total_alleles
     }
 }
@@ -280,7 +282,7 @@ pub struct MultiSampleAlleleCounts {
     // shape (site, population) -> index into counts
     count_starts: Vec<usize>,
     // (site, population) -> number of alleles, present or missing, at this site
-    total_alleles: Vec<i32>,
+    total_alleles: Vec<Count>,
     num_populations: usize,
 }
 
@@ -305,7 +307,7 @@ impl MultiSampleAlleleCounts {
     /// Failure due to an invalid site does not provide rollback guarantees.
     pub fn extend_populations_from_site<Counts>(
         &mut self,
-        mut get_counts: impl FnMut(usize) -> (Counts, i32),
+        mut get_counts: impl FnMut(usize) -> (Counts, Count),
     ) -> PopgenResult<()>
     where
         Counts: AsRef<[Count]>,

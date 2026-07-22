@@ -1,4 +1,6 @@
-use crate::{AlleleCounts, MultiSampleAlleleCounts, PopgenError, PopgenResult, SampleAlleleCounts};
+use crate::{
+    AlleleCounts, Count, MultiSampleAlleleCounts, PopgenError, PopgenResult, SampleAlleleCounts,
+};
 
 /// Options affecting the behavior of
 /// [crate::SampleAlleleCounts::try_from_tree_sequence]
@@ -79,8 +81,8 @@ struct TreeData {
     // * i32 for ids
     // * -1 for "NULL" value
     parent: Vec<i32>,
-    num_sample_descendants: Vec<i64>,
-    num_mutated_sample_descendants: Vec<i64>,
+    num_sample_descendants: Vec<Count>,
+    num_mutated_sample_descendants: Vec<Count>,
 }
 
 impl TreeData {
@@ -346,7 +348,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         {
             self.counts.add_site_from_counts(AlleleCounts::try_new(
                 &self.allele_counts,
-                self.num_sampled_genomes as i32,
+                self.num_sampled_genomes,
             )?);
         }
         Ok(())
@@ -471,10 +473,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
                 > 1
         }) {
             self.counts.extend_populations_from_site(|index| {
-                (
-                    &self.allele_counts[index],
-                    self.num_sampled_genomes[index] as i32,
-                )
+                (&self.allele_counts[index], self.num_sampled_genomes[index])
             })?;
         }
         Ok(())
@@ -765,7 +764,7 @@ where
                         let i = counts.len() - 1;
                         counts[i].add_site_from_counts(AlleleCounts::try_new(
                             &allele_counts,
-                            num_sampled_genomes as i32,
+                            num_sampled_genomes,
                         )?);
                     }
                     lastpos = Some(site_ref.position());

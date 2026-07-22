@@ -1,12 +1,13 @@
 #[cfg(feature = "noodles")]
 pub mod vcf {
     use crate::counts::MultiSampleAlleleCounts;
-    use crate::{AlleleID, PopgenResult};
+    use crate::{AlleleID, Count, PopgenResult};
     use noodles::vcf::variant::record::samples::keys::key;
     use noodles::vcf::variant::record::samples::series::Value;
     use noodles::vcf::variant::record::samples::Sample;
     use noodles::vcf::variant::record::AlternateBases;
     use noodles::vcf::{Header, Record};
+    use std::num::NonZeroI64;
     use std::ops::ControlFlow;
 
     pub fn record_to_genotypes_adapter(
@@ -66,12 +67,12 @@ pub mod vcf {
     /// `ploidy`, if not passed, will be inferred from the first record seen.
     pub struct VCFToPopulationsAdapter<'h> {
         header: &'h Header,
-        ploidy: Option<i32>,
+        ploidy: Option<NonZeroI64>,
         sample_to_population: Vec<usize>,
         populations: MultiSampleAlleleCounts,
         // buffers for add_record
-        buf_counts: Vec<i64>,
-        buf_num_samples: Box<[i32]>,
+        buf_counts: Vec<Count>,
+        buf_num_samples: Box<[Count]>,
     }
 
     impl<'h> VCFToPopulationsAdapter<'h> {
@@ -89,7 +90,7 @@ pub mod vcf {
         /// If `mapper` produces a population ID greater than or equal to `num_populations` (which is out-of-bounds in a zero-based ID system).
         pub fn new<'sample, M, E>(
             header: &'h Header,
-            ploidy: Option<i32>,
+            ploidy: Option<NonZeroI64>,
             num_populations: usize,
             mapper: M,
         ) -> Result<Self, E>
@@ -158,7 +159,7 @@ pub mod vcf {
                             todo!("can't infer ploidy")
                         };
 
-                        self.buf_num_samples[population_id] += *ploidy;
+                        self.buf_num_samples[population_id] += ploidy.get();
                     }
                     Some(Value::Genotype(genotype)) => {
                         for entry in genotype.iter() {
