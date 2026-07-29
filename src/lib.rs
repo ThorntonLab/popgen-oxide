@@ -93,3 +93,8 @@ impl From<usize> for AlleleID {
         Self(value)
     }
 }
+
+/// Get the crate version
+pub fn version() -> &'static str {
+    env!("CARGO_PKG_VERSION")
+}
