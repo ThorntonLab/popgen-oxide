@@ -1,6 +1,6 @@
 use crate::adapter::vcf::{record_to_genotypes_adapter, VCFToPopulationsAdapter};
 use crate::counts::SampleAlleleCounts;
-use crate::{AlleleID, PopgenResult};
+use crate::{AlleleID, VaristatResult};
 use noodles::vcf::header::record::value::map::{Contig, Format};
 use noodles::vcf::header::record::value::Map;
 use noodles::vcf::variant::io::Write;
@@ -151,7 +151,7 @@ fn counts_from_vcf(
         .records()
         .map(Result::unwrap)
         .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy))
-        .collect::<PopgenResult<Vec<_>>>()
+        .collect::<VaristatResult<Vec<_>>>()
         .unwrap();
     let counts = SampleAlleleCounts::try_from_tabular(all_alleles.iter().cloned()).unwrap();
     (all_alleles, counts)

@@ -1,7 +1,7 @@
 #[cfg(feature = "noodles")]
 pub mod vcf {
     use crate::counts::MultiSampleAlleleCounts;
-    use crate::{AlleleID, Count, PopgenResult};
+    use crate::{AlleleID, Count, VaristatResult};
     use noodles::vcf::variant::record::samples::keys::key;
     use noodles::vcf::variant::record::samples::series::Value;
     use noodles::vcf::variant::record::samples::Sample;
@@ -14,7 +14,7 @@ pub mod vcf {
         header: &Header,
         record: &Record,
         ploidy: usize,
-    ) -> PopgenResult<Vec<Option<AlleleID>>> {
+    ) -> VaristatResult<Vec<Option<AlleleID>>> {
         let num_samples = header.sample_names().len();
         let mut genotypes = Vec::with_capacity(ploidy * num_samples);
 
@@ -23,7 +23,7 @@ pub mod vcf {
                 // get the GT field
                 .get(header, key::GENOTYPE)
                 .transpose()
-                .map_err(crate::PopgenError::NoodlesVCF)?
+                .map_err(crate::VaristatError::NoodlesVCF)?
             {
                 // return nothing if field missing
                 None => {
@@ -48,7 +48,7 @@ pub mod vcf {
                     for entry in genotype.iter() {
                         genotypes.push(
                             entry
-                                .map_err(crate::PopgenError::NoodlesVCF)?
+                                .map_err(crate::VaristatError::NoodlesVCF)?
                                 .0
                                 .map(AlleleID::from),
                         )
@@ -128,7 +128,7 @@ pub mod vcf {
             })
         }
 
-        pub fn add_record(&mut self, record: &Record) -> PopgenResult<()> {
+        pub fn add_record(&mut self, record: &Record) -> VaristatResult<()> {
             let num_populations = self.populations.num_populations();
 
             // let's assume that every stated allele is used

@@ -1,6 +1,6 @@
 use crate::stats::{Diversity, StatRepresentation, UnpolarisedSiteStat, WattersonsTheta};
 use crate::traits::TryReduce;
-use crate::PopgenError;
+use crate::VaristatError;
 use proptest::collection::vec;
 use proptest::proptest;
 use rand::distr::uniform::SampleRange;
@@ -32,13 +32,13 @@ fn diversity_equivalent_concurrent(
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
     let diversity = counts.iter().try_fold(Diversity::default(), |mut diversity, s| {
         diversity.try_add_site(s)?;
-        Ok::<_, PopgenError>(diversity)
+        Ok::<_, VaristatError>(diversity)
     });
 
     let mut components = counts.iter().map(|s| {
         let mut diversity = Diversity::default();
         diversity.try_add_site(s)?;
-        Ok::<_, PopgenError>(diversity)
+        Ok::<_, VaristatError>(diversity)
     }).collect::<Vec<_>>();
 
     // let's combine the components out of order and with random associativity
@@ -101,13 +101,13 @@ fn watterson_theta_equivalent_concurrent(
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
     let theta = counts.iter().try_fold(WattersonsTheta::default(), |mut theta, s| {
         theta.try_add_site(s)?;
-        Ok::<_, PopgenError>(theta)
+        Ok::<_, VaristatError>(theta)
     });
 
     let mut components = counts.iter().map(|s| {
         let mut theta = WattersonsTheta::default();
         theta.try_add_site(s)?;
-        Ok::<_, PopgenError>(theta)
+        Ok::<_, VaristatError>(theta)
     }).collect::<Vec<_>>();
 
     // let's combine the components out of order and with random associativity

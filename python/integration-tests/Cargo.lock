@@ -137,10 +137,10 @@ dependencies = [
 name = "integration-tests"
 version = "0.1.0"
 dependencies = [
- "popgen",
  "pyo3",
  "tskit",
  "tskit2tskit",
+ "varistat",
 ]
 
 [[package]]
@@ -235,13 +235,6 @@ name = "pkg-config"
 version = "0.3.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
-
-[[package]]
-name = "popgen"
-version = "0.1.0"
-dependencies = [
- "tskit",
-]
 
 [[package]]
 name = "portable-atomic"
@@ -451,6 +444,13 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "varistat"
+version = "0.1.0"
+dependencies = [
+ "tskit",
+]
 
 [[package]]
 name = "wasip2"

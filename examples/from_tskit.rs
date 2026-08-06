@@ -1,4 +1,4 @@
-use popgen::SampleAlleleCounts;
+use varistat::SampleAlleleCounts;
 
 fn process_nodes_from_ts(ts: &tskit::TreeSequence) {
     let counts = SampleAlleleCounts::try_from_tree_sequence(
