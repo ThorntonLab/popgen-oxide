@@ -225,7 +225,7 @@ impl TryReduce for SampleAlleleCounts {
 
 /// A borrowed collection of allele counts and the total number of alleles (to describe, by implication, number of missing alleles).
 ///
-/// This type is returned when requesting views into [`SampleAlleleCounts`] and [`MultiSampleAlleleCounts`].
+/// This type is returned when requesting views into [`SampleAlleleCounts`].
 /// It can also be built from user-provided data via [`Self::try_new`].
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct AlleleCounts<'inner> {

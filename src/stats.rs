@@ -53,7 +53,7 @@ pub trait UnpolarisedSiteStat {
     /// In general, one cannot assume that an update can be rolled
     /// back in the event of an error.
     ///
-    /// [`crate::SampleAlleleCounts`] and [`crate::MultiSampleAlleleCounts`] are designed
+    /// [`crate::SampleAlleleCounts`] and [`crate::SampleAlleleCounts`] are designed
     /// such that `site` cannot contain empty data. However, it is valuable
     /// for implementations of this function to at least do the following:
     /// ```no_compile
@@ -310,7 +310,7 @@ where
 /// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953) and [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
 ///
 /// Construction of this type from an arbitrary collection of [`crate::SampleAlleleCounts`] is not sound,
-/// because the invariant of [`crate::counts::MultiSampleAlleleCounts`] is required.
+/// because the invariant of [`crate::counts::SampleAlleleCounts`] is required.
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 #[derive(Clone, Debug)]
@@ -402,7 +402,7 @@ impl FStatistics {
         Ok(())
     }
 
-    /// Stream selected populations of a [`MultiSampleAlleleCounts`] into a computation of [`FStatistics`].
+    /// Stream selected populations of a [`SampleAlleleCounts`] into a computation of [`FStatistics`].
     ///
     /// Populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
     /// The newly created struct immutably borrows from `self`.
