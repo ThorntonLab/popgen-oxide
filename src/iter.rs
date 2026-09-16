@@ -71,7 +71,7 @@ impl<'inner> Iterator for SampleAlleleCountsSiteIter<'inner> {
     fn next(&mut self) -> Option<Self::Item> {
         let ret = self
             .inner
-            .get_from_population(self.next_site_ind.0, self.population_number)?;
+            .get_site(self.next_site_ind.0, self.population_number)?;
 
         self.next_site_ind.0 += 1;
         Some(ret)
@@ -108,7 +108,7 @@ impl DoubleEndedIterator for SampleAlleleCountsSiteIter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let ret = self
             .inner
-            .get_from_population(self.next_site_ind.1, self.population_number)?;
+            .get_site(self.next_site_ind.1, self.population_number)?;
 
         // there is no way to have usize counts because a Vec can never exceed isize::MAX
         self.next_site_ind.1 = self.next_site_ind.1.wrapping_sub(1);
@@ -184,18 +184,18 @@ fn test_site_count() {
 fn test_site_nth() {
     let counts = make_nonempty_counts();
     let mut iter = counts.iter_sites_in(0).unwrap();
-    assert_eq!(iter.nth(2), counts.get_from_population(2, 0));
+    assert_eq!(iter.nth(2), counts.get_site(2, 0));
     let mut iter = counts.iter_sites_in(0).unwrap();
     let _ = iter.next().unwrap();
-    assert_eq!(iter.nth(1), counts.get_from_population(2, 0));
+    assert_eq!(iter.nth(1), counts.get_site(2, 0));
 }
 
 #[test]
 fn test_site_nth_back() {
     let counts = make_nonempty_counts();
     let mut iter = counts.iter_sites_in(0).unwrap();
-    assert_eq!(iter.nth_back(0), counts.get_from_population(3, 0));
-    assert_eq!(iter.nth_back(2), counts.get_from_population(0, 0));
+    assert_eq!(iter.nth_back(0), counts.get_site(3, 0));
+    assert_eq!(iter.nth_back(2), counts.get_site(0, 0));
 }
 
 #[test]
@@ -216,7 +216,7 @@ fn test_single_site_getters() {
     counts
         .extend_populations_from_site(|_| (&[9, 8, 7], 35))
         .unwrap();
-    let site = counts.get_from_population(0, 0).unwrap();
+    let site = counts.get_site(0, 0).unwrap();
     assert_eq!(site.counts(), &[9, 8, 7]);
     assert_eq!(site.total_alleles(), 35);
 }

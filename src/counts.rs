@@ -268,11 +268,11 @@ impl SampleAlleleCounts {
             .unwrap_or(0)
     }
 
-    /// Attempt to get a [`AlleleCounts`] from `Self` with respect to a given population.
+    /// Attempt to get a [`AlleleCounts`] from `Self` with respect to a given site and population.
     ///
     /// # Errors
     /// If any index is out of bounds.
-    pub fn get_from_population(
+    pub fn get_site(
         &self,
         site_num: usize,
         population_num: usize,

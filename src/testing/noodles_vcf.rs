@@ -223,21 +223,21 @@ fn load_vcf_multi_population() {
     assert_eq!(counts.num_populations(), 2);
 
     {
-        let first_site = counts.get_from_population(0, 0).unwrap();
+        let first_site = counts.get_site(0, 0).unwrap();
         assert_eq!(first_site.counts(), &[5, 4]);
         assert_eq!(first_site.total_alleles(), 9);
 
-        let second_site = counts.get_from_population(1, 0).unwrap();
+        let second_site = counts.get_site(1, 0).unwrap();
         assert_eq!(second_site.counts(), &[4, 4]);
         assert_eq!(second_site.total_alleles(), 9);
     }
 
     {
-        let first_site = counts.get_from_population(0, 1).unwrap();
+        let first_site = counts.get_site(0, 1).unwrap();
         assert_eq!(first_site.counts(), &[6, 3]);
         assert_eq!(first_site.total_alleles(), 9);
 
-        let second_site = counts.get_from_population(1, 1).unwrap();
+        let second_site = counts.get_site(1, 1).unwrap();
         assert_eq!(second_site.counts(), &[3, 4]);
         assert_eq!(second_site.total_alleles(), 9);
     }
