@@ -594,7 +594,7 @@ where
         num_sampled_genomes: num_sampled_genomes as i64,
         alleles_at_site: vec![],
         allele_counts: vec![],
-        counts: SampleAlleleCounts::default(),
+        counts: SampleAlleleCounts::of_empty_populations(1),
     };
     try_from_tree_sequence_details(ts, options, sites, sample_sets)
 }
@@ -662,7 +662,7 @@ where
     let mut windows = windows.into_iter();
     let mut current_window = windows.next();
     // The last element will be the counts for the current window.
-    counts.push(SampleAlleleCounts::default());
+    counts.push(SampleAlleleCounts::of_empty_populations(1));
     while i < num_edges && left < ts.tables().sequence_length() {
         while j < num_edges && edges_right[edges_out[j]] == left {
             let edge_parent = edges_parent[edges_out[j]].as_usize();
@@ -699,7 +699,7 @@ where
                 } else if site_ref.position() >= *right {
                     current_window = windows.next();
                     if let Some((left, right)) = current_window.as_ref() {
-                        counts.push(SampleAlleleCounts::default());
+                        counts.push(SampleAlleleCounts::of_empty_populations(1));
                         if site_ref.position() >= *left && site_ref.position() < *right {
                             process_site = true;
                         }
@@ -779,7 +779,7 @@ where
             // If we are out of sites and there are remaining windows,
             // push empty counts to the return value.
             for _ in windows {
-                counts.push(SampleAlleleCounts::default())
+                counts.push(SampleAlleleCounts::of_empty_populations(1))
             }
             break;
         };
