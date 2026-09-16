@@ -9,6 +9,12 @@ use std::cmp::max;
 /// Expected to be non-negative.
 pub type Count = i64;
 
+/// Counts of present allele variants and of all alleles, including missing ones.
+/// The data layout is by site, then population.
+///
+/// It is guaranteed that counts for the same site in multiple populations are meaningfully related,
+/// particularly, e.g., that the allele assigned ID 0 in one population has also been assigned ID 0 in another population.
+/// Alleles which appear in one population but not the other will have a count of 0 in that other population, i.e. the counts will be padded to enforce the correspondence across populations.
 #[derive(Debug, Default, Clone)]
 pub struct SampleAlleleCounts {
     // probably don't need to track this
