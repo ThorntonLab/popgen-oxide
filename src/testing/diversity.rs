@@ -37,7 +37,7 @@ fn pi_from_random_data(
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
 
     // get the calcs
-    let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter());
+    let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter_sites_in(0).unwrap());
     let diversity_naive = crate::testing::naivecalculations::diversity(sites.iter());
     // compare
     match diversity_from_counts {
@@ -66,7 +66,7 @@ fn pi_allele_frequency_of_one() {
                 // convert to our normal format
                 let counts =
                     crate::testing::testdata::single_pop_counts(&mut std::iter::once(&site));
-                let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter());
+                let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter_sites_in(0).unwrap());
                 assert_eq!(diversity_from_counts.unwrap().as_raw(), 0.);
             }
         }
@@ -75,8 +75,8 @@ fn pi_allele_frequency_of_one() {
 
 #[test]
 fn pi_try_from_iter_empty_is_err() {
-    let c = crate::SampleAlleleCounts::default();
-    assert!(Diversity::try_from_iter_sites(c.iter()).is_err());
+    let c = crate::SampleAlleleCounts::of_empty_populations(1);
+    assert!(Diversity::try_from_iter_sites(c.iter_sites_in(0).unwrap()).is_err());
 }
 
 proptest!(
@@ -90,8 +90,8 @@ proptest!(
         non_normalized_freqs in vec(vec(f64::EPSILON..1_f64, 1..10), 10),
         max_num_splits in 1_usize..4
     ) {
-        use rand::prelude::*;
         use crate::traits::TryReduce;
+        use rand::prelude::*;
 
         let mut rng = StdRng::seed_from_u64(seed);
         let sites = super::testdata::make_random_sites(
@@ -106,17 +106,17 @@ proptest!(
         let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
 
         // get the calcs
-        let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter());
+        let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter_sites_in(0).unwrap());
         if let Ok(value) = diversity_from_counts {
-            let splitlen = counts.len() / max_num_splits;
+            let splitlen = counts.num_sites() / max_num_splits;
             let mut div_split = vec![];
             for nsplits in 0..max_num_splits {
                 let takelen = if nsplits < max_num_splits - 1 {
                     splitlen
                 } else {
-                    counts.len() - nsplits * splitlen
+                    counts.num_sites() - nsplits * splitlen
                 };
-                let div = Diversity::try_from_iter_sites(counts.iter().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
+                let div = Diversity::try_from_iter_sites(counts.iter_sites_in(0).unwrap().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
                 div_split.push(div);
             }
             let reduced = div_split.iter().fold(Diversity::default(), |acc, &i| acc.try_reduce(i).unwrap());

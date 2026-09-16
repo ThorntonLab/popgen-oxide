@@ -2,7 +2,6 @@
 
 use std::io::Write;
 
-use popgen::AlleleCounts;
 use rust_htslib::bcf;
 use rust_htslib::bcf::Read;
 
@@ -20,7 +19,7 @@ fn main() {
     let mut bcf = bcf::Reader::from_path("htslib_example.vcf").expect("Error opening file.");
     std::fs::remove_file("htslib_example.vcf").unwrap();
 
-    let mut counts = popgen::SampleAlleleCounts::default();
+    let mut counts = popgen::SampleAlleleCounts::of_empty_populations(1);
     let mut site_counts_from_record = Vec::<popgen::Count>::default();
 
     // concept follows closely on the noodles version; iterate records, count alleles
@@ -53,9 +52,9 @@ fn main() {
                 total_alleles += 1;
             }
         }
-        counts.add_site_from_counts(
-            AlleleCounts::try_new(site_counts_from_record.as_slice(), total_alleles).unwrap(),
-        );
+        counts
+            .extend_populations_from_site(|_| (site_counts_from_record.as_slice(), total_alleles))
+            .unwrap();
     }
     println!("{counts:?}");
 }

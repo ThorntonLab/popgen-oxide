@@ -26,5 +26,5 @@ fn main() {
 
     // this constructor is iterator-based
     let counts = SampleAlleleCounts::try_from_tabular(all_alleles).unwrap();
-    counts.iter().for_each(|c| println!("{c:?}"));
+    counts.iter_sites_in(0).unwrap().for_each(|c| println!("{c:?}"));
 }

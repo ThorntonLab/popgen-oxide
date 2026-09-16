@@ -1,4 +1,4 @@
-use crate::{Count, PopgenError, PopgenResult, SampleAlleleCounts};
+use crate::{AlleleCounts, Count, PopgenError, PopgenResult, SampleAlleleCounts};
 
 /// Options affecting the behavior of
 /// [crate::SampleAlleleCounts::try_from_tree_sequence]
@@ -333,8 +333,8 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
 
     fn update_allele_counts(&mut self) -> PopgenResult<()> {
         self.allele_counts[0] =
-        // TODO: we should simply sum the desired quantity as we go along,
-        // eliminating the need for an iteration here.
+            // TODO: we should simply sum the desired quantity as we go along,
+            // eliminating the need for an iteration here.
             (self.num_sampled_genomes) - self.allele_counts.iter().skip(1).sum::<i64>();
         assert!(self.allele_counts[0] >= 0);
         if self

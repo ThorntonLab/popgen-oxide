@@ -22,7 +22,7 @@ fn watterson_theta_from_random_data() {
         }
         // convert to our normal format
         let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-        let theta = WattersonsTheta::try_from_iter_sites(counts.iter());
+        let theta = WattersonsTheta::try_from_iter_sites(counts.iter_sites_in(0).unwrap());
         let theta_naive = crate::testing::naivecalculations::watterson_theta(&mut sites.iter_mut());
         match theta {
             Err(_) => assert!(theta_naive.is_nan()),
@@ -61,7 +61,7 @@ fn watterson_theta_from_random_data_with_missing_data() {
             // convert to our normal format
             let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
             // get the calcs
-            let theta = WattersonsTheta::try_from_iter_sites(counts.iter());
+            let theta = WattersonsTheta::try_from_iter_sites(counts.iter_sites_in(0).unwrap());
             let theta_naive =
                 crate::testing::naivecalculations::watterson_theta(&mut sites.iter_mut());
             // compare
@@ -78,8 +78,8 @@ fn watterson_theta_from_random_data_with_missing_data() {
 
 #[test]
 fn wattherson_theta_try_from_iter_empty_is_err() {
-    let c = crate::SampleAlleleCounts::default();
-    assert!(WattersonsTheta::try_from_iter_sites(c.iter()).is_err());
+    let c = crate::SampleAlleleCounts::of_empty_populations(1);
+    assert!(WattersonsTheta::try_from_iter_sites(c.iter_sites_in(0).unwrap()).is_err());
 }
 
 proptest!(
@@ -93,8 +93,8 @@ proptest!(
         non_normalized_freqs in vec(vec(f64::EPSILON..1_f64, 1..10), 10),
         max_num_splits in 1_usize..4
     ) {
-        use rand::prelude::*;
         use crate::traits::TryReduce;
+        use rand::prelude::*;
 
         let mut rng = StdRng::seed_from_u64(seed);
         let sites = super::testdata::make_random_sites(
@@ -109,7 +109,7 @@ proptest!(
         let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
 
         // get the calcs
-        let diversity_from_counts = WattersonsTheta::try_from_iter_sites(counts.iter());
+        let diversity_from_counts = WattersonsTheta::try_from_iter_sites(counts.iter_sites_in(0).unwrap());
         if let Ok(value) = diversity_from_counts {
             let splitlen = counts.num_sites() / max_num_splits;
             let mut div_split = vec![];
@@ -119,7 +119,7 @@ proptest!(
                 } else {
                     counts.num_sites() - nsplits * splitlen
                 };
-                let div = WattersonsTheta::try_from_iter_sites(counts.iter().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
+                let div = WattersonsTheta::try_from_iter_sites(counts.iter_sites_in(0).unwrap().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
                 div_split.push(div);
             }
             let reduced = div_split.iter().fold(WattersonsTheta::default(), |acc, &i| acc.try_reduce(i).unwrap());

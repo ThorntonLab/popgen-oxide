@@ -343,6 +343,9 @@ impl FStatistics {
     ///
     /// # Errors
     /// See [`crate::stats::GlobalPi`].
+    ///
+    /// # Panics
+    /// If `population_num` is out of bounds.
     fn try_add_population(
         &mut self,
         populations: &SampleAlleleCounts,
@@ -350,7 +353,10 @@ impl FStatistics {
         weight: f64,
     ) -> Result<(), PopgenError> {
         let diversity_new_site =
-            Diversity::try_from_iter_sites(populations.iter_sites_in(population_num))?.as_raw();
+            Diversity::try_from_iter_sites(populations.iter_sites_in(population_num).ok_or_else(
+                || PopgenError::LibraryError(String::from("attempting to add OOB population")),
+            )?)?
+            .as_raw();
         self.diversity_within.push(diversity_new_site);
 
         self.pi_s.0 += weight * weight * diversity_new_site;
@@ -364,7 +370,8 @@ impl FStatistics {
                     .map(|(existing_pop, existing_pop_weight)| {
                         let divergence_ij = populations
                             .iter_sites_in(*existing_pop)
-                            .zip(populations.iter_sites_in(population_num))
+                            .unwrap()
+                            .zip(populations.iter_sites_in(population_num).unwrap())
                             .map(|(s1, s2)| {
                                 if s1.total_alleles() == 0 || s2.total_alleles() == 0 {
                                     return Err(PopgenError::EmptySiteCounts);

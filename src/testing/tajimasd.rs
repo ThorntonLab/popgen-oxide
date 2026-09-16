@@ -46,7 +46,7 @@ fn tajimas_d() {
 
     let allele_counts = SampleAlleleCounts::try_from_tabular(sites).unwrap();
 
-    let d = TajimasD::try_from_iter_sites(allele_counts.iter()).unwrap();
+    let d = TajimasD::try_from_iter_sites(allele_counts.iter_sites_in(0).unwrap()).unwrap();
     assert!((d.as_raw() - -0.15474069911037955).abs() < f64::EPSILON);
 }
 
@@ -77,7 +77,7 @@ proptest!(
         let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
 
         // get the calcs
-        let diversity_from_counts = TajimasD::try_from_iter_sites(counts.iter());
+        let diversity_from_counts = TajimasD::try_from_iter_sites(counts.iter_sites_in(0).unwrap());
         if let Ok(value) = diversity_from_counts {
             if !value.as_raw().is_nan() {
                 let splitlen = counts.num_sites() / max_num_splits;
@@ -88,7 +88,7 @@ proptest!(
                     } else {
                         counts.num_sites() - nsplits * splitlen
                     };
-                    let div = TajimasD::try_from_iter_sites(counts.iter().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
+                    let div = TajimasD::try_from_iter_sites(counts.iter_sites_in(0).unwrap().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
                     div_split.push(div);
                 }
                 let reduced = div_split.iter().fold(TajimasD::default(), |acc, &i| acc.try_reduce(i).unwrap());

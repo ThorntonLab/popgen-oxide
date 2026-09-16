@@ -1,4 +1,4 @@
-use crate::iter::SampleAlleleCountsIter;
+use crate::iter::{SampleAlleleCountsPopulationIter, SampleAlleleCountsSiteIter};
 use crate::traits::TryReduce;
 #[cfg(feature = "tskit")]
 use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions};
@@ -11,6 +11,8 @@ pub type Count = i64;
 
 /// Counts of present allele variants and of all alleles, including missing ones.
 /// The data layout is by site, then population.
+///
+/// When population numbers are used as references into this type, they are 0-based.
 ///
 /// It is guaranteed that counts for the same site in multiple populations are meaningfully related,
 /// particularly, e.g., that the allele assigned ID 0 in one population has also been assigned ID 0 in another population.
@@ -268,10 +270,13 @@ impl SampleAlleleCounts {
     /// The first pair will be used to form the counts at this new site in the first population.
     /// The second pair will form the counts at the same site in the second population, etc.
     ///
+    /// Because of the invariant of this type, the same position in each counts slice must correspond to the same allele.
+    /// Padding with zeroes may be needed to achieve this.
+    ///
     /// # Errors
-    /// This function will fail **without rollback guarantees** if the provided slices do not match in length.
-    /// The sites must also be individually valid; see [`AlleleCounts::try_new`].
-    /// Failure due to an invalid site does not provide rollback guarantees.
+    /// This function will fail **without rollback guarantees** if the provided counts slices do not match in length.
+    ///     /// The sites must also be individually valid; see [`AlleleCounts::try_new`].
+    /// Failure does not provide rollback guarantees.
     pub fn extend_populations_from_site<Counts>(
         &mut self,
         mut get_counts: impl FnMut(usize) -> (Counts, Count),
@@ -385,10 +390,26 @@ impl SampleAlleleCounts {
         })
     }
 
+    /// Convenience method equivalent to calling [`Self::iter_sites_in`] for each population in order.
+    pub fn iter_populations(&'_ self) -> SampleAlleleCountsPopulationIter<'_> {
+        SampleAlleleCountsPopulationIter {
+            inner: self,
+            next_population_ind: (0, self.num_populations().saturating_sub(1)),
+        }
+    }
+
     /// Convenience method to produce an iterator over [`AlleleCounts`] in one population.
-    /// Empty if `population_num` is out of bounds.
-    pub fn iter_sites_in(&self, population_num: usize) -> impl Iterator<Item = AlleleCounts<'_>> {
-        (0..self.num_sites())
-            .flat_map(move |site_n| self.get_from_population(site_n, population_num))
+    ///
+    /// `None` if `population_number` is out of bounds.
+    pub fn iter_sites_in(&'_ self, population_number: usize) -> Option<SampleAlleleCountsSiteIter<'_>> {
+        if !(0..self.num_populations()).contains(&population_number) {
+            return None;
+        }
+
+        Some(SampleAlleleCountsSiteIter {
+            inner: self,
+            population_number,
+            next_site_ind: (0, self.num_sites().saturating_sub(1)),
+        })
     }
 }

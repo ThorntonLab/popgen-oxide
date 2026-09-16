@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::{AlleleCounts, Count, SampleAlleleCounts};
+use crate::{Count, SampleAlleleCounts};
 use rand::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -134,7 +134,7 @@ pub fn random_site_rng(
 }
 
 pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> SampleAlleleCounts {
-    let mut mcounts = SampleAlleleCounts::default();
+    let mut mcounts = SampleAlleleCounts::of_empty_populations(1);
     for s in sites {
         // The number of INDIVIDUAL genotypes at this site
         let num_samples = s.iter().count();
@@ -156,7 +156,9 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Sa
             let ploidy = Count::try_from(ploidy).unwrap();
             let num_samples = Count::try_from(num_samples).unwrap();
             let total_alleles = ploidy.checked_mul(num_samples).unwrap();
-            mcounts.add_site_from_counts(AlleleCounts::try_new(&counts, total_alleles).unwrap());
+            mcounts
+                .extend_populations_from_site(|_| (&counts, total_alleles))
+                .unwrap();
         }
     }
     mcounts
