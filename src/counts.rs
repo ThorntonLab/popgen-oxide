@@ -17,6 +17,9 @@ pub type Count = i64;
 /// It is guaranteed that counts for the same site in multiple populations are meaningfully related,
 /// particularly, e.g., that the allele assigned ID 0 in one population has also been assigned ID 0 in another population.
 /// Alleles which appear in one population but not the other will have a count of 0 in that other population, i.e. the counts will be padded to enforce the correspondence across populations.
+///
+/// The [`Default`] implementation currently creates a type with 0 populations.
+/// This may not be what you want; consider calling [`Self::of_empty_populations`].
 #[derive(Debug, Default, Clone)]
 pub struct SampleAlleleCounts {
     // probably don't need to track this
