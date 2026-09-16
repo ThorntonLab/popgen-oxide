@@ -275,24 +275,6 @@ impl<'inner> AlleleCounts<'inner> {
     }
 }
 
-/// Counts of present allele variants and of all alleles, including missing ones.
-/// The data layout is by site, then population.
-///
-/// It is guaranteed that counts for the same site in multiple populations are meaningfully related,
-/// particularly, e.g., that the allele assigned ID 0 in one population has also been assigned ID 0 in another population.
-/// Alleles which appear in one population but not the other will have a count of 0 in that other population.
-//#[derive(Debug, Default, Clone)]
-//pub struct MultiSampleAlleleCounts {
-//    // positions: Vec<usize>
-//    // ragged array (site, population) -> some collection of counts
-//    counts: Vec<Count>,
-//    // shape (site, population) -> index into counts
-//    count_starts: Vec<usize>,
-//    // (site, population) -> number of alleles, present or missing, at this site
-//    total_alleles: Vec<Count>,
-//    num_populations: usize,
-//}
-
 impl SampleAlleleCounts {
     /// Create a new [`Self`] containing `how_many` populations, but containing no data.
     pub fn of_empty_populations(how_many: usize) -> Self {
