@@ -1,7 +1,7 @@
-use crate::{AlleleCounts, SampleAlleleCounts};
-use crate::SingleSampleAlleleCounts;
 #[cfg(test)]
 use crate::Count;
+use crate::SingleSampleAlleleCounts;
+use crate::{AlleleCounts, SampleAlleleCounts};
 
 pub struct SampleAlleleCountsPopulationIter<'inner> {
     pub(crate) inner: &'inner SampleAlleleCounts,
