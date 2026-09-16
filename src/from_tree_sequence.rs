@@ -1,4 +1,4 @@
-use crate::{AlleleCounts, Count, PopgenError, PopgenResult, SampleAlleleCounts};
+use crate::{Count, PopgenError, PopgenResult, SampleAlleleCounts};
 
 /// Options affecting the behavior of
 /// [crate::SampleAlleleCounts::try_from_tree_sequence]

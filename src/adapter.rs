@@ -1,6 +1,6 @@
 #[cfg(feature = "noodles")]
 pub mod vcf {
-    use crate::{AlleleCounts, AlleleID, Count, PopgenResult, SampleAlleleCounts};
+    use crate::{AlleleID, Count, PopgenResult, SampleAlleleCounts};
     use noodles::vcf::variant::record::samples::keys::key;
     use noodles::vcf::variant::record::samples::series::Value;
     use noodles::vcf::variant::record::samples::Sample;
