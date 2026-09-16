@@ -1284,10 +1284,7 @@ fn test_13() {
 }
 
 #[cfg(test)]
-fn extract_subsample(
-    data: &crate::SampleAlleleCounts,
-    sample: usize,
-) -> Vec<AlleleCounts<'_>> {
+fn extract_subsample(data: &crate::SampleAlleleCounts, sample: usize) -> Vec<AlleleCounts<'_>> {
     // We need to filter out sites that are monomorphic in
     // the focal sample set
     data.iter_sites_in(sample)
