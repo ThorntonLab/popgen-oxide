@@ -66,7 +66,8 @@ fn pi_allele_frequency_of_one() {
                 // convert to our normal format
                 let counts =
                     crate::testing::testdata::single_pop_counts(&mut std::iter::once(&site));
-                let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter_sites_in(0).unwrap());
+                let diversity_from_counts =
+                    Diversity::try_from_iter_sites(counts.iter_sites_in(0).unwrap());
                 assert_eq!(diversity_from_counts.unwrap().as_raw(), 0.);
             }
         }

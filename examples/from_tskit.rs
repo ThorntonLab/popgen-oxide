@@ -14,7 +14,10 @@ fn process_nodes_from_ts(ts: &tskit::TreeSequence) {
     )
     .unwrap();
 
-    counts.iter_sites_in(0).unwrap().for_each(|c| println!("{c:?}"));
+    counts
+        .iter_sites_in(0)
+        .unwrap()
+        .for_each(|c| println!("{c:?}"));
 }
 
 // Get counts from all nodes found in individuals
@@ -55,7 +58,10 @@ fn process_individuals_from_ts(ts: &tskit::TreeSequence) {
         )
         .unwrap();
 
-        counts.iter_sites_in(0).unwrap().for_each(|c| println!("{c:?}"));
+        counts
+            .iter_sites_in(0)
+            .unwrap()
+            .for_each(|c| println!("{c:?}"));
     } else {
         println!("the individual table is empty...")
     }

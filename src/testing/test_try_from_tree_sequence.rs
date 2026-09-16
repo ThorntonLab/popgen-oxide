@@ -636,7 +636,11 @@ where
     for (obs, exp) in counts.iter_sites_in(0).unwrap().zip(expected.iter()) {
         validate_site_counts(&obs, exp);
     }
-    assert_eq!(counts.num_sites(), expected.len(), "{counts:?}, {expected:?}");
+    assert_eq!(
+        counts.num_sites(),
+        expected.len(),
+        "{counts:?}, {expected:?}"
+    );
 }
 
 #[cfg(test)]
@@ -1075,13 +1079,15 @@ fn test_7_windows() {
     .unwrap();
     assert_eq!(counts[0].num_sites(), reduced_counts.num_sites());
     for (i, j) in counts[0]
-        .iter_sites_in(0).unwrap()
+        .iter_sites_in(0)
+        .unwrap()
         .zip(reduced_counts.iter_sites_in(0).unwrap())
     {
         assert_eq!(i, j)
     }
     for (i, j) in counts_two_windows[1]
-        .iter_sites_in(0).unwrap()
+        .iter_sites_in(0)
+        .unwrap()
         .zip(reduced_counts.iter_sites_in(0).unwrap())
     {
         assert_eq!(i, j)

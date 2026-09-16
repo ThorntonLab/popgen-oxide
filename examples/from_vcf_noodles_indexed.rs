@@ -47,7 +47,10 @@ fn main() {
         .map(Result::unwrap)
         .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy).unwrap());
     let counts = SampleAlleleCounts::try_from_tabular(alleles).unwrap();
-    counts.iter_sites_in(0).unwrap().for_each(|c| println!("{c:?}"));
+    counts
+        .iter_sites_in(0)
+        .unwrap()
+        .for_each(|c| println!("{c:?}"));
 
     // clean up our file
     std::fs::remove_file("simple_vcf.bgzf").unwrap();

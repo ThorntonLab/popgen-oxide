@@ -129,9 +129,10 @@ fn test_try_reduce_details(
     }
     let reduced_counts = splitcounts
         .into_iter()
-        .try_fold(crate::counts::SampleAlleleCounts::of_empty_populations(1), |a, b| {
-            a.try_reduce(b)
-        })
+        .try_fold(
+            crate::counts::SampleAlleleCounts::of_empty_populations(1),
+            |a, b| a.try_reduce(b),
+        )
         .unwrap();
     assert_eq!(reduced_counts.num_sites(), mergedcounts.num_sites());
     for (i, j) in reduced_counts
