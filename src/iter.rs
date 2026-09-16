@@ -1,5 +1,5 @@
-use crate::{AlleleCounts, SampleAlleleCounts};
 use crate::{Count, SingleSampleAlleleCounts};
+use crate::{AlleleCounts, SampleAlleleCounts};
 
 pub struct SampleAlleleCountsPopulationIter<'inner> {
     pub(crate) inner: &'inner SampleAlleleCounts,
@@ -170,7 +170,10 @@ fn make_nonempty_counts() -> SampleAlleleCounts {
 #[test]
 fn test_site_count() {
     let counts = make_nonempty_counts();
-    assert_eq!(counts.population(0).unwrap().into_iter().count(), counts.num_sites());
+    assert_eq!(
+        counts.population(0).unwrap().into_iter().count(),
+        counts.num_sites()
+    );
     assert_eq!(
         counts
             .population(0)
@@ -212,7 +215,6 @@ fn test_site_exhaust_back() {
     _ = iter.next_back();
     _ = iter.nth_back(1);
     assert!(iter.next_back().is_some());
-    dbg!(iter.next_site_ind);
     assert!(iter.next_back().is_none());
 }
 
@@ -244,4 +246,23 @@ fn test_populations_iter() {
     assert_eq!(counts.iter_populations().count(), 5);
     assert_eq!(counts.num_populations(), 5);
     let mut it = counts.iter_populations();
+
+    let pop0 = it.next().unwrap();
+    assert_eq!(pop0.population_number(), 0);
+    assert_eq!(
+        pop0.site(0).unwrap(),
+        AlleleCounts::try_new(&[1, 1, 1], 100).unwrap()
+    );
+    assert!(pop0.site(1).is_none());
+    assert!(pop0.site(100).is_none());
+
+    let pop4 = it.next_back().unwrap();
+    assert_eq!(pop4.population_number(), 4);
+
+    let pop4_site = AlleleCounts::try_new(&[5, 5, 5], 500).unwrap();
+    assert_eq!(pop4.site(0).unwrap(), pop4_site);
+    assert_eq!(pop4.clone().into_iter().next().unwrap(), pop4_site);
+    assert_eq!(pop4.clone().into_iter().next_back().unwrap(), pop4_site);
+    assert_eq!(pop4.clone().into_iter().len(), counts.num_sites());
+    assert!(std::ptr::eq(pop4.inner(), &counts));
 }
