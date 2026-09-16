@@ -160,102 +160,7 @@ impl SampleAlleleCounts {
         self.extend_populations_from_site(|_| (&counts_this_site, total_alleles))?;
         Ok(())
     }
-}
 
-impl TryReduce for SampleAlleleCounts {
-    type Error = PopgenError;
-
-    /// Attempt to concatenate `self` and `other`, assuming that the populations correspond, with the semantics that the sites from `self` will be followed by the sites from `other`.
-    ///
-    /// Error if the number of populations differs.
-    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
-    where
-        Self: Sized,
-    {
-        if self.num_populations != other.num_populations {
-            // TODO: error type?
-            return Err(PopgenError::LibraryError(
-                "different numbers of populations".to_string(),
-            ));
-        }
-
-        let counts_len_left = self.counts.len();
-        let mut counts = self.counts;
-        counts.extend(other.counts);
-
-        let mut count_starts = self.count_starts;
-        count_starts.extend(
-            other
-                .count_starts
-                .into_iter()
-                .map(|cs| counts_len_left + cs),
-        );
-
-        let mut total_alleles = self.total_alleles;
-        total_alleles.extend(other.total_alleles);
-
-        Ok(Self {
-            counts,
-            count_starts,
-            total_alleles,
-            num_populations: self.num_populations,
-        })
-    }
-}
-
-/// A borrowed collection of allele counts and the total number of alleles (to describe, by implication, number of missing alleles).
-///
-/// This type is returned when requesting views into [`SampleAlleleCounts`].
-/// It can also be built from user-provided data via [`Self::try_new`].
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub struct AlleleCounts<'inner> {
-    counts: &'inner [Count],
-    total_alleles: i64,
-}
-
-impl<'inner> AlleleCounts<'inner> {
-    /// Build a new `Self`, viewing a slice of counts and total alleles provided by the user.
-    ///
-    /// # Errors
-    /// - If any element in `counts` is negative.
-    /// - If `total_alleles` is less than the sum of elements of `counts`.
-    /// - If `counts` is empty.
-    /// - If `total_alleles == 0`.
-    pub fn try_new(counts: &'inner [Count], total_alleles: i64) -> Result<Self, PopgenError> {
-        if counts.is_empty() || total_alleles == 0 {
-            return Err(PopgenError::EmptySiteCounts);
-        }
-
-        let mut sum = 0;
-        for c in counts {
-            if c < &0 {
-                return Err(PopgenError::NegativeCount(*c));
-            }
-            sum += c;
-        }
-
-        if sum > total_alleles {
-            return Err(PopgenError::TotalAllelesDeficient);
-        }
-
-        Ok(Self {
-            counts,
-            total_alleles,
-        })
-    }
-
-    #[inline]
-    pub fn counts(&self) -> &[Count] {
-        self.counts
-    }
-
-    #[inline]
-    pub fn total_alleles(&self) -> i64 {
-        self.total_alleles
-    }
-}
-
-impl SampleAlleleCounts {
     /// Create a new [`Self`] containing `how_many` populations, but containing no data.
     pub fn of_empty_populations(how_many: usize) -> Self {
         Self {
@@ -401,7 +306,10 @@ impl SampleAlleleCounts {
     /// Convenience method to produce an iterator over [`AlleleCounts`] in one population.
     ///
     /// `None` if `population_number` is out of bounds.
-    pub fn iter_sites_in(&'_ self, population_number: usize) -> Option<SampleAlleleCountsSiteIter<'_>> {
+    pub fn iter_sites_in(
+        &'_ self,
+        population_number: usize,
+    ) -> Option<SampleAlleleCountsSiteIter<'_>> {
         if !(0..self.num_populations()).contains(&population_number) {
             return None;
         }
@@ -411,5 +319,98 @@ impl SampleAlleleCounts {
             population_number,
             next_site_ind: (0, self.num_sites().saturating_sub(1)),
         })
+    }
+}
+
+impl TryReduce for SampleAlleleCounts {
+    type Error = PopgenError;
+
+    /// Attempt to concatenate `self` and `other`, assuming that the populations correspond, with the semantics that the sites from `self` will be followed by the sites from `other`.
+    ///
+    /// Error if the number of populations differs.
+    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        if self.num_populations != other.num_populations {
+            // TODO: error type?
+            return Err(PopgenError::LibraryError(
+                "different numbers of populations".to_string(),
+            ));
+        }
+
+        let counts_len_left = self.counts.len();
+        let mut counts = self.counts;
+        counts.extend(other.counts);
+
+        let mut count_starts = self.count_starts;
+        count_starts.extend(
+            other
+                .count_starts
+                .into_iter()
+                .map(|cs| counts_len_left + cs),
+        );
+
+        let mut total_alleles = self.total_alleles;
+        total_alleles.extend(other.total_alleles);
+
+        Ok(Self {
+            counts,
+            count_starts,
+            total_alleles,
+            num_populations: self.num_populations,
+        })
+    }
+}
+
+/// A borrowed collection of allele counts and the total number of alleles (to describe, by implication, number of missing alleles).
+///
+/// This type is returned when requesting views into [`SampleAlleleCounts`].
+/// It can also be built from user-provided data via [`Self::try_new`].
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub struct AlleleCounts<'inner> {
+    counts: &'inner [Count],
+    total_alleles: i64,
+}
+
+impl<'inner> AlleleCounts<'inner> {
+    /// Build a new `Self`, viewing a slice of counts and total alleles provided by the user.
+    ///
+    /// # Errors
+    /// - If any element in `counts` is negative.
+    /// - If `total_alleles` is less than the sum of elements of `counts`.
+    /// - If `counts` is empty.
+    /// - If `total_alleles == 0`.
+    pub fn try_new(counts: &'inner [Count], total_alleles: i64) -> Result<Self, PopgenError> {
+        if counts.is_empty() || total_alleles == 0 {
+            return Err(PopgenError::EmptySiteCounts);
+        }
+
+        let mut sum = 0;
+        for c in counts {
+            if c < &0 {
+                return Err(PopgenError::NegativeCount(*c));
+            }
+            sum += c;
+        }
+
+        if sum > total_alleles {
+            return Err(PopgenError::TotalAllelesDeficient);
+        }
+
+        Ok(Self {
+            counts,
+            total_alleles,
+        })
+    }
+
+    #[inline]
+    pub fn counts(&self) -> &[Count] {
+        self.counts
+    }
+
+    #[inline]
+    pub fn total_alleles(&self) -> i64 {
+        self.total_alleles
     }
 }
