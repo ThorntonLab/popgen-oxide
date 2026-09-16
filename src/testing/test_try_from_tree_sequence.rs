@@ -621,6 +621,7 @@ where
     let counts =
         crate::SampleAlleleCounts::try_from_tree_sequence(ts, samples.iter().cloned(), None)
             .unwrap();
+    assert_eq!(counts.num_populations(), 1);
     // Instead of relying on the internal node sample-ness status,
     // we define our set of "sample/focal" nodes externally from
     // the tree sequence.
@@ -764,6 +765,7 @@ fn test_3() {
             None,
         )
         .unwrap();
+        assert_eq!(counts0.num_populations(), 1);
         let a = mcounts.iter_sites_in(0).collect::<Vec<_>>();
         let b = counts0.iter().collect::<Vec<_>>();
         assert_eq!(a, b);
@@ -773,6 +775,7 @@ fn test_3() {
             None,
         )
         .unwrap();
+        assert_eq!(counts1.num_populations(), 1);
         let a = mcounts.iter_sites_in(1).collect::<Vec<_>>();
         let b = counts1.iter().collect::<Vec<_>>();
         assert_eq!(a, b);
@@ -817,6 +820,7 @@ fn test_4() {
             None,
         )
         .unwrap();
+        assert_eq!(counts0.num_populations(), 1);
         let a = extract_subsample(&mcounts, 0);
         let b = counts0.iter().collect::<Vec<_>>();
         assert_eq!(a, b);
@@ -828,6 +832,7 @@ fn test_4() {
         .unwrap();
         let a = extract_subsample(&mcounts, 1);
         let b = counts1.iter().collect::<Vec<_>>();
+        assert_eq!(counts1.num_populations(), 1);
         assert_eq!(a, b);
     }
 }
