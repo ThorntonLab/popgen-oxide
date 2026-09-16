@@ -29,6 +29,8 @@ pub struct SampleAlleleCounts {
 
 impl SampleAlleleCounts {
     /// Convenience wrapper which repeatedly invokes [`Self::add_site`].
+    /// This will produce a `Self` with 1 population.
+    ///
     /// # Errors
     /// The error conditions from [`Self::add_site`] apply here.
     pub fn try_from_tabular<Sites, Samples>(sites: Sites) -> PopgenResult<Self>
@@ -42,14 +44,14 @@ impl SampleAlleleCounts {
             ret.add_site(site)?;
         }
 
-        if !ret.count_starts.is_empty() {
-            ret.num_populations = 1;
-        }
+        // if no sites were added, this has not been set
+        ret.num_populations = 1;
 
         Ok(ret)
     }
 
     /// Obtain site counts from a [`tskit::TreeSequence`].
+    /// All sites will be placed in one population.
     ///
     /// # Parameters
     ///
@@ -77,6 +79,7 @@ impl SampleAlleleCounts {
         Self::try_from_tree_sequence_site_iter(ts, samples, ts.site_iter(), options)
     }
 
+    /// [`Self::try_from_tree_sequence`], but specifying a selection of sites using `sites`.
     #[cfg(feature = "tskit")]
     pub fn try_from_tree_sequence_site_iter<'ts, N, S>(
         ts: &'ts tskit::TreeSequence,
@@ -91,6 +94,9 @@ impl SampleAlleleCounts {
         from_tree_sequence::try_from_tree_sequence_with_site_iter(ts, samples, sites, options)
     }
 
+    /// [`Self::try_from_tree_sequence`], but specifying a selection of genomic windows using `windows`.
+    /// 
+    /// Each window will be placed in a new `Self`, so this function returns a [`Vec`].
     #[cfg(feature = "tskit")]
     pub fn try_from_tree_sequence_windows<N, W, P>(
         ts: &tskit::TreeSequence,
@@ -107,13 +113,30 @@ impl SampleAlleleCounts {
     }
 
     /// Add a site from an iterator of potentially missing allele IDs.
+    ///
+    /// It is assumed that `self` contains 0 or 1 populations.
+    ///
     /// # Errors
+    /// - If `self` contains more than 1 population.
     /// - If `samples` is empty.
     /// - If `samples` contains no present data (i.e. only ever yields `None`).
     pub fn add_site<Samples>(&mut self, samples: Samples) -> PopgenResult<()>
     where
         Samples: IntoIterator<Item = Option<AlleleID>>,
     {
+        // TODO: multi sample set impl
+        match self.num_populations {
+            0 => {
+                self.num_populations = 1;
+            }
+            1 => {}
+            _more => {
+                return Err(PopgenError::LibraryError(String::from(
+                    "cannot add_site with more than one population",
+                )));
+            }
+        }
+
         let mut total_alleles = 0;
 
         // in something like VCF we wouldn't even have data if there was no variation; 2 is a reasonable lower bound
@@ -132,33 +155,8 @@ impl SampleAlleleCounts {
 
         // we should not get NegativeCount or TotalAllelesDeficient here (could check that),
         // but we certainly could get other error variants
-        let counts = AlleleCounts::try_new(&counts_this_site, total_alleles)?;
-        self.add_site_from_counts(counts);
+        self.extend_populations_from_site(|_| (&counts_this_site, total_alleles))?;
         Ok(())
-    }
-
-    /// Add a site with counts of present alleles as described by `counts`.
-    /// Consumers holding a slice of counts and a count of total alleles should use [`AlleleCounts::try_new`] to obtain `AlleleCounts`.
-    pub fn add_site_from_counts(&mut self, counts: AlleleCounts) {
-        self.add_site_from_counts_unchecked(counts.counts(), counts.total_alleles());
-    }
-
-    fn add_site_from_counts_unchecked(&mut self, counts: &[Count], total_alleles: i64) {
-        self.counts.extend_from_slice(counts.as_ref());
-        // count backwards in case counts_this_site.is_empty() or other strange case
-        self.count_starts
-            .push(self.counts.len() - counts.as_ref().len());
-        self.total_alleles.push(total_alleles);
-    }
-
-    /// The number of sites added to this [`Self`] so far.
-    pub fn len(&self) -> usize {
-        self.total_alleles.len()
-    }
-
-    /// `true` if and only if there are no sites in this [`Self`]; equivalent to `self.len() == 0`.
-    pub fn is_empty(&self) -> bool {
-        self.total_alleles.is_empty()
     }
 
     pub fn iter(&self) -> SampleAlleleCountsIter<'_> {
@@ -382,6 +380,11 @@ impl SampleAlleleCounts {
         self.num_populations
     }
 
+    /// `true` if and only if there are no sites in this [`Self`].
+    pub fn is_empty(&self) -> bool {
+        self.total_alleles.is_empty()
+    }
+
     /// Return the number of sites contained in `Self`.
     pub fn num_sites(&self) -> usize {
         self.total_alleles
@@ -390,11 +393,11 @@ impl SampleAlleleCounts {
             .unwrap_or(0)
     }
 
-    /// Attempt to get a [`AlleleCounts`] from `Self` with respect to a given sample set.
+    /// Attempt to get a [`AlleleCounts`] from `Self` with respect to a given population.
     ///
     /// # Errors
     /// If any index is out of bounds.
-    pub fn get_from_sample_set(
+    pub fn get_from_population(
         &self,
         site_num: usize,
         population_num: usize,
@@ -422,6 +425,6 @@ impl SampleAlleleCounts {
     /// Empty if `population_num` is out of bounds.
     pub fn iter_sites_in(&self, population_num: usize) -> impl Iterator<Item = AlleleCounts<'_>> {
         (0..self.num_sites())
-            .flat_map(move |site_n| self.get_from_sample_set(site_n, population_num))
+            .flat_map(move |site_n| self.get_from_population(site_n, population_num))
     }
 }
