@@ -876,6 +876,7 @@ fn test_5() {
             None,
         )
         .unwrap();
+        assert_eq!(mcounts.num_populations(), 2);
         let counts0 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [0, 3].into_iter().map(|i| i.into()),
