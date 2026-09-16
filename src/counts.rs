@@ -25,7 +25,8 @@ pub struct SampleAlleleCounts {
     // start indices into counts at which the counts start for a specific site
     // counts and count_starts together produce a ragged 2d array
     count_starts: Vec<usize>,
-    total_alleles: Vec<i64>,
+    // (site, population) -> number of alleles, present or missing, at this site
+    total_alleles: Vec<Count>,
     num_populations: usize,
 }
 
