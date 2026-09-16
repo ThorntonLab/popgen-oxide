@@ -194,15 +194,21 @@ impl SampleAlleleCounts {
 
 impl TryReduce for SampleAlleleCounts {
     type Error = PopgenError;
+
+    /// Attempt to concatenate `self` and `other`, assuming that the populations correspond, with the semantics that the sites from `self` will be followed by the sites from `other`.
+    ///
+    /// Error if the number of populations differs.
     fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
         if self.num_populations != other.num_populations {
+            // TODO: error type?
             return Err(PopgenError::LibraryError(
-                "different numbers of sample sets".to_string(),
+                "different numbers of populations".to_string(),
             ));
         }
+
         let counts_len_left = self.counts.len();
         let mut counts = self.counts;
         counts.extend(other.counts);
