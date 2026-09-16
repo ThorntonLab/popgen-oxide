@@ -194,8 +194,11 @@ impl TryReduce for SampleAlleleCounts {
     where
         Self: Sized,
     {
-        // TODO: this should be an Err condition if not true!
-        debug_assert_eq!(self.num_populations, other.num_populations);
+        if self.num_populations != other.num_populations {
+            return Err(PopgenError::LibraryError(
+                "different numbers of sample sets".to_string(),
+            ));
+        }
         let counts_len_left = self.counts.len();
         let mut counts = self.counts;
         counts.extend(other.counts);
