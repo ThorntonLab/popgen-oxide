@@ -750,7 +750,7 @@ fn test_3() {
 
     // Multi-sample-set test
     {
-        let mcounts = crate::MultiSampleAlleleCounts::try_from_tree_sequence(
+        let mcounts = crate::SampleAlleleCounts::try_multi_sample_set_from_tree_sequence(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -803,7 +803,7 @@ fn test_4() {
     test_non_sample_nodes_and_subsets(&ts);
     // Multi-sample-set test
     {
-        let mcounts = crate::MultiSampleAlleleCounts::try_from_tree_sequence(
+        let mcounts = crate::SampleAlleleCounts::try_multi_sample_set_from_tree_sequence(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -863,7 +863,7 @@ fn test_5() {
     test_non_sample_nodes_and_subsets(&ts);
     // Multi-sample-set test
     {
-        let mcounts = crate::MultiSampleAlleleCounts::try_from_tree_sequence(
+        let mcounts = crate::SampleAlleleCounts::try_multi_sample_set_from_tree_sequence(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -1285,7 +1285,7 @@ fn test_13() {
 
 #[cfg(test)]
 fn extract_subsample(
-    data: &crate::MultiSampleAlleleCounts,
+    data: &crate::SampleAlleleCounts,
     sample: usize,
 ) -> Vec<AlleleCounts<'_>> {
     // We need to filter out sites that are monomorphic in

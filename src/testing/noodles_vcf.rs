@@ -220,21 +220,21 @@ fn load_vcf_multi_population() {
     let counts = adapter.build();
 
     {
-        let first_site = counts.get(0, 0).unwrap();
+        let first_site = counts.get_from_sample_set(0, 0).unwrap();
         assert_eq!(first_site.counts(), &[5, 4]);
         assert_eq!(first_site.total_alleles(), 9);
 
-        let second_site = counts.get(1, 0).unwrap();
+        let second_site = counts.get_from_sample_set(1, 0).unwrap();
         assert_eq!(second_site.counts(), &[4, 4]);
         assert_eq!(second_site.total_alleles(), 9);
     }
 
     {
-        let first_site = counts.get(0, 1).unwrap();
+        let first_site = counts.get_from_sample_set(0, 1).unwrap();
         assert_eq!(first_site.counts(), &[6, 3]);
         assert_eq!(first_site.total_alleles(), 9);
 
-        let second_site = counts.get(1, 1).unwrap();
+        let second_site = counts.get_from_sample_set(1, 1).unwrap();
         assert_eq!(second_site.counts(), &[3, 4]);
         assert_eq!(second_site.total_alleles(), 9);
     }

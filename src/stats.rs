@@ -1,6 +1,6 @@
 use crate::traits::TryReduce;
 use crate::util::StrictlyLowerTriangular;
-use crate::{AlleleCounts, Count, MultiSampleAlleleCounts, PopgenError, PopgenResult};
+use crate::{AlleleCounts, Count, PopgenError, PopgenResult, SampleAlleleCounts};
 use std::cmp::max;
 
 /// A statistic calculable by iterating over variation at individual sites
@@ -345,7 +345,7 @@ impl FStatistics {
     /// See [`crate::stats::GlobalPi`].
     fn try_add_population(
         &mut self,
-        populations: &MultiSampleAlleleCounts,
+        populations: &SampleAlleleCounts,
         population_num: usize,
         weight: f64,
     ) -> Result<(), PopgenError> {
@@ -410,7 +410,7 @@ impl FStatistics {
     /// - If no populations are selected for inclusion.
     /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
     pub fn try_from_populations(
-        populations: &MultiSampleAlleleCounts,
+        populations: &SampleAlleleCounts,
         mut pred: impl FnMut(usize) -> Option<f64>,
     ) -> Result<Self, PopgenError> {
         let mut ret = Self::new();

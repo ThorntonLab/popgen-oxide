@@ -1,6 +1,4 @@
-use crate::{
-    AlleleCounts, Count, MultiSampleAlleleCounts, PopgenError, PopgenResult, SampleAlleleCounts,
-};
+use crate::{AlleleCounts, Count, PopgenError, PopgenResult, SampleAlleleCounts};
 
 /// Options affecting the behavior of
 /// [crate::SampleAlleleCounts::try_from_tree_sequence]
@@ -228,7 +226,7 @@ struct MultitpleSampleSets<'ts> {
     alleles_at_site: Vec<&'ts [u8]>,
     allele_counts: Vec<Vec<i64>>,
     num_samples_inheriting_derived_state_at_site: Vec<i64>,
-    counts: MultiSampleAlleleCounts,
+    counts: SampleAlleleCounts,
 }
 
 trait SampleSets<'s> {
@@ -374,7 +372,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
 }
 
 impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
-    type Output = MultiSampleAlleleCounts;
+    type Output = SampleAlleleCounts;
 
     fn process_input_edge(&mut self, parent: usize, child: usize) {
         self.tree_data
@@ -795,14 +793,14 @@ pub fn try_from_tree_sequence_multi_with_site_iter<'ts, Outer, Inner, S>(
     samples: Outer,
     sites: S,
     options: Option<FromTreeSequenceOptions>,
-) -> Result<crate::MultiSampleAlleleCounts, PopgenError>
+) -> Result<crate::SampleAlleleCounts, PopgenError>
 where
     Outer: Iterator<Item = Inner>,
     Inner: Iterator<Item = tskit::NodeId>,
     S: Iterator<Item = tskit::SiteRef<'ts>>,
 {
     let sample_data = setup_multi_sample_sets(ts, samples)?;
-    let counts = MultiSampleAlleleCounts::of_empty_populations(sample_data.len());
+    let counts = SampleAlleleCounts::of_empty_populations(sample_data.len());
     let (tree_data, num_sampled_genomes): (Vec<TreeData>, Vec<i32>) =
         sample_data.into_iter().unzip();
     let num_sampled_genomes: Vec<i64> = num_sampled_genomes.into_iter().map(|i| i as i64).collect();

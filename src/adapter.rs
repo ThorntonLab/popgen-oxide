@@ -1,7 +1,6 @@
 #[cfg(feature = "noodles")]
 pub mod vcf {
-    use crate::counts::MultiSampleAlleleCounts;
-    use crate::{AlleleID, Count, PopgenResult};
+    use crate::{AlleleID, Count, PopgenResult, SampleAlleleCounts};
     use noodles::vcf::variant::record::samples::keys::key;
     use noodles::vcf::variant::record::samples::series::Value;
     use noodles::vcf::variant::record::samples::Sample;
@@ -69,7 +68,7 @@ pub mod vcf {
         header: &'h Header,
         ploidy: Option<NonZeroI64>,
         sample_to_population: Vec<usize>,
-        populations: MultiSampleAlleleCounts,
+        populations: SampleAlleleCounts,
         // buffers for add_record
         buf_counts: Vec<Count>,
         buf_num_samples: Box<[Count]>,
@@ -121,7 +120,7 @@ pub mod vcf {
                 header,
                 ploidy,
                 sample_to_population,
-                populations: MultiSampleAlleleCounts::of_empty_populations(num_populations),
+                populations: SampleAlleleCounts::of_empty_populations(num_populations),
                 // we'll resize if we ever get a record with more variants
                 buf_counts: vec![0; num_populations * 2],
                 buf_num_samples: vec![0; num_populations].into_boxed_slice(),
@@ -186,7 +185,7 @@ pub mod vcf {
             Ok(())
         }
 
-        pub fn build(self) -> MultiSampleAlleleCounts {
+        pub fn build(self) -> SampleAlleleCounts {
             self.populations
         }
     }

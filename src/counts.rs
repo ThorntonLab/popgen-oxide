@@ -18,6 +18,7 @@ pub struct SampleAlleleCounts {
     // counts and count_starts together produce a ragged 2d array
     count_starts: Vec<usize>,
     total_alleles: Vec<i64>,
+    num_populations: usize,
 }
 
 impl SampleAlleleCounts {
@@ -193,6 +194,8 @@ impl TryReduce for SampleAlleleCounts {
     where
         Self: Sized,
     {
+        // TODO: this should be an Err condition if not true!
+        debug_assert_eq!(self.num_populations, other.num_populations);
         let counts_len_left = self.counts.len();
         let mut counts = self.counts;
         counts.extend(other.counts);
@@ -212,6 +215,7 @@ impl TryReduce for SampleAlleleCounts {
             counts,
             count_starts,
             total_alleles,
+            num_populations: self.num_populations,
         })
     }
 }
@@ -274,19 +278,19 @@ impl<'inner> AlleleCounts<'inner> {
 /// It is guaranteed that counts for the same site in multiple populations are meaningfully related,
 /// particularly, e.g., that the allele assigned ID 0 in one population has also been assigned ID 0 in another population.
 /// Alleles which appear in one population but not the other will have a count of 0 in that other population.
-#[derive(Debug, Default, Clone)]
-pub struct MultiSampleAlleleCounts {
-    // positions: Vec<usize>
-    // ragged array (site, population) -> some collection of counts
-    counts: Vec<Count>,
-    // shape (site, population) -> index into counts
-    count_starts: Vec<usize>,
-    // (site, population) -> number of alleles, present or missing, at this site
-    total_alleles: Vec<Count>,
-    num_populations: usize,
-}
+//#[derive(Debug, Default, Clone)]
+//pub struct MultiSampleAlleleCounts {
+//    // positions: Vec<usize>
+//    // ragged array (site, population) -> some collection of counts
+//    counts: Vec<Count>,
+//    // shape (site, population) -> index into counts
+//    count_starts: Vec<usize>,
+//    // (site, population) -> number of alleles, present or missing, at this site
+//    total_alleles: Vec<Count>,
+//    num_populations: usize,
+//}
 
-impl MultiSampleAlleleCounts {
+impl SampleAlleleCounts {
     /// Create a new [`Self`] containing `how_many` populations, but containing no data.
     pub fn of_empty_populations(how_many: usize) -> Self {
         Self {
@@ -340,7 +344,7 @@ impl MultiSampleAlleleCounts {
     }
 
     #[cfg(feature = "tskit")]
-    pub fn try_from_tree_sequence<Outer, Inner>(
+    pub fn try_multi_sample_set_from_tree_sequence<Outer, Inner>(
         ts: &tskit::TreeSequence,
         samples: Outer,
         options: Option<FromTreeSequenceOptions>,
@@ -349,11 +353,16 @@ impl MultiSampleAlleleCounts {
         Outer: Iterator<Item = Inner>,
         Inner: Iterator<Item = tskit::NodeId>,
     {
-        Self::try_from_tree_sequence_site_iter(ts, samples, ts.site_iter(), options)
+        Self::try_multi_sample_set_from_tree_sequence_site_iter(
+            ts,
+            samples,
+            ts.site_iter(),
+            options,
+        )
     }
 
     #[cfg(feature = "tskit")]
-    pub fn try_from_tree_sequence_site_iter<'ts, Outer, Inner, S>(
+    pub fn try_multi_sample_set_from_tree_sequence_site_iter<'ts, Outer, Inner, S>(
         ts: &'ts tskit::TreeSequence,
         samples: Outer,
         sites: S,
@@ -380,11 +389,15 @@ impl MultiSampleAlleleCounts {
             .unwrap_or(0)
     }
 
-    /// Attempt to get a [`AlleleCounts`] from `Self`.
+    /// Attempt to get a [`AlleleCounts`] from `Self` with respect to a given sample set.
     ///
     /// # Errors
     /// If any index is out of bounds.
-    pub fn get(&self, site_num: usize, population_num: usize) -> Option<AlleleCounts<'_>> {
+    pub fn get_from_sample_set(
+        &self,
+        site_num: usize,
+        population_num: usize,
+    ) -> Option<AlleleCounts<'_>> {
         let counts_start = *self.count_starts.get(site_num)?;
         let counts_all_pops = match self.count_starts.get(site_num + 1) {
             None => &self.counts[counts_start..],
@@ -407,6 +420,7 @@ impl MultiSampleAlleleCounts {
     /// Convenience method to produce an iterator over [`AlleleCounts`] in one population.
     /// Empty if `population_num` is out of bounds.
     pub fn iter_sites_in(&self, population_num: usize) -> impl Iterator<Item = AlleleCounts<'_>> {
-        (0..self.num_sites()).flat_map(move |site_n| self.get(site_n, population_num))
+        (0..self.num_sites())
+            .flat_map(move |site_n| self.get_from_sample_set(site_n, population_num))
     }
 }
