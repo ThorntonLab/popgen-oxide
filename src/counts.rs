@@ -36,6 +36,10 @@ impl SampleAlleleCounts {
             ret.add_site(site)?;
         }
 
+        if !ret.count_starts.is_empty() {
+            ret.num_populations = 1;
+        }
+
         Ok(ret)
     }
 
