@@ -137,12 +137,14 @@ fn test_reverse_iteration_over_empty() {
 
 #[test]
 fn test_population_count() {
-    let mut counts = SampleAlleleCounts::of_empty_populations(1);
-    counts
-        .extend_populations_from_site(|_| (&[1, 2, 3], 6))
-        .unwrap();
+    for c in 0..5 {
+        let mut counts = SampleAlleleCounts::of_empty_populations(c);
+        counts
+            .extend_populations_from_site(|_| (&[1, 2, 3], 6))
+            .unwrap();
 
-    assert_eq!(counts.iter_populations().count(), 1);
+        assert_eq!(counts.iter_populations().count(), c);
+    }
 }
 
 #[cfg(test)]
