@@ -95,7 +95,7 @@ impl SampleAlleleCounts {
     }
 
     /// [`Self::try_from_tree_sequence`], but specifying a selection of genomic windows using `windows`.
-    /// 
+    ///
     /// Each window will be placed in a new `Self`, so this function returns a [`Vec`].
     #[cfg(feature = "tskit")]
     pub fn try_from_tree_sequence_windows<N, W, P>(
