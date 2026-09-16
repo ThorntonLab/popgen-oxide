@@ -111,13 +111,13 @@ proptest!(
         // get the calcs
         let diversity_from_counts = WattersonsTheta::try_from_iter_sites(counts.iter());
         if let Ok(value) = diversity_from_counts {
-            let splitlen = counts.len() / max_num_splits;
+            let splitlen = counts.num_sites() / max_num_splits;
             let mut div_split = vec![];
             for nsplits in 0..max_num_splits {
                 let takelen = if nsplits < max_num_splits - 1 {
                     splitlen
                 } else {
-                    counts.len() - nsplits * splitlen
+                    counts.num_sites() - nsplits * splitlen
                 };
                 let div = WattersonsTheta::try_from_iter_sites(counts.iter().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
                 div_split.push(div);

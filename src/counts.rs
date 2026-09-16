@@ -158,42 +158,6 @@ impl SampleAlleleCounts {
         self.extend_populations_from_site(|_| (&counts_this_site, total_alleles))?;
         Ok(())
     }
-
-    pub fn iter(&self) -> SampleAlleleCountsIter<'_> {
-        SampleAlleleCountsIter {
-            inner: self,
-            next_site_ind: (
-                0,
-                if !self.count_starts.is_empty() {
-                    self.count_starts.len() - 1
-                } else {
-                    0
-                },
-            ),
-        }
-    }
-
-    fn counts_slice_at(&self, site: usize) -> Option<&[Count]> {
-        // TODO: do we even need random access?
-
-        self.count_starts.get(site).map(|count_start| {
-            &self.counts[*count_start
-                ..*self
-                    .count_starts
-                    .get(site + 1)
-                    .unwrap_or(&self.counts.len())]
-        })
-    }
-
-    /// Get the allele counts at a specific site index.
-    ///
-    /// Returns [`None`] if the site index is invalid.
-    pub fn get(&self, site: usize) -> Option<AlleleCounts<'_>> {
-        Some(AlleleCounts {
-            counts: self.counts_slice_at(site)?,
-            total_alleles: self.total_alleles[site],
-        })
-    }
 }
 
 impl TryReduce for SampleAlleleCounts {
