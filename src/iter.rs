@@ -124,7 +124,9 @@ impl DoubleEndedIterator for SampleAlleleCountsSiteIter<'_> {
 #[test]
 fn test_iteration_over_empty() {
     let counts = SampleAlleleCounts::default();
-    assert_eq!(counts.iter_populations().count(), 0)
+    assert_eq!(counts.iter_populations().count(), 0);
+    assert_eq!(counts.get_site(0, 0), None);
+    assert!(counts.iter_sites_in(0).is_none());
 }
 
 #[test]
