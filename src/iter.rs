@@ -1,4 +1,5 @@
 use crate::{AlleleCounts, SampleAlleleCounts};
+use crate::{Count, SingleSampleAlleleCounts};
 
 pub struct SampleAlleleCountsPopulationIter<'inner> {
     pub(crate) inner: &'inner SampleAlleleCounts,
@@ -7,10 +8,10 @@ pub struct SampleAlleleCountsPopulationIter<'inner> {
 }
 
 impl<'inner> Iterator for SampleAlleleCountsPopulationIter<'inner> {
-    type Item = SampleAlleleCountsSiteIter<'inner>;
+    type Item = SingleSampleAlleleCounts<'inner>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ret = self.inner.iter_sites_in(self.next_population_ind.0)?;
+        let ret = self.inner.population(self.next_population_ind.0)?;
 
         self.next_population_ind.0 += 1;
         Some(ret)
@@ -45,7 +46,7 @@ impl ExactSizeIterator for SampleAlleleCountsPopulationIter<'_> {
 
 impl DoubleEndedIterator for SampleAlleleCountsPopulationIter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        let ret = self.inner.iter_sites_in(self.next_population_ind.1)?;
+        let ret = self.inner.population(self.next_population_ind.1)?;
 
         // there is no way to have usize counts because a Vec can never exceed isize::MAX
         self.next_population_ind.1 = self.next_population_ind.1.wrapping_sub(1);
@@ -126,7 +127,7 @@ fn test_iteration_over_empty() {
     let counts = SampleAlleleCounts::default();
     assert_eq!(counts.iter_populations().count(), 0);
     assert_eq!(counts.get_site(0, 0), None);
-    assert!(counts.iter_sites_in(0).is_none());
+    assert!(counts.population(0).is_none());
 }
 
 #[test]
@@ -169,11 +170,12 @@ fn make_nonempty_counts() -> SampleAlleleCounts {
 #[test]
 fn test_site_count() {
     let counts = make_nonempty_counts();
-    assert_eq!(counts.iter_sites_in(0).unwrap().count(), counts.num_sites());
+    assert_eq!(counts.population(0).unwrap().into_iter().count(), counts.num_sites());
     assert_eq!(
         counts
-            .iter_sites_in(0)
+            .population(0)
             .unwrap()
+            .into_iter()
             .filter(|c| c.counts()[1] == 5)
             .count(),
         1
@@ -223,4 +225,23 @@ fn test_single_site_getters() {
     let site = counts.get_site(0, 0).unwrap();
     assert_eq!(site.counts(), &[9, 8, 7]);
     assert_eq!(site.total_alleles(), 35);
+}
+
+#[cfg(test)]
+fn make_multi_pop() -> SampleAlleleCounts {
+    let mut counts = SampleAlleleCounts::of_empty_populations(5);
+    counts
+        .extend_populations_from_site(|i| (vec![(i + 1) as Count; 3], ((i + 1) * 100) as Count))
+        .unwrap();
+
+    counts
+}
+
+#[test]
+fn test_populations_iter() {
+    let counts = make_multi_pop();
+
+    assert_eq!(counts.iter_populations().count(), 5);
+    assert_eq!(counts.num_populations(), 5);
+    let mut it = counts.iter_populations();
 }

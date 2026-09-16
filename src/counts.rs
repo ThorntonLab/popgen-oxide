@@ -300,22 +300,24 @@ impl SampleAlleleCounts {
         }
     }
 
-    /// Convenience method to produce an iterator over [`AlleleCounts`] in one population.
+    /// Create the view [`SingleSampleAlleleCounts`] for the given population number.
     ///
     /// `None` if `population_number` is out of bounds.
+    pub fn population(&'_ self, population_number: usize) -> Option<SingleSampleAlleleCounts<'_>> {
+        (0..self.num_populations())
+            .contains(&population_number)
+            .then_some(SingleSampleAlleleCounts {
+                inner: self,
+                population_number,
+            })
+    }
+
+    /// Shortcut via [`Self::population`] to [`SingleSampleAlleleCounts::into_iter`].
     pub fn iter_sites_in(
         &'_ self,
         population_number: usize,
     ) -> Option<SampleAlleleCountsSiteIter<'_>> {
-        if !(0..self.num_populations()).contains(&population_number) {
-            return None;
-        }
-
-        Some(SampleAlleleCountsSiteIter {
-            inner: self,
-            population_number,
-            next_site_ind: (0, self.num_sites().saturating_sub(1)),
-        })
+        Some(self.population(population_number)?.into_iter())
     }
 }
 
@@ -357,6 +359,43 @@ impl TryReduce for SampleAlleleCounts {
             total_alleles,
             num_populations: self.num_populations,
         })
+    }
+}
+
+/// A view into [`SampleAlleleCounts`], equivalent to a reference to that type and a population number.
+///
+/// This struct may be consumed via [`IntoIterator`] to iterate over sites within this population.
+#[derive(Debug, Clone)]
+pub struct SingleSampleAlleleCounts<'i> {
+    inner: &'i SampleAlleleCounts,
+    population_number: usize,
+}
+
+impl<'i> IntoIterator for SingleSampleAlleleCounts<'i> {
+    type Item = AlleleCounts<'i>;
+    type IntoIter = SampleAlleleCountsSiteIter<'i>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        SampleAlleleCountsSiteIter {
+            inner: self.inner,
+            population_number: self.population_number,
+            next_site_ind: (0, self.inner.num_sites().saturating_sub(1)),
+        }
+    }
+}
+
+impl<'i> SingleSampleAlleleCounts<'i> {
+    /// Get the counts for this `site_number` within this population, erroring if out of range
+    pub fn site(&'i self, site_number: usize) -> Option<AlleleCounts<'i>> {
+        self.inner.get_site(site_number, self.population_number)
+    }
+
+    pub fn inner(&self) -> &'i SampleAlleleCounts {
+        self.inner
+    }
+
+    pub fn population_number(&self) -> usize {
+        self.population_number
     }
 }
 
