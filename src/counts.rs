@@ -272,11 +272,7 @@ impl SampleAlleleCounts {
     ///
     /// # Errors
     /// If any index is out of bounds.
-    pub fn get_site(
-        &self,
-        site_num: usize,
-        population_num: usize,
-    ) -> Option<AlleleCounts<'_>> {
+    pub fn get_site(&self, site_num: usize, population_num: usize) -> Option<AlleleCounts<'_>> {
         let counts_start = *self.count_starts.get(site_num)?;
         let counts_all_pops = match self.count_starts.get(site_num + 1) {
             None => &self.counts[counts_start..],
@@ -288,7 +284,7 @@ impl SampleAlleleCounts {
 
         let total_alleles = *self
             .total_alleles
-            .get(site_num * population_num + population_num)?;
+            .get(site_num * self.num_populations() + population_num)?;
 
         Some(AlleleCounts {
             counts: counts_this_pop,
