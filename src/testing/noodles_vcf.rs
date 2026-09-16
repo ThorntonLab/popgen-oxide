@@ -183,6 +183,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 #[test]
 fn load_vcf() {
     let (_all_alleles, allele_counts) = counts_from_vcf(make_vcf(), 1);
+    assert_eq!(allele_counts.num_populations(), 1);
     let mut iter = allele_counts.iter();
     let counts_0 = iter.next().unwrap();
     let counts_1 = iter.next().unwrap();
@@ -218,6 +219,7 @@ fn load_vcf_multi_population() {
     }
 
     let counts = adapter.build();
+    assert_eq!(counts.num_populations(), 2);
 
     {
         let first_site = counts.get_from_sample_set(0, 0).unwrap();
