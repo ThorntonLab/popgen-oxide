@@ -1,6 +1,7 @@
-use crate::{AlleleCounts, AlleleID};
+use crate::{AlleleCounts, AlleleID, PopgenError};
 
 use crate::counts::SampleAlleleCounts;
+use crate::traits::TryReduce;
 use proptest::collection::vec;
 use proptest::prelude::*;
 use rand::rng;
@@ -122,7 +123,10 @@ fn test_try_reduce_details(
     }
 
     let mut mergedcounts = crate::counts::SampleAlleleCounts::of_empty_populations(1);
-    for i in splitcounts.iter().flat_map(|c| c.iter_population(0).unwrap()) {
+    for i in splitcounts
+        .iter()
+        .flat_map(|c| c.iter_population(0).unwrap())
+    {
         mergedcounts
             .extend_populations_from_site(|_| (i.counts(), i.total_alleles()))
             .unwrap();
@@ -143,6 +147,16 @@ fn test_try_reduce_details(
         assert_eq!(i.counts(), j.counts());
         assert_eq!(i.total_alleles(), j.total_alleles());
     }
+}
+
+#[test]
+fn cannot_reduce_different_population_count() {
+    let a = SampleAlleleCounts::of_empty_populations(1);
+    let b = SampleAlleleCounts::of_empty_populations(2);
+    assert!(matches!(
+        a.try_reduce(b),
+        Err(PopgenError::MismatchedPopulationCount(_, _))
+    ));
 }
 
 proptest!(
