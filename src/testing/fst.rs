@@ -8,11 +8,11 @@ use std::collections::HashMap;
 
 #[test]
 fn f_st_no_pops() {
-    // equivalently, could have populations but exclude them all...
+    // equivalently, could have sample sets but exclude them all...
     // but this is simpler
     let counts = SampleAlleleCounts::default();
     assert!(matches!(
-        FStatistics::try_from_populations(&counts, |_| Some(1.0)),
+        FStatistics::try_from_sample_sets(&counts, |_| Some(1.0)),
         Err(PopgenError::CalculationError)
     ));
 }
@@ -21,8 +21,8 @@ fn f_st_no_pops() {
 fn f_st_empty_pops() {
     for n_pops in [1, 2, 5] {
         assert!(matches!(
-            FStatistics::try_from_populations(
-                &SampleAlleleCounts::of_empty_populations(n_pops),
+            FStatistics::try_from_sample_sets(
+                &SampleAlleleCounts::of_empty_sample_sets(n_pops),
                 |_| { Some(1.0) }
             ),
             Err(PopgenError::EmptySiteCounts)
@@ -32,21 +32,21 @@ fn f_st_empty_pops() {
 
 #[test]
 fn f_st() {
-    let mut populations = SampleAlleleCounts::of_empty_populations(3);
+    let mut sample_sets = SampleAlleleCounts::of_empty_sample_sets(3);
 
     let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
     let weights = [1.0, 2.0, 3.0];
 
-    populations
-        .extend_populations_from_site(|i| (&data[i].0, data[i].1))
+    sample_sets
+        .extend_sample_sets_from_site(|i| (&data[i].0, data[i].1))
         .unwrap();
 
-    let f_st = FStatistics::try_from_populations(&populations, |i| Some(weights[i])).unwrap();
+    let f_st = FStatistics::try_from_sample_sets(&sample_sets, |i| Some(weights[i])).unwrap();
 
-    for p in 0..populations.num_populations() {
+    for p in 0..sample_sets.num_sample_sets() {
         assert!(
             (f_st.pi_within(p).unwrap()
-                - Diversity::try_from_iter_sites(populations.iter_population(p).unwrap())
+                - Diversity::try_from_iter_sites(sample_sets.iter_sample_set(p).unwrap())
                     .unwrap()
                     .as_raw())
             .abs()
@@ -67,7 +67,7 @@ fn f_st() {
                     // (1, 2)
                     + 9.0 * weights[1] * weights[2]
             )
-                // number of comparisons between any two populations
+                // number of comparisons between any two sample sets
                 / 9.)
                 .abs()
                 // this comparison seems a little finicky
@@ -87,10 +87,10 @@ fn f_st() {
 
     assert!(
         (pi_s_top
-            - (0..populations.num_populations())
+            - (0..sample_sets.num_sample_sets())
                 .map(|pop_i| {
-                    // sum of weight * weight * diversity within this population
-                    Diversity::try_from_iter_sites(populations.iter_population(pop_i).unwrap())
+                    // sum of weight * weight * diversity within this sample set
+                    Diversity::try_from_iter_sites(sample_sets.iter_sample_set(pop_i).unwrap())
                         .unwrap()
                         .as_raw()
                         * weights[pop_i].powi(2)
@@ -111,16 +111,16 @@ fn f_st() {
 
 #[test]
 fn f_st_skip_indices() {
-    let mut populations = SampleAlleleCounts::of_empty_populations(3);
+    let mut sample_sets = SampleAlleleCounts::of_empty_sample_sets(3);
 
     let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
     let weights = [Some(1.0), None, Some(3.0)];
 
-    populations
-        .extend_populations_from_site(|i| (&data[i].0, data[i].1))
+    sample_sets
+        .extend_sample_sets_from_site(|i| (&data[i].0, data[i].1))
         .unwrap();
 
-    let f_st = FStatistics::try_from_populations(&populations, |i| weights[i]).unwrap();
+    let f_st = FStatistics::try_from_sample_sets(&sample_sets, |i| weights[i]).unwrap();
     assert!(f_st.pi_within(0).is_ok());
     assert!(matches!(f_st.pi_within(1), Err(PopgenError::InvalidDeme)));
     assert!(f_st.pi_within(2).is_ok());
@@ -158,14 +158,14 @@ fn f_st_from_random_data() {
                 })
                 .collect::<Vec<_>>();
 
-            let mut counts = SampleAlleleCounts::of_empty_populations(n_pops);
+            let mut counts = SampleAlleleCounts::of_empty_sample_sets(n_pops);
             #[expect(
                 clippy::needless_range_loop,
                 reason = "https://github.com/rust-lang/rust-clippy/issues/16344"
             )]
             for s in 0..n_sites {
                 counts
-                    .extend_populations_from_site(|pop_i| {
+                    .extend_sample_sets_from_site(|pop_i| {
                         let alleles = pops[pop_i][s]
                             .iter()
                             .flat_map(|gts| gts.iter())
@@ -184,7 +184,7 @@ fn f_st_from_random_data() {
             }
 
             let f_st_from_counts =
-                FStatistics::try_from_populations(&counts, |i| Some(pop_weights[i])).unwrap();
+                FStatistics::try_from_sample_sets(&counts, |i| Some(pop_weights[i])).unwrap();
             let (pi_total_naive, pi_self_naive, pi_between_naive) =
                 crate::testing::naivecalculations::f_st(
                     &mut pops

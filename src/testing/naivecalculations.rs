@@ -100,11 +100,11 @@ pub fn divergence_ij(
 }
 
 // return pi_T, pi_S, pi_B
-pub fn f_st<Sites>(populations: &mut dyn Iterator<Item = (f64, Sites)>) -> (f64, f64, f64)
+pub fn f_st<Sites>(sample_sets: &mut dyn Iterator<Item = (f64, Sites)>) -> (f64, f64, f64)
 where
     Sites: IntoIterator<Item = Site>,
 {
-    let pops_and_weights: Vec<(f64, Vec<Site>)> = populations
+    let pops_and_weights: Vec<(f64, Vec<Site>)> = sample_sets
         .map(|(w, pop)| (w, pop.into_iter().collect()))
         .collect();
     let weights = pops_and_weights
@@ -112,22 +112,22 @@ where
         .map(|(w, _pop)| w)
         .copied()
         .collect::<Vec<_>>();
-    let mut populations = pops_and_weights
+    let mut sample_sets = pops_and_weights
         .into_iter()
         .map(|(_w, pop)| pop)
         .collect::<Vec<_>>();
 
-    let diversity_ii = populations
+    let diversity_ii = sample_sets
         .iter_mut()
         .map(|pop| diversity(pop.iter()))
         .collect::<Vec<_>>();
 
-    let mut divergence_ij_computed = vec![vec![None; populations.len()]; populations.len()];
-    for i in 0..populations.len() {
+    let mut divergence_ij_computed = vec![vec![None; sample_sets.len()]; sample_sets.len()];
+    for i in 0..sample_sets.len() {
         for j in 0..i {
             divergence_ij_computed[i][j] = Some(divergence_ij(
-                &mut populations[i].iter().cloned(),
-                &mut populations[j].iter().cloned(),
+                &mut sample_sets[i].iter().cloned(),
+                &mut sample_sets[j].iter().cloned(),
             ));
             divergence_ij_computed[j][i] = divergence_ij_computed[i][j];
         }
@@ -135,12 +135,12 @@ where
 
     // equation 1a
     let diversity_total = {
-        let diversity_ii_term = (0..populations.len())
+        let diversity_ii_term = (0..sample_sets.len())
             .map(|i| weights[i] * weights[i] * diversity_ii[i])
             .sum::<f64>();
         let divergence_ij_term = {
             let mut tot = 0f64;
-            for i in 0..populations.len() {
+            for i in 0..sample_sets.len() {
                 for j in 0..i {
                     tot += weights[i] * weights[j] * divergence_ij_computed[i][j].unwrap();
                 }
@@ -152,10 +152,10 @@ where
     };
 
     // equation 1b
-    let diversity_self = ((0..populations.len())
+    let diversity_self = ((0..sample_sets.len())
         .map(|i| weights[i] * weights[i] * diversity_ii[i])
         .sum::<f64>())
-        / (0..populations.len())
+        / (0..sample_sets.len())
             .map(|i| weights[i] * weights[i])
             .sum::<f64>();
 
@@ -164,7 +164,7 @@ where
         let mut num = 0f64;
         let mut denom = 0f64;
 
-        for i in 0..populations.len() {
+        for i in 0..sample_sets.len() {
             for j in 0..i {
                 num += weights[i] * weights[j] * divergence_ij_computed[i][j].unwrap();
                 denom += weights[i] * weights[j];
@@ -182,11 +182,11 @@ where
 // The implementation below is essentially re-testing that we are correctly calculating bits of Fst.
 // It may be useful to have and "f2_alt" approach based more explicitly on other way to write it
 // down?
-pub fn f2<Sites>(deme1: usize, deme2: usize, populations: &mut dyn Iterator<Item = Sites>) -> f64
+pub fn f2<Sites>(deme1: usize, deme2: usize, sample_sets: &mut dyn Iterator<Item = Sites>) -> f64
 where
     Sites: IntoIterator<Item = Site>,
 {
-    let freq_data: Vec<Vec<Site>> = populations.map(|pop| pop.into_iter().collect()).collect();
+    let freq_data: Vec<Vec<Site>> = sample_sets.map(|pop| pop.into_iter().collect()).collect();
     let diversity_deme1 = diversity(freq_data[deme1].iter());
     let diversity_deme2 = diversity(freq_data[deme2].iter());
     let divergence_ij = divergence_ij(

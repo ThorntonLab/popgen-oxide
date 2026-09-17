@@ -37,7 +37,7 @@ fn pi_from_random_data(
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
 
     // get the calcs
-    let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter_population(0).unwrap());
+    let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter_sample_set(0).unwrap());
     let diversity_naive = crate::testing::naivecalculations::diversity(sites.iter());
     // compare
     match diversity_from_counts {
@@ -67,7 +67,7 @@ fn pi_allele_frequency_of_one() {
                 let counts =
                     crate::testing::testdata::single_pop_counts(&mut std::iter::once(&site));
                 let diversity_from_counts =
-                    Diversity::try_from_iter_sites(counts.iter_population(0).unwrap());
+                    Diversity::try_from_iter_sites(counts.iter_sample_set(0).unwrap());
                 assert_eq!(diversity_from_counts.unwrap().as_raw(), 0.);
             }
         }
@@ -76,8 +76,8 @@ fn pi_allele_frequency_of_one() {
 
 #[test]
 fn pi_try_from_iter_empty_is_err() {
-    let c = crate::SampleAlleleCounts::of_empty_populations(1);
-    assert!(Diversity::try_from_iter_sites(c.iter_population(0).unwrap()).is_err());
+    let c = crate::SampleAlleleCounts::of_empty_sample_sets(1);
+    assert!(Diversity::try_from_iter_sites(c.iter_sample_set(0).unwrap()).is_err());
 }
 
 proptest!(
@@ -107,7 +107,7 @@ proptest!(
         let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
 
         // get the calcs
-        let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter_population(0).unwrap());
+        let diversity_from_counts = Diversity::try_from_iter_sites(counts.iter_sample_set(0).unwrap());
         if let Ok(value) = diversity_from_counts {
             let splitlen = counts.num_sites() / max_num_splits;
             let mut div_split = vec![];
@@ -117,7 +117,7 @@ proptest!(
                 } else {
                     counts.num_sites() - nsplits * splitlen
                 };
-                let div = Diversity::try_from_iter_sites(counts.iter_population(0).unwrap().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
+                let div = Diversity::try_from_iter_sites(counts.iter_sample_set(0).unwrap().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
                 div_split.push(div);
             }
             let reduced = div_split.iter().fold(Diversity::default(), |acc, &i| acc.try_reduce(i).unwrap());

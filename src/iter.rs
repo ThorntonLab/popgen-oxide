@@ -3,19 +3,19 @@ use crate::Count;
 use crate::SingleSampleAlleleCounts;
 use crate::{AlleleCounts, SampleAlleleCounts};
 
-pub struct SampleAlleleCountsPopulationIter<'inner> {
+pub struct SampleAlleleCountsSampleSetIter<'inner> {
     pub(crate) inner: &'inner SampleAlleleCounts,
     // index of next for forward iter, index of next for reverse iter
-    pub(crate) next_population_ind: (usize, usize),
+    pub(crate) next_sample_set_ind: (usize, usize),
 }
 
-impl<'inner> Iterator for SampleAlleleCountsPopulationIter<'inner> {
+impl<'inner> Iterator for SampleAlleleCountsSampleSetIter<'inner> {
     type Item = SingleSampleAlleleCounts<'inner>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ret = self.inner.population(self.next_population_ind.0)?;
+        let ret = self.inner.sample_set(self.next_sample_set_ind.0)?;
 
-        self.next_population_ind.0 += 1;
+        self.next_sample_set_ind.0 += 1;
         Some(ret)
     }
 
@@ -25,45 +25,45 @@ impl<'inner> Iterator for SampleAlleleCountsPopulationIter<'inner> {
 
     fn last(self) -> Option<Self::Item> {
         let mut s = self;
-        s.next_population_ind.0 = s.next_population_ind.1;
+        s.next_sample_set_ind.0 = s.next_sample_set_ind.1;
         s.next()
     }
 
     // recall that skip uses this internally
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.next_population_ind.0 += n;
+        self.next_sample_set_ind.0 += n;
         self.next()
     }
 }
 
-impl ExactSizeIterator for SampleAlleleCountsPopulationIter<'_> {
+impl ExactSizeIterator for SampleAlleleCountsSampleSetIter<'_> {
     fn len(&self) -> usize {
-        if self.inner.num_populations() == 0 {
+        if self.inner.num_sample_sets() == 0 {
             0
         } else {
-            self.next_population_ind.1 - self.next_population_ind.0 + 1
+            self.next_sample_set_ind.1 - self.next_sample_set_ind.0 + 1
         }
     }
 }
 
-impl DoubleEndedIterator for SampleAlleleCountsPopulationIter<'_> {
+impl DoubleEndedIterator for SampleAlleleCountsSampleSetIter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        let ret = self.inner.population(self.next_population_ind.1)?;
+        let ret = self.inner.sample_set(self.next_sample_set_ind.1)?;
 
         // there is no way to have usize counts because a Vec can never exceed isize::MAX
-        self.next_population_ind.1 = self.next_population_ind.1.wrapping_sub(1);
+        self.next_sample_set_ind.1 = self.next_sample_set_ind.1.wrapping_sub(1);
         Some(ret)
     }
 
     fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
-        self.next_population_ind.1 = self.next_population_ind.1.wrapping_sub(n);
+        self.next_sample_set_ind.1 = self.next_sample_set_ind.1.wrapping_sub(n);
         self.next_back()
     }
 }
 
 pub struct SampleAlleleCountsSiteIter<'inner> {
     pub(crate) inner: &'inner SampleAlleleCounts,
-    pub(crate) population_number: usize,
+    pub(crate) sample_set_number: usize,
     // index of next for forward iter, index of next for reverse iter
     pub(crate) next_site_ind: (usize, usize),
 }
@@ -74,7 +74,7 @@ impl<'inner> Iterator for SampleAlleleCountsSiteIter<'inner> {
     fn next(&mut self) -> Option<Self::Item> {
         let ret = self
             .inner
-            .get_site(self.next_site_ind.0, self.population_number)?;
+            .get_site(self.next_site_ind.0, self.sample_set_number)?;
 
         self.next_site_ind.0 += 1;
         Some(ret)
@@ -111,7 +111,7 @@ impl DoubleEndedIterator for SampleAlleleCountsSiteIter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let ret = self
             .inner
-            .get_site(self.next_site_ind.1, self.population_number)?;
+            .get_site(self.next_site_ind.1, self.sample_set_number)?;
 
         // there is no way to have usize counts because a Vec can never exceed isize::MAX
         self.next_site_ind.1 = self.next_site_ind.1.wrapping_sub(1);
@@ -127,43 +127,43 @@ impl DoubleEndedIterator for SampleAlleleCountsSiteIter<'_> {
 #[test]
 fn test_iteration_over_empty() {
     let counts = SampleAlleleCounts::default();
-    assert_eq!(counts.iter_populations().count(), 0);
+    assert_eq!(counts.iter_sample_sets().count(), 0);
     assert_eq!(counts.get_site(0, 0), None);
-    assert!(counts.population(0).is_none());
+    assert!(counts.sample_set(0).is_none());
 }
 
 #[test]
 fn test_reverse_iteration_over_empty() {
     let counts = SampleAlleleCounts::default();
-    assert_eq!(counts.iter_populations().rev().count(), 0)
+    assert_eq!(counts.iter_sample_sets().rev().count(), 0)
 }
 
 #[test]
-fn test_population_count() {
+fn test_sample_set_count() {
     for c in 0..5 {
-        let mut counts = SampleAlleleCounts::of_empty_populations(c);
+        let mut counts = SampleAlleleCounts::of_empty_sample_sets(c);
         counts
-            .extend_populations_from_site(|_| (&[1, 2, 3], 6))
+            .extend_sample_sets_from_site(|_| (&[1, 2, 3], 6))
             .unwrap();
 
-        assert_eq!(counts.iter_populations().count(), c);
+        assert_eq!(counts.iter_sample_sets().count(), c);
     }
 }
 
 #[cfg(test)]
 fn make_nonempty_counts() -> SampleAlleleCounts {
-    let mut counts = SampleAlleleCounts::of_empty_populations(1);
+    let mut counts = SampleAlleleCounts::of_empty_sample_sets(1);
     counts
-        .extend_populations_from_site(|_| (&[1, 2, 3], 6))
+        .extend_sample_sets_from_site(|_| (&[1, 2, 3], 6))
         .unwrap();
     counts
-        .extend_populations_from_site(|_| (&[1, 1, 1], 3))
+        .extend_sample_sets_from_site(|_| (&[1, 1, 1], 3))
         .unwrap();
     counts
-        .extend_populations_from_site(|_| (&[1, 5, 1], 7))
+        .extend_sample_sets_from_site(|_| (&[1, 5, 1], 7))
         .unwrap();
     counts
-        .extend_populations_from_site(|_| (&[1, 6, 2], 9))
+        .extend_sample_sets_from_site(|_| (&[1, 6, 2], 9))
         .unwrap();
 
     counts
@@ -173,12 +173,12 @@ fn make_nonempty_counts() -> SampleAlleleCounts {
 fn test_site_count() {
     let counts = make_nonempty_counts();
     assert_eq!(
-        counts.population(0).unwrap().into_iter().count(),
+        counts.sample_set(0).unwrap().into_iter().count(),
         counts.num_sites()
     );
     assert_eq!(
         counts
-            .population(0)
+            .sample_set(0)
             .unwrap()
             .into_iter()
             .filter(|c| c.counts()[1] == 5)
@@ -186,7 +186,7 @@ fn test_site_count() {
         1
     );
 
-    let mut iter = counts.iter_population(0).unwrap();
+    let mut iter = counts.iter_sample_set(0).unwrap();
     let _ = iter.next().unwrap();
     assert_eq!(iter.count(), 3);
 }
@@ -194,9 +194,9 @@ fn test_site_count() {
 #[test]
 fn test_site_nth() {
     let counts = make_nonempty_counts();
-    let mut iter = counts.iter_population(0).unwrap();
+    let mut iter = counts.iter_sample_set(0).unwrap();
     assert_eq!(iter.nth(2), counts.get_site(2, 0));
-    let mut iter = counts.iter_population(0).unwrap();
+    let mut iter = counts.iter_sample_set(0).unwrap();
     let _ = iter.next().unwrap();
     assert_eq!(iter.nth(1), counts.get_site(2, 0));
 }
@@ -204,7 +204,7 @@ fn test_site_nth() {
 #[test]
 fn test_site_nth_back() {
     let counts = make_nonempty_counts();
-    let mut iter = counts.iter_population(0).unwrap();
+    let mut iter = counts.iter_sample_set(0).unwrap();
     assert_eq!(iter.nth_back(0), counts.get_site(3, 0));
     assert_eq!(iter.nth_back(2), counts.get_site(0, 0));
 }
@@ -213,7 +213,7 @@ fn test_site_nth_back() {
 fn test_site_exhaust_back() {
     // make sure we don't panic on decrementing 0usize
     let counts = make_nonempty_counts();
-    let mut iter = counts.iter_population(0).unwrap();
+    let mut iter = counts.iter_sample_set(0).unwrap();
     _ = iter.next_back();
     _ = iter.nth_back(1);
     assert!(iter.next_back().is_some());
@@ -222,9 +222,9 @@ fn test_site_exhaust_back() {
 
 #[test]
 fn test_single_site_getters() {
-    let mut counts = SampleAlleleCounts::of_empty_populations(1);
+    let mut counts = SampleAlleleCounts::of_empty_sample_sets(1);
     counts
-        .extend_populations_from_site(|_| (&[9, 8, 7], 35))
+        .extend_sample_sets_from_site(|_| (&[9, 8, 7], 35))
         .unwrap();
     let site = counts.get_site(0, 0).unwrap();
     assert_eq!(site.counts(), &[9, 8, 7]);
@@ -233,24 +233,24 @@ fn test_single_site_getters() {
 
 #[cfg(test)]
 fn make_multi_pop() -> SampleAlleleCounts {
-    let mut counts = SampleAlleleCounts::of_empty_populations(5);
+    let mut counts = SampleAlleleCounts::of_empty_sample_sets(5);
     counts
-        .extend_populations_from_site(|i| (vec![(i + 1) as Count; 3], ((i + 1) * 100) as Count))
+        .extend_sample_sets_from_site(|i| (vec![(i + 1) as Count; 3], ((i + 1) * 100) as Count))
         .unwrap();
 
     counts
 }
 
 #[test]
-fn test_populations_iter() {
+fn test_sample_sets_iter() {
     let counts = make_multi_pop();
 
-    assert_eq!(counts.iter_populations().count(), 5);
-    assert_eq!(counts.num_populations(), 5);
-    let mut it = counts.iter_populations();
+    assert_eq!(counts.iter_sample_sets().count(), 5);
+    assert_eq!(counts.num_sample_sets(), 5);
+    let mut it = counts.iter_sample_sets();
 
     let pop0 = it.next().unwrap();
-    assert_eq!(pop0.population_number(), 0);
+    assert_eq!(pop0.sample_set_number(), 0);
     assert_eq!(
         pop0.site(0).unwrap(),
         AlleleCounts::try_new(&[1, 1, 1], 100).unwrap()
@@ -259,7 +259,7 @@ fn test_populations_iter() {
     assert!(pop0.site(100).is_none());
 
     let pop4 = it.next_back().unwrap();
-    assert_eq!(pop4.population_number(), 4);
+    assert_eq!(pop4.sample_set_number(), 4);
 
     let pop4_site = AlleleCounts::try_new(&[5, 5, 5], 500).unwrap();
     assert_eq!(pop4.site(0).unwrap(), pop4_site);

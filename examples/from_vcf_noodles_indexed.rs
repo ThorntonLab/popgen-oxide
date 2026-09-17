@@ -48,7 +48,7 @@ fn main() {
         .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy).unwrap());
     let counts = SampleAlleleCounts::try_from_tabular(alleles).unwrap();
     counts
-        .iter_population(0)
+        .iter_sample_set(0)
         .unwrap()
         .for_each(|c| println!("{c:?}"));
 

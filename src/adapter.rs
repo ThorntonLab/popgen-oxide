@@ -64,33 +64,33 @@ pub mod vcf {
     }
 
     /// `ploidy`, if not passed, will be inferred from the first record seen.
-    pub struct VCFToPopulationsAdapter<'h> {
+    pub struct VCFToSampleSetAdapter<'h> {
         header: &'h Header,
         ploidy: Option<NonZeroI64>,
-        sample_to_population: Vec<usize>,
-        populations: SampleAlleleCounts,
+        sample_to_sample_set: Vec<usize>,
+        sample_sets: SampleAlleleCounts,
         // buffers for add_record
         buf_counts: Vec<Count>,
         buf_num_samples: Box<[Count]>,
     }
 
-    impl<'h> VCFToPopulationsAdapter<'h> {
+    impl<'h> VCFToSampleSetAdapter<'h> {
         /// Build a new adapter.
         /// Requires:
         /// - `header`: A VCF header.
         /// - `ploidy`: The ploidy in the data, or `None` to attempt to infer it from the first sample seen.
-        /// - `num_populations`: The number of populations in the set.
-        /// - `mapper`: An [`Fn`] from sample name (as `&str`) to a zero-based population ID.
+        /// - `num_sample_sets`: The number of sample sets.
+        /// - `mapper`: An [`Fn`] from sample name (as `&str`) to a zero-based sample set ID.
         ///
         /// # Errors
         /// Any error from `mapper` will be propagated to the caller.
         ///
         /// # Panics
-        /// If `mapper` produces a population ID greater than or equal to `num_populations` (which is out-of-bounds in a zero-based ID system).
+        /// If `mapper` produces a sample set ID greater than or equal to `num_sample_sets` (which is out-of-bounds in a zero-based ID system).
         pub fn new<'sample, M, E>(
             header: &'h Header,
             ploidy: Option<NonZeroI64>,
-            num_populations: usize,
+            num_sample_sets: usize,
             mapper: M,
         ) -> Result<Self, E>
         where
@@ -98,15 +98,15 @@ pub mod vcf {
             M: Fn(&'sample str) -> Result<usize, E>,
         {
             let num_samples = header.sample_names().len();
-            let mut sample_to_population = Vec::with_capacity(num_samples);
+            let mut sample_to_sample_set = Vec::with_capacity(num_samples);
 
             if let ControlFlow::Break(err) =
                 header.sample_names().iter().try_for_each(|sample_name| {
-                    sample_to_population.push(match mapper(sample_name) {
-                        Ok(pop_id) if pop_id >= num_populations => {
-                            panic!("sample {sample_name} mapped to population ID {pop_id}, which is out of bounds for num_populations {num_populations}");
+                    sample_to_sample_set.push(match mapper(sample_name) {
+                        Ok(sample_set_id) if sample_set_id >= num_sample_sets => {
+                            panic!("sample {sample_name} mapped to sample set ID {sample_set_id}, which is out of bounds for num_sample_sets {num_sample_sets}");
                         }
-                        Ok(pop_id) => pop_id,
+                        Ok(sample_set_id) => sample_set_id,
                         Err(e) => return ControlFlow::Break(e),
                     });
 
@@ -119,21 +119,21 @@ pub mod vcf {
             Ok(Self {
                 header,
                 ploidy,
-                sample_to_population,
-                populations: SampleAlleleCounts::of_empty_populations(num_populations),
+                sample_to_sample_set,
+                sample_sets: SampleAlleleCounts::of_empty_sample_sets(num_sample_sets),
                 // we'll resize if we ever get a record with more variants
-                buf_counts: vec![0; num_populations * 2],
-                buf_num_samples: vec![0; num_populations].into_boxed_slice(),
+                buf_counts: vec![0; num_sample_sets * 2],
+                buf_num_samples: vec![0; num_sample_sets].into_boxed_slice(),
             })
         }
 
         pub fn add_record(&mut self, record: &Record) -> PopgenResult<()> {
-            let num_populations = self.populations.num_populations();
+            let num_sample_sets = self.sample_sets.num_sample_sets();
 
             // let's assume that every stated allele is used
             let num_variants = 1 + record.alternate_bases().iter().count();
 
-            let new_buf_counts_len = num_populations * num_variants;
+            let new_buf_counts_len = num_sample_sets * num_variants;
             if new_buf_counts_len > self.buf_counts.len() {
                 self.buf_counts.fill(0);
                 self.buf_counts.resize(new_buf_counts_len, 0);
@@ -145,7 +145,7 @@ pub mod vcf {
             self.buf_num_samples.fill(0);
 
             for (sample_i, sample) in record.samples().iter().enumerate() {
-                let population_id = self.sample_to_population[sample_i];
+                let sample_set_id = self.sample_to_sample_set[sample_i];
                 match sample
                     // get the GT field
                     .get(self.header, key::GENOTYPE)
@@ -158,14 +158,14 @@ pub mod vcf {
                             todo!("can't infer ploidy")
                         };
 
-                        self.buf_num_samples[population_id] += ploidy.get();
+                        self.buf_num_samples[sample_set_id] += ploidy.get();
                     }
                     Some(Value::Genotype(genotype)) => {
                         for entry in genotype.iter() {
                             let (allele_id, _) = entry?;
-                            self.buf_num_samples[population_id] += 1;
+                            self.buf_num_samples[sample_set_id] += 1;
                             if let Some(allele_id) = allele_id {
-                                self.buf_counts[population_id * num_populations + allele_id] += 1;
+                                self.buf_counts[sample_set_id * num_sample_sets + allele_id] += 1;
                             }
                         }
                     }
@@ -173,12 +173,12 @@ pub mod vcf {
                 };
             }
 
-            self.populations
-                .extend_populations_from_site(|population_i| {
+            self.sample_sets
+                .extend_sample_sets_from_site(|sample_set_i| {
                     (
                         &self.buf_counts
-                            [population_i * num_populations..(population_i + 1) * num_populations],
-                        self.buf_num_samples[population_i],
+                            [sample_set_i * num_sample_sets..(sample_set_i + 1) * num_sample_sets],
+                        self.buf_num_samples[sample_set_i],
                     )
                 })?;
 
@@ -186,7 +186,7 @@ pub mod vcf {
         }
 
         pub fn build(self) -> SampleAlleleCounts {
-            self.populations
+            self.sample_sets
         }
     }
 }

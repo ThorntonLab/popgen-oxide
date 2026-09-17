@@ -38,7 +38,7 @@ pub enum PopgenError {
     TotalAllelesDeficient,
     MismatchedSliceLength,
     EmptySiteCounts,
-    MismatchedPopulationCount(usize, usize),
+    MismatchedSampleSetCount(usize, usize),
     CalculationError,
     InvalidDeme,
     LibraryError(String),
@@ -59,9 +59,9 @@ impl std::fmt::Display for PopgenError {
                 write!(f, "slices were expected to be of the same length")
             }
             PopgenError::EmptySiteCounts => write!(f, "empty site count data"),
-            PopgenError::MismatchedPopulationCount(l, r) => write!(
+            PopgenError::MismatchedSampleSetCount(l, r) => write!(
                 f,
-                "cannot combine two collections with different population counts; {l} != {r}"
+                "cannot combine two collections with different sample set counts; {l} != {r}"
             ),
             PopgenError::CalculationError => write!(f, "calculation produced an invalid value"),
             PopgenError::InvalidDeme => write!(f, "invalid deme label or index"),

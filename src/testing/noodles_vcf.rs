@@ -1,4 +1,4 @@
-use crate::adapter::vcf::{record_to_genotypes_adapter, VCFToPopulationsAdapter};
+use crate::adapter::vcf::{record_to_genotypes_adapter, VCFToSampleSetAdapter};
 use crate::counts::SampleAlleleCounts;
 use crate::{AlleleID, PopgenResult};
 use noodles::vcf::header::record::value::map::{Contig, Format};
@@ -183,9 +183,9 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 #[test]
 fn load_vcf() {
     let (_all_alleles, allele_counts) = counts_from_vcf(make_vcf(), 1);
-    assert_eq!(allele_counts.num_populations(), 1);
+    assert_eq!(allele_counts.num_sample_sets(), 1);
     assert_eq!(allele_counts.num_sites(), 2);
-    let mut iter = allele_counts.iter_population(0).unwrap();
+    let mut iter = allele_counts.iter_sample_set(0).unwrap();
     let counts_0 = iter.next().unwrap();
     let counts_1 = iter.next().unwrap();
     assert!(iter.next().is_none());
@@ -197,7 +197,7 @@ fn load_vcf() {
 }
 
 #[test]
-fn load_vcf_multi_population() {
+fn load_vcf_multi_sample_set() {
     // use this overly verbose and inefficient map to verify lifetime correctness
     let map = (0..18)
         .map(|n| (format!("s{}", n), (n % 2) as usize))
@@ -209,7 +209,7 @@ fn load_vcf_multi_population() {
 
     let header = vcf_reader.read_header().unwrap();
 
-    let mut adapter = VCFToPopulationsAdapter::new(&header, None, 2, |sample_name| {
+    let mut adapter = VCFToSampleSetAdapter::new(&header, None, 2, |sample_name| {
         map.get(sample_name).copied().ok_or(())
     })
     .unwrap();
@@ -220,7 +220,7 @@ fn load_vcf_multi_population() {
     }
 
     let counts = adapter.build();
-    assert_eq!(counts.num_populations(), 2);
+    assert_eq!(counts.num_sample_sets(), 2);
 
     {
         let first_site = counts.get_site(0, 0).unwrap();

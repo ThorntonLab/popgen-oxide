@@ -134,7 +134,7 @@ pub fn random_site_rng(
 }
 
 pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> SampleAlleleCounts {
-    let mut mcounts = SampleAlleleCounts::of_empty_populations(1);
+    let mut mcounts = SampleAlleleCounts::of_empty_sample_sets(1);
     for s in sites {
         // The number of INDIVIDUAL genotypes at this site
         let num_samples = s.iter().count();
@@ -157,7 +157,7 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Sa
             let num_samples = Count::try_from(num_samples).unwrap();
             let total_alleles = ploidy.checked_mul(num_samples).unwrap();
             mcounts
-                .extend_populations_from_site(|_| (&counts, total_alleles))
+                .extend_sample_sets_from_site(|_| (&counts, total_alleles))
                 .unwrap();
         }
     }
