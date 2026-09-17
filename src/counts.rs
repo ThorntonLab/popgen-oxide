@@ -220,7 +220,7 @@ impl SampleAlleleCounts {
         Ok(())
     }
 
-    /// [`Self::try_from_tree_sequence`], with the ability to specify 
+    /// [`Self::try_from_tree_sequence`], with the ability to specify
     #[cfg(feature = "tskit")]
     pub fn try_multi_sample_set_from_tree_sequence<Outer, Inner>(
         ts: &tskit::TreeSequence,
@@ -336,9 +336,9 @@ impl TryReduce for SampleAlleleCounts {
         Self: Sized,
     {
         if self.num_populations != other.num_populations {
-            // TODO: error type?
-            return Err(PopgenError::LibraryError(
-                "different numbers of populations".to_string(),
+            return Err(PopgenError::MismatchedPopulationCount(
+                self.num_populations(),
+                other.num_populations(),
             ));
         }
 
