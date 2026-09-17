@@ -44,7 +44,6 @@ fn load_raw() {
     ];
 
     let counts = SampleAlleleCounts::try_from_tabular(sites).unwrap();
-    dbg!(&counts);
 
     assert_eq!(counts.num_populations(), 1);
     assert_eq!(counts.num_sites(), 2);
@@ -53,12 +52,10 @@ fn load_raw() {
     let mut iter = counts.iter_population(0).unwrap();
 
     let ac1 = iter.next().unwrap();
-    dbg!(&ac1);
     assert_eq!(ac1.counts(), &[8, 7]);
     assert_eq!(ac1.total_alleles(), 8 + 7 + 4,);
 
     let ac2 = iter.next().unwrap();
-    dbg!(&ac2);
     assert_eq!(ac2.counts(), &[341, 69, 926]);
     assert_eq!(ac2.total_alleles(), 341 + 69 + 926 + 300);
 
