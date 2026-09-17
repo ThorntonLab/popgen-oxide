@@ -185,7 +185,7 @@ fn load_vcf() {
     let (_all_alleles, allele_counts) = counts_from_vcf(make_vcf(), 1);
     assert_eq!(allele_counts.num_populations(), 1);
     assert_eq!(allele_counts.num_sites(), 2);
-    let mut iter = allele_counts.iter_sites_in(0).unwrap();
+    let mut iter = allele_counts.iter_population(0).unwrap();
     let counts_0 = iter.next().unwrap();
     let counts_1 = iter.next().unwrap();
     assert!(iter.next().is_none());

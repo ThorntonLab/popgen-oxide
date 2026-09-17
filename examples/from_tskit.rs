@@ -15,7 +15,7 @@ fn process_nodes_from_ts(ts: &tskit::TreeSequence) {
     .unwrap();
 
     counts
-        .iter_sites_in(0)
+        .iter_population(0)
         .unwrap()
         .for_each(|c| println!("{c:?}"));
 }
@@ -59,7 +59,7 @@ fn process_individuals_from_ts(ts: &tskit::TreeSequence) {
         .unwrap();
 
         counts
-            .iter_sites_in(0)
+            .iter_population(0)
             .unwrap()
             .for_each(|c| println!("{c:?}"));
     } else {

@@ -46,7 +46,7 @@ fn f_st() {
     for p in 0..populations.num_populations() {
         assert!(
             (f_st.pi_within(p).unwrap()
-                - Diversity::try_from_iter_sites(populations.iter_sites_in(p).unwrap())
+                - Diversity::try_from_iter_sites(populations.iter_population(p).unwrap())
                     .unwrap()
                     .as_raw())
             .abs()
@@ -90,7 +90,7 @@ fn f_st() {
             - (0..populations.num_populations())
                 .map(|pop_i| {
                     // sum of weight * weight * diversity within this population
-                    Diversity::try_from_iter_sites(populations.iter_sites_in(pop_i).unwrap())
+                    Diversity::try_from_iter_sites(populations.iter_population(pop_i).unwrap())
                         .unwrap()
                         .as_raw()
                         * weights[pop_i].powi(2)

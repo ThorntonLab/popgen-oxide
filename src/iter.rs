@@ -186,7 +186,7 @@ fn test_site_count() {
         1
     );
 
-    let mut iter = counts.iter_sites_in(0).unwrap();
+    let mut iter = counts.iter_population(0).unwrap();
     let _ = iter.next().unwrap();
     assert_eq!(iter.count(), 3);
 }
@@ -194,9 +194,9 @@ fn test_site_count() {
 #[test]
 fn test_site_nth() {
     let counts = make_nonempty_counts();
-    let mut iter = counts.iter_sites_in(0).unwrap();
+    let mut iter = counts.iter_population(0).unwrap();
     assert_eq!(iter.nth(2), counts.get_site(2, 0));
-    let mut iter = counts.iter_sites_in(0).unwrap();
+    let mut iter = counts.iter_population(0).unwrap();
     let _ = iter.next().unwrap();
     assert_eq!(iter.nth(1), counts.get_site(2, 0));
 }
@@ -204,7 +204,7 @@ fn test_site_nth() {
 #[test]
 fn test_site_nth_back() {
     let counts = make_nonempty_counts();
-    let mut iter = counts.iter_sites_in(0).unwrap();
+    let mut iter = counts.iter_population(0).unwrap();
     assert_eq!(iter.nth_back(0), counts.get_site(3, 0));
     assert_eq!(iter.nth_back(2), counts.get_site(0, 0));
 }
@@ -213,7 +213,7 @@ fn test_site_nth_back() {
 fn test_site_exhaust_back() {
     // make sure we don't panic on decrementing 0usize
     let counts = make_nonempty_counts();
-    let mut iter = counts.iter_sites_in(0).unwrap();
+    let mut iter = counts.iter_population(0).unwrap();
     _ = iter.next_back();
     _ = iter.nth_back(1);
     assert!(iter.next_back().is_some());

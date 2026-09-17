@@ -57,7 +57,7 @@ impl SampleAlleleCounts {
     }
 
     /// Obtain site counts from a [`tskit::TreeSequence`].
-    /// All sites will be placed in one population.
+    /// All sites will be placed in one population; if that is not desired, use [`Self::try_multi_sample_set_from_tree_sequence`] and related functions.
     ///
     /// # Parameters
     ///
@@ -184,7 +184,7 @@ impl SampleAlleleCounts {
     ///
     /// # Errors
     /// This function will fail **without rollback guarantees** if the provided counts slices do not match in length.
-    ///     /// The sites must also be individually valid; see [`AlleleCounts::try_new`].
+    /// The sites must also be individually valid; see [`AlleleCounts::try_new`].
     /// Failure does not provide rollback guarantees.
     pub fn extend_populations_from_site<Counts>(
         &mut self,
@@ -220,6 +220,7 @@ impl SampleAlleleCounts {
         Ok(())
     }
 
+    /// [`Self::try_from_tree_sequence`], with the ability to specify 
     #[cfg(feature = "tskit")]
     pub fn try_multi_sample_set_from_tree_sequence<Outer, Inner>(
         ts: &tskit::TreeSequence,
@@ -295,7 +296,7 @@ impl SampleAlleleCounts {
         })
     }
 
-    /// Convenience method equivalent to calling [`Self::iter_sites_in`] for each population in order.
+    /// Convenience method equivalent to calling [`Self::iter_population`] for each population in order.
     pub fn iter_populations(&'_ self) -> SampleAlleleCountsPopulationIter<'_> {
         SampleAlleleCountsPopulationIter {
             inner: self,
@@ -316,7 +317,7 @@ impl SampleAlleleCounts {
     }
 
     /// Shortcut via [`Self::population`] to [`SingleSampleAlleleCounts::into_iter`].
-    pub fn iter_sites_in(
+    pub fn iter_population(
         &'_ self,
         population_number: usize,
     ) -> Option<SampleAlleleCountsSiteIter<'_>> {

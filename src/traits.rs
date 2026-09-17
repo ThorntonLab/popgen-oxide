@@ -41,7 +41,7 @@ fn sample_allele_counts_reduce() {
         (&[2, 0, 1], 3),
     ];
 
-    for (e, a) in expect.into_iter().zip(combined.iter_sites_in(0).unwrap()) {
+    for (e, a) in expect.into_iter().zip(combined.iter_population(0).unwrap()) {
         assert_eq!(e.0, a.counts());
         assert_eq!(e.1, a.total_alleles());
     }

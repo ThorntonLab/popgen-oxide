@@ -633,7 +633,7 @@ where
         focal_nodes
     };
     let expected = generate_expected_site_counts_naive(ts, &focal_nodes);
-    for (obs, exp) in counts.iter_sites_in(0).unwrap().zip(expected.iter()) {
+    for (obs, exp) in counts.iter_population(0).unwrap().zip(expected.iter()) {
         validate_site_counts(&obs, exp);
     }
     assert_eq!(
@@ -770,8 +770,8 @@ fn test_3() {
         )
         .unwrap();
         assert_eq!(counts0.num_populations(), 1);
-        let a = mcounts.iter_sites_in(0).unwrap().collect::<Vec<_>>();
-        let b = counts0.iter_sites_in(0).unwrap().collect::<Vec<_>>();
+        let a = mcounts.iter_population(0).unwrap().collect::<Vec<_>>();
+        let b = counts0.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
         let counts1 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
@@ -780,8 +780,8 @@ fn test_3() {
         )
         .unwrap();
         assert_eq!(counts1.num_populations(), 1);
-        let a = mcounts.iter_sites_in(1).unwrap().collect::<Vec<_>>();
-        let b = counts1.iter_sites_in(0).unwrap().collect::<Vec<_>>();
+        let a = mcounts.iter_population(1).unwrap().collect::<Vec<_>>();
+        let b = counts1.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
     }
 }
@@ -826,7 +826,7 @@ fn test_4() {
         .unwrap();
         assert_eq!(counts0.num_populations(), 1);
         let a = extract_subsample(&mcounts, 0);
-        let b = counts0.iter_sites_in(0).unwrap().collect::<Vec<_>>();
+        let b = counts0.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
         let counts1 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
@@ -835,7 +835,7 @@ fn test_4() {
         )
         .unwrap();
         let a = extract_subsample(&mcounts, 1);
-        let b = counts1.iter_sites_in(0).unwrap().collect::<Vec<_>>();
+        let b = counts1.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(counts1.num_populations(), 1);
         assert_eq!(a, b);
     }
@@ -888,7 +888,7 @@ fn test_5() {
         )
         .unwrap();
         let a = extract_subsample(&mcounts, 0);
-        let b = counts0.iter_sites_in(0).unwrap().collect::<Vec<_>>();
+        let b = counts0.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
         let counts1 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
@@ -897,7 +897,7 @@ fn test_5() {
         )
         .unwrap();
         let a = extract_subsample(&mcounts, 1);
-        let b = counts1.iter_sites_in(0).unwrap().collect::<Vec<_>>();
+        let b = counts1.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
     }
 }
@@ -1011,9 +1011,9 @@ fn test_7_site_iter() {
     .unwrap();
     assert_eq!(counts.num_sites(), reduced_counts.num_sites());
     for (i, j) in counts
-        .iter_sites_in(0)
+        .iter_population(0)
         .unwrap()
-        .zip(reduced_counts.iter_sites_in(0).unwrap())
+        .zip(reduced_counts.iter_population(0).unwrap())
     {
         assert_eq!(i, j)
     }
@@ -1079,16 +1079,16 @@ fn test_7_windows() {
     .unwrap();
     assert_eq!(counts[0].num_sites(), reduced_counts.num_sites());
     for (i, j) in counts[0]
-        .iter_sites_in(0)
+        .iter_population(0)
         .unwrap()
-        .zip(reduced_counts.iter_sites_in(0).unwrap())
+        .zip(reduced_counts.iter_population(0).unwrap())
     {
         assert_eq!(i, j)
     }
     for (i, j) in counts_two_windows[1]
-        .iter_sites_in(0)
+        .iter_population(0)
         .unwrap()
-        .zip(reduced_counts.iter_sites_in(0).unwrap())
+        .zip(reduced_counts.iter_population(0).unwrap())
     {
         assert_eq!(i, j)
     }
@@ -1309,7 +1309,7 @@ fn test_13() {
 fn extract_subsample(data: &crate::SampleAlleleCounts, sample: usize) -> Vec<AlleleCounts<'_>> {
     // We need to filter out sites that are monomorphic in
     // the focal sample set
-    data.iter_sites_in(sample)
+    data.iter_population(sample)
         .unwrap()
         .filter(|c| c.counts().iter().filter(|i| i > &&0).count() > 1)
         .collect::<Vec<_>>()
@@ -1502,9 +1502,9 @@ mod with_ancient_samples {
         assert_eq!(counts.num_sites(), reduced_counts.num_sites());
         let mut num_iterated = 0_usize;
         for (i, j) in counts
-            .iter_sites_in(0)
+            .iter_population(0)
             .unwrap()
-            .zip(reduced_counts.iter_sites_in(0).unwrap())
+            .zip(reduced_counts.iter_population(0).unwrap())
         {
             assert_eq!(i, j);
             num_iterated += 1;
@@ -1552,9 +1552,9 @@ fn test_issue_112() {
     )
     .unwrap();
     for (i, j) in counts
-        .iter_sites_in(0)
+        .iter_population(0)
         .unwrap()
-        .zip(counts2.iter_sites_in(0).unwrap())
+        .zip(counts2.iter_population(0).unwrap())
     {
         assert_eq!(i, j)
     }

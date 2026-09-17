@@ -353,7 +353,7 @@ impl FStatistics {
         weight: f64,
     ) -> Result<(), PopgenError> {
         let diversity_new_site =
-            Diversity::try_from_iter_sites(populations.iter_sites_in(population_num).ok_or_else(
+            Diversity::try_from_iter_sites(populations.iter_population(population_num).ok_or_else(
                 || PopgenError::LibraryError(String::from("attempting to add OOB population")),
             )?)?
             .as_raw();
@@ -369,9 +369,9 @@ impl FStatistics {
                     .iter()
                     .map(|(existing_pop, existing_pop_weight)| {
                         let divergence_ij = populations
-                            .iter_sites_in(*existing_pop)
+                            .iter_population(*existing_pop)
                             .unwrap()
-                            .zip(populations.iter_sites_in(population_num).unwrap())
+                            .zip(populations.iter_population(population_num).unwrap())
                             .map(|(s1, s2)| {
                                 if s1.total_alleles() == 0 || s2.total_alleles() == 0 {
                                     return Err(PopgenError::EmptySiteCounts);

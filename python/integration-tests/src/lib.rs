@@ -25,7 +25,7 @@ impl SingleSampleCountCollection {
             .iter()
             .map(|c| {
                 match popgen::stats::Diversity::try_from_iter_sites(
-                    c.counts.iter_sites_in(0).unwrap(),
+                    c.counts.iter_population(0).unwrap(),
                 ) {
                     Ok(div) => div.as_raw(),
                     Err(popgen::PopgenError::EmptySiteCounts) => {
@@ -146,7 +146,7 @@ mod integration_tests {
     /// as having a diversity of 0.0
     fn diversity(counts: &SingleSampleCounts) -> PyResult<f64> {
         let div = match popgen::stats::Diversity::try_from_iter_sites(
-            counts.counts.iter_sites_in(0).unwrap(),
+            counts.counts.iter_population(0).unwrap(),
         ) {
             Ok(div) => div.as_raw(),
             Err(popgen::PopgenError::EmptySiteCounts) => {

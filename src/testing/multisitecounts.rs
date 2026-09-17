@@ -49,7 +49,7 @@ fn load_raw() {
     assert_eq!(counts.num_sites(), 2);
     assert!(!counts.is_empty());
 
-    let mut iter = counts.iter_sites_in(0).unwrap();
+    let mut iter = counts.iter_population(0).unwrap();
 
     let ac1 = iter.next().unwrap();
     dbg!(&ac1);
@@ -122,7 +122,7 @@ fn test_try_reduce_details(
     }
 
     let mut mergedcounts = crate::counts::SampleAlleleCounts::of_empty_populations(1);
-    for i in splitcounts.iter().flat_map(|c| c.iter_sites_in(0).unwrap()) {
+    for i in splitcounts.iter().flat_map(|c| c.iter_population(0).unwrap()) {
         mergedcounts
             .extend_populations_from_site(|_| (i.counts(), i.total_alleles()))
             .unwrap();
@@ -136,9 +136,9 @@ fn test_try_reduce_details(
         .unwrap();
     assert_eq!(reduced_counts.num_sites(), mergedcounts.num_sites());
     for (i, j) in reduced_counts
-        .iter_sites_in(0)
+        .iter_population(0)
         .unwrap()
-        .zip(mergedcounts.iter_sites_in(0).unwrap())
+        .zip(mergedcounts.iter_population(0).unwrap())
     {
         assert_eq!(i.counts(), j.counts());
         assert_eq!(i.total_alleles(), j.total_alleles());
