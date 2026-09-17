@@ -352,11 +352,12 @@ impl FStatistics {
         population_num: usize,
         weight: f64,
     ) -> Result<(), PopgenError> {
-        let diversity_new_site =
-            Diversity::try_from_iter_sites(populations.iter_population(population_num).ok_or_else(
-                || PopgenError::LibraryError(String::from("attempting to add OOB population")),
-            )?)?
-            .as_raw();
+        let diversity_new_site = Diversity::try_from_iter_sites(
+            populations.iter_population(population_num).ok_or_else(|| {
+                PopgenError::LibraryError(String::from("attempting to add OOB population"))
+            })?,
+        )?
+        .as_raw();
         self.diversity_within.push(diversity_new_site);
 
         self.pi_s.0 += weight * weight * diversity_new_site;
