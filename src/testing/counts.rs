@@ -1,6 +1,7 @@
-use crate::{AlleleCounts, AlleleID};
+use crate::{AlleleCounts, AlleleID, PopgenError};
 
 use crate::counts::SampleAlleleCounts;
+use crate::traits::TryReduce;
 use proptest::collection::vec;
 use proptest::prelude::*;
 use rand::rng;
@@ -44,10 +45,11 @@ fn load_raw() {
 
     let counts = SampleAlleleCounts::try_from_tabular(sites).unwrap();
 
-    assert_eq!(counts.len(), 2);
+    assert_eq!(counts.num_populations(), 1);
+    assert_eq!(counts.num_sites(), 2);
     assert!(!counts.is_empty());
 
-    let mut iter = counts.iter();
+    let mut iter = counts.iter_population(0).unwrap();
 
     let ac1 = iter.next().unwrap();
     assert_eq!(ac1.counts(), &[8, 7]);
@@ -64,8 +66,9 @@ fn load_raw() {
 fn empty_counts() {
     let counts = SampleAlleleCounts::default();
 
+    assert_eq!(counts.num_populations(), 0);
+    assert_eq!(counts.num_sites(), 0);
     assert!(counts.is_empty());
-    assert_eq!(counts.len(), 0);
 }
 
 #[test]
@@ -98,6 +101,8 @@ fn test_try_reduce_details(
     use crate::traits::TryReduce;
     use rand::prelude::*;
 
+    // TODO: test multi pop case
+
     let mut rng = StdRng::seed_from_u64(seed);
     let mut splitcounts = vec![];
     for _ in 0..max_num_splits + 1 {
@@ -114,21 +119,41 @@ fn test_try_reduce_details(
         splitcounts.push(counts);
     }
 
-    let mut mergedcounts = crate::counts::SampleAlleleCounts::default();
-    for i in splitcounts.iter().flat_map(|c| c.iter()) {
-        mergedcounts.add_site_from_counts(i);
+    let mut mergedcounts = crate::counts::SampleAlleleCounts::of_empty_populations(1);
+    for i in splitcounts
+        .iter()
+        .flat_map(|c| c.iter_population(0).unwrap())
+    {
+        mergedcounts
+            .extend_populations_from_site(|_| (i.counts(), i.total_alleles()))
+            .unwrap();
     }
     let reduced_counts = splitcounts
         .into_iter()
-        .try_fold(crate::counts::SampleAlleleCounts::default(), |a, b| {
-            a.try_reduce(b)
-        })
+        .try_fold(
+            crate::counts::SampleAlleleCounts::of_empty_populations(1),
+            |a, b| a.try_reduce(b),
+        )
         .unwrap();
-    assert_eq!(reduced_counts.len(), mergedcounts.len());
-    for (i, j) in reduced_counts.iter().zip(mergedcounts.iter()) {
+    assert_eq!(reduced_counts.num_sites(), mergedcounts.num_sites());
+    for (i, j) in reduced_counts
+        .iter_population(0)
+        .unwrap()
+        .zip(mergedcounts.iter_population(0).unwrap())
+    {
         assert_eq!(i.counts(), j.counts());
         assert_eq!(i.total_alleles(), j.total_alleles());
     }
+}
+
+#[test]
+fn cannot_reduce_different_population_count() {
+    let a = SampleAlleleCounts::of_empty_populations(1);
+    let b = SampleAlleleCounts::of_empty_populations(2);
+    assert!(matches!(
+        a.try_reduce(b),
+        Err(PopgenError::MismatchedPopulationCount(_, _))
+    ));
 }
 
 proptest!(

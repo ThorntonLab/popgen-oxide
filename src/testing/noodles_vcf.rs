@@ -183,7 +183,9 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
 #[test]
 fn load_vcf() {
     let (_all_alleles, allele_counts) = counts_from_vcf(make_vcf(), 1);
-    let mut iter = allele_counts.iter();
+    assert_eq!(allele_counts.num_populations(), 1);
+    assert_eq!(allele_counts.num_sites(), 2);
+    let mut iter = allele_counts.iter_population(0).unwrap();
     let counts_0 = iter.next().unwrap();
     let counts_1 = iter.next().unwrap();
     assert!(iter.next().is_none());
@@ -218,23 +220,24 @@ fn load_vcf_multi_population() {
     }
 
     let counts = adapter.build();
+    assert_eq!(counts.num_populations(), 2);
 
     {
-        let first_site = counts.get(0, 0).unwrap();
+        let first_site = counts.get_site(0, 0).unwrap();
         assert_eq!(first_site.counts(), &[5, 4]);
         assert_eq!(first_site.total_alleles(), 9);
 
-        let second_site = counts.get(1, 0).unwrap();
+        let second_site = counts.get_site(1, 0).unwrap();
         assert_eq!(second_site.counts(), &[4, 4]);
         assert_eq!(second_site.total_alleles(), 9);
     }
 
     {
-        let first_site = counts.get(0, 1).unwrap();
+        let first_site = counts.get_site(0, 1).unwrap();
         assert_eq!(first_site.counts(), &[6, 3]);
         assert_eq!(first_site.total_alleles(), 9);
 
-        let second_site = counts.get(1, 1).unwrap();
+        let second_site = counts.get_site(1, 1).unwrap();
         assert_eq!(second_site.counts(), &[3, 4]);
         assert_eq!(second_site.total_alleles(), 9);
     }

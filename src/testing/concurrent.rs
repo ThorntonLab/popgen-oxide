@@ -30,16 +30,24 @@ fn diversity_equivalent_concurrent(
     );
 
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-    let diversity = counts.iter().try_fold(Diversity::default(), |mut diversity, s| {
-        diversity.try_add_site(s)?;
-        Ok::<_, PopgenError>(diversity)
-    });
+    let diversity =
+        counts
+            .iter_population(0)
+            .unwrap()
+            .try_fold(Diversity::default(), |mut diversity, s| {
+                diversity.try_add_site(s)?;
+                Ok::<_, PopgenError>(diversity)
+            });
 
-    let mut components = counts.iter().map(|s| {
-        let mut diversity = Diversity::default();
-        diversity.try_add_site(s)?;
-        Ok::<_, PopgenError>(diversity)
-    }).collect::<Vec<_>>();
+    let mut components = counts
+        .iter_population(0)
+        .unwrap()
+        .map(|s| {
+            let mut diversity = Diversity::default();
+            diversity.try_add_site(s)?;
+            Ok::<_, PopgenError>(diversity)
+        })
+        .collect::<Vec<_>>();
 
     // let's combine the components out of order and with random associativity
     // this test is to make sure that this is equivalent to the serial case
@@ -50,11 +58,11 @@ fn diversity_equivalent_concurrent(
         match (pick1, pick2) {
             (Err(one), Ok(_)) | (Ok(_), Err(one)) | (Err(one), Err(_)) => {
                 components.push(Err(one));
-            },
+            }
             (Ok(one), Ok(two)) => {
                 one.try_reduce(two).unwrap();
                 components.push(one.try_reduce(two));
-            },
+            }
         }
     }
 
@@ -66,13 +74,19 @@ fn diversity_equivalent_concurrent(
 
     match diversity {
         Err(e) => {
-            assert_eq!(std::mem::discriminant(&e), std::mem::discriminant(&parallel.err().unwrap()));
-        },
+            assert_eq!(
+                std::mem::discriminant(&e),
+                std::mem::discriminant(&parallel.err().unwrap())
+            );
+        }
         Ok(diversity) => {
             let diversity_raw = diversity.as_raw();
             let parallel_raw = parallel.unwrap().as_raw();
-            assert!((diversity_raw - parallel_raw).abs() < 0.00001, "{diversity_raw} {parallel_raw}")
-        },
+            assert!(
+                (diversity_raw - parallel_raw).abs() < 0.00001,
+                "{diversity_raw} {parallel_raw}"
+            )
+        }
     }
 }
 );
@@ -99,16 +113,23 @@ fn watterson_theta_equivalent_concurrent(
     );
 
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
-    let theta = counts.iter().try_fold(WattersonsTheta::default(), |mut theta, s| {
-        theta.try_add_site(s)?;
-        Ok::<_, PopgenError>(theta)
-    });
+    let theta = counts
+        .iter_population(0)
+        .unwrap()
+        .try_fold(WattersonsTheta::default(), |mut theta, s| {
+            theta.try_add_site(s)?;
+            Ok::<_, PopgenError>(theta)
+        });
 
-    let mut components = counts.iter().map(|s| {
-        let mut theta = WattersonsTheta::default();
-        theta.try_add_site(s)?;
-        Ok::<_, PopgenError>(theta)
-    }).collect::<Vec<_>>();
+    let mut components = counts
+        .iter_population(0)
+        .unwrap()
+        .map(|s| {
+            let mut theta = WattersonsTheta::default();
+            theta.try_add_site(s)?;
+            Ok::<_, PopgenError>(theta)
+        })
+        .collect::<Vec<_>>();
 
     // let's combine the components out of order and with random associativity
     // this test is to make sure that this is equivalent to the serial case
@@ -119,10 +140,10 @@ fn watterson_theta_equivalent_concurrent(
         match (pick1, pick2) {
             (Err(one), Ok(_)) | (Ok(_), Err(one)) | (Err(one), Err(_)) => {
                 components.push(Err(one));
-            },
+            }
             (Ok(one), Ok(two)) => {
                 components.push(one.try_reduce(two));
-            },
+            }
         }
     }
 
@@ -134,13 +155,19 @@ fn watterson_theta_equivalent_concurrent(
 
     match theta {
         Err(e) => {
-            assert_eq!(std::mem::discriminant(&e), std::mem::discriminant(&parallel.err().unwrap()));
-        },
+            assert_eq!(
+                std::mem::discriminant(&e),
+                std::mem::discriminant(&parallel.err().unwrap())
+            );
+        }
         Ok(theta) => {
             let theta_raw = theta.as_raw();
             let parallel_raw = parallel.unwrap().as_raw();
-            assert!((theta_raw - parallel_raw).abs() < 0.00001, "{theta_raw} != {parallel_raw}")
-        },
+            assert!(
+                (theta_raw - parallel_raw).abs() < 0.00001,
+                "{theta_raw} != {parallel_raw}"
+            )
+        }
     }
 }
 );

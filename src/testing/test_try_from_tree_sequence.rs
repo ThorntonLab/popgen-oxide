@@ -621,6 +621,7 @@ where
     let counts =
         crate::SampleAlleleCounts::try_from_tree_sequence(ts, samples.iter().cloned(), None)
             .unwrap();
+    assert_eq!(counts.num_populations(), 1);
     // Instead of relying on the internal node sample-ness status,
     // we define our set of "sample/focal" nodes externally from
     // the tree sequence.
@@ -632,10 +633,14 @@ where
         focal_nodes
     };
     let expected = generate_expected_site_counts_naive(ts, &focal_nodes);
-    for (obs, exp) in counts.iter().zip(expected.iter()) {
+    for (obs, exp) in counts.iter_population(0).unwrap().zip(expected.iter()) {
         validate_site_counts(&obs, exp);
     }
-    assert_eq!(counts.len(), expected.len(), "{counts:?}, {expected:?}");
+    assert_eq!(
+        counts.num_sites(),
+        expected.len(),
+        "{counts:?}, {expected:?}"
+    );
 }
 
 #[cfg(test)]
@@ -750,7 +755,7 @@ fn test_3() {
 
     // Multi-sample-set test
     {
-        let mcounts = crate::MultiSampleAlleleCounts::try_from_tree_sequence(
+        let mcounts = crate::SampleAlleleCounts::try_multi_sample_set_from_tree_sequence(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -764,8 +769,9 @@ fn test_3() {
             None,
         )
         .unwrap();
-        let a = mcounts.iter_sites_in(0).collect::<Vec<_>>();
-        let b = counts0.iter().collect::<Vec<_>>();
+        assert_eq!(counts0.num_populations(), 1);
+        let a = mcounts.iter_population(0).unwrap().collect::<Vec<_>>();
+        let b = counts0.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
         let counts1 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
@@ -773,8 +779,9 @@ fn test_3() {
             None,
         )
         .unwrap();
-        let a = mcounts.iter_sites_in(1).collect::<Vec<_>>();
-        let b = counts1.iter().collect::<Vec<_>>();
+        assert_eq!(counts1.num_populations(), 1);
+        let a = mcounts.iter_population(1).unwrap().collect::<Vec<_>>();
+        let b = counts1.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
     }
 }
@@ -803,7 +810,7 @@ fn test_4() {
     test_non_sample_nodes_and_subsets(&ts);
     // Multi-sample-set test
     {
-        let mcounts = crate::MultiSampleAlleleCounts::try_from_tree_sequence(
+        let mcounts = crate::SampleAlleleCounts::try_multi_sample_set_from_tree_sequence(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -817,8 +824,9 @@ fn test_4() {
             None,
         )
         .unwrap();
+        assert_eq!(counts0.num_populations(), 1);
         let a = extract_subsample(&mcounts, 0);
-        let b = counts0.iter().collect::<Vec<_>>();
+        let b = counts0.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
         let counts1 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
@@ -827,7 +835,8 @@ fn test_4() {
         )
         .unwrap();
         let a = extract_subsample(&mcounts, 1);
-        let b = counts1.iter().collect::<Vec<_>>();
+        let b = counts1.iter_population(0).unwrap().collect::<Vec<_>>();
+        assert_eq!(counts1.num_populations(), 1);
         assert_eq!(a, b);
     }
 }
@@ -863,7 +872,7 @@ fn test_5() {
     test_non_sample_nodes_and_subsets(&ts);
     // Multi-sample-set test
     {
-        let mcounts = crate::MultiSampleAlleleCounts::try_from_tree_sequence(
+        let mcounts = crate::SampleAlleleCounts::try_multi_sample_set_from_tree_sequence(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -871,6 +880,7 @@ fn test_5() {
             None,
         )
         .unwrap();
+        assert_eq!(mcounts.num_populations(), 2);
         let counts0 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
             [0, 3].into_iter().map(|i| i.into()),
@@ -878,7 +888,7 @@ fn test_5() {
         )
         .unwrap();
         let a = extract_subsample(&mcounts, 0);
-        let b = counts0.iter().collect::<Vec<_>>();
+        let b = counts0.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
         let counts1 = crate::SampleAlleleCounts::try_from_tree_sequence(
             &ts,
@@ -887,7 +897,7 @@ fn test_5() {
         )
         .unwrap();
         let a = extract_subsample(&mcounts, 1);
-        let b = counts1.iter().collect::<Vec<_>>();
+        let b = counts1.iter_population(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
     }
 }
@@ -999,8 +1009,12 @@ fn test_7_site_iter() {
         None,
     )
     .unwrap();
-    assert_eq!(counts.len(), reduced_counts.len());
-    for (i, j) in counts.iter().zip(reduced_counts.iter()) {
+    assert_eq!(counts.num_sites(), reduced_counts.num_sites());
+    for (i, j) in counts
+        .iter_population(0)
+        .unwrap()
+        .zip(reduced_counts.iter_population(0).unwrap())
+    {
         assert_eq!(i, j)
     }
 }
@@ -1063,11 +1077,19 @@ fn test_7_windows() {
         None,
     )
     .unwrap();
-    assert_eq!(counts[0].len(), reduced_counts.len());
-    for (i, j) in counts[0].iter().zip(reduced_counts.iter()) {
+    assert_eq!(counts[0].num_sites(), reduced_counts.num_sites());
+    for (i, j) in counts[0]
+        .iter_population(0)
+        .unwrap()
+        .zip(reduced_counts.iter_population(0).unwrap())
+    {
         assert_eq!(i, j)
     }
-    for (i, j) in counts_two_windows[1].iter().zip(reduced_counts.iter()) {
+    for (i, j) in counts_two_windows[1]
+        .iter_population(0)
+        .unwrap()
+        .zip(reduced_counts.iter_population(0).unwrap())
+    {
         assert_eq!(i, j)
     }
 }
@@ -1284,13 +1306,11 @@ fn test_13() {
 }
 
 #[cfg(test)]
-fn extract_subsample(
-    data: &crate::MultiSampleAlleleCounts,
-    sample: usize,
-) -> Vec<AlleleCounts<'_>> {
+fn extract_subsample(data: &crate::SampleAlleleCounts, sample: usize) -> Vec<AlleleCounts<'_>> {
     // We need to filter out sites that are monomorphic in
     // the focal sample set
-    data.iter_sites_in(sample)
+    data.iter_population(sample)
+        .unwrap()
         .filter(|c| c.counts().iter().filter(|i| i > &&0).count() > 1)
         .collect::<Vec<_>>()
 }
@@ -1479,13 +1499,17 @@ mod with_ancient_samples {
             None,
         )
         .unwrap();
-        assert_eq!(counts.len(), reduced_counts.len());
+        assert_eq!(counts.num_sites(), reduced_counts.num_sites());
         let mut num_iterated = 0_usize;
-        for (i, j) in counts.iter().zip(reduced_counts.iter()) {
+        for (i, j) in counts
+            .iter_population(0)
+            .unwrap()
+            .zip(reduced_counts.iter_population(0).unwrap())
+        {
             assert_eq!(i, j);
             num_iterated += 1;
         }
-        assert_eq!(num_iterated, counts.len());
+        assert_eq!(num_iterated, counts.num_sites());
     }
 }
 
@@ -1527,7 +1551,11 @@ fn test_issue_112() {
         None,
     )
     .unwrap();
-    for (i, j) in counts.iter().zip(counts2.iter()) {
+    for (i, j) in counts
+        .iter_population(0)
+        .unwrap()
+        .zip(counts2.iter_population(0).unwrap())
+    {
         assert_eq!(i, j)
     }
     generate_counts_and_validate(

@@ -2,7 +2,7 @@ mod naivecalculations;
 mod testdata;
 
 // tests of TYPES go below
-mod multisitecounts;
+mod counts;
 #[cfg(feature = "tskit")]
 mod test_try_from_tree_sequence;
 

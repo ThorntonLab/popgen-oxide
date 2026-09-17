@@ -31,7 +31,7 @@ fn sample_allele_counts_reduce() {
     .unwrap();
 
     let combined = counts1.try_reduce(counts2).unwrap();
-    assert_eq!(combined.iter().count(), 6);
+    assert_eq!(combined.num_sites(), 6);
     let expect: Vec<(&[Count], Count)> = vec![
         (&[3], 3),
         (&[1, 2], 3),
@@ -41,7 +41,7 @@ fn sample_allele_counts_reduce() {
         (&[2, 0, 1], 3),
     ];
 
-    for (e, a) in expect.into_iter().zip(combined.iter()) {
+    for (e, a) in expect.into_iter().zip(combined.iter_population(0).unwrap()) {
         assert_eq!(e.0, a.counts());
         assert_eq!(e.1, a.total_alleles());
     }

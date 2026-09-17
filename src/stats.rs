@@ -1,6 +1,6 @@
 use crate::traits::TryReduce;
 use crate::util::StrictlyLowerTriangular;
-use crate::{AlleleCounts, Count, MultiSampleAlleleCounts, PopgenError, PopgenResult};
+use crate::{AlleleCounts, Count, PopgenError, PopgenResult, SampleAlleleCounts};
 use std::cmp::max;
 
 /// A statistic calculable by iterating over variation at individual sites
@@ -53,7 +53,7 @@ pub trait UnpolarisedSiteStat {
     /// In general, one cannot assume that an update can be rolled
     /// back in the event of an error.
     ///
-    /// [`crate::SampleAlleleCounts`] and [`crate::MultiSampleAlleleCounts`] are designed
+    /// [`crate::SampleAlleleCounts`] and [`crate::SampleAlleleCounts`] are designed
     /// such that `site` cannot contain empty data. However, it is valuable
     /// for implementations of this function to at least do the following:
     /// ```no_compile
@@ -310,7 +310,7 @@ where
 /// Fixation statistics as in [Charlesworth (1998)](https://doi.org/10.1093/oxfordjournals.molbev.a025953) and [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
 ///
 /// Construction of this type from an arbitrary collection of [`crate::SampleAlleleCounts`] is not sound,
-/// because the invariant of [`crate::counts::MultiSampleAlleleCounts`] is required.
+/// because the invariant of [`crate::counts::SampleAlleleCounts`] is required.
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 #[derive(Clone, Debug)]
@@ -343,14 +343,21 @@ impl FStatistics {
     ///
     /// # Errors
     /// See [`crate::stats::GlobalPi`].
+    ///
+    /// # Panics
+    /// If `population_num` is out of bounds.
     fn try_add_population(
         &mut self,
-        populations: &MultiSampleAlleleCounts,
+        populations: &SampleAlleleCounts,
         population_num: usize,
         weight: f64,
     ) -> Result<(), PopgenError> {
-        let diversity_new_site =
-            Diversity::try_from_iter_sites(populations.iter_sites_in(population_num))?.as_raw();
+        let diversity_new_site = Diversity::try_from_iter_sites(
+            populations.iter_population(population_num).ok_or_else(|| {
+                PopgenError::LibraryError(String::from("attempting to add OOB population"))
+            })?,
+        )?
+        .as_raw();
         self.diversity_within.push(diversity_new_site);
 
         self.pi_s.0 += weight * weight * diversity_new_site;
@@ -363,8 +370,9 @@ impl FStatistics {
                     .iter()
                     .map(|(existing_pop, existing_pop_weight)| {
                         let divergence_ij = populations
-                            .iter_sites_in(*existing_pop)
-                            .zip(populations.iter_sites_in(population_num))
+                            .iter_population(*existing_pop)
+                            .unwrap()
+                            .zip(populations.iter_population(population_num).unwrap())
                             .map(|(s1, s2)| {
                                 if s1.total_alleles() == 0 || s2.total_alleles() == 0 {
                                     return Err(PopgenError::EmptySiteCounts);
@@ -402,7 +410,7 @@ impl FStatistics {
         Ok(())
     }
 
-    /// Stream selected populations of a [`MultiSampleAlleleCounts`] into a computation of [`FStatistics`].
+    /// Stream selected populations of a [`SampleAlleleCounts`] into a computation of [`FStatistics`].
     ///
     /// Populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
     /// The newly created struct immutably borrows from `self`.
@@ -410,7 +418,7 @@ impl FStatistics {
     /// - If no populations are selected for inclusion.
     /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
     pub fn try_from_populations(
-        populations: &MultiSampleAlleleCounts,
+        populations: &SampleAlleleCounts,
         mut pred: impl FnMut(usize) -> Option<f64>,
     ) -> Result<Self, PopgenError> {
         let mut ret = Self::new();
