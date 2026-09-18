@@ -315,8 +315,8 @@ where
 #[allow(non_snake_case)]
 #[derive(Clone, Debug)]
 pub struct FStatistics {
-    /// (population number, weight) pairs
-    populations: Vec<(usize, f64)>,
+    /// (sample set number, weight) pairs
+    sample_sets: Vec<(usize, f64)>,
     // total pi_t derivable from other terms, no need to store anything new
     /// for pi_s
     diversity_within: Vec<f64>,
@@ -330,7 +330,7 @@ pub struct FStatistics {
 impl FStatistics {
     fn new() -> Self {
         Self {
-            populations: vec![],
+            sample_sets: vec![],
             diversity_within: vec![],
             pi_s: (0.0, 0.0),
             divergence_between: StrictlyLowerTriangular::new(),
@@ -338,23 +338,23 @@ impl FStatistics {
         }
     }
 
-    /// Add a population and its weight for this statistic.
+    /// Add a sample set and its weight for this statistic.
     /// It is assumed that the inputted weight(s) sum to 1.
     ///
     /// # Errors
     /// See [`crate::stats::GlobalPi`].
     ///
     /// # Panics
-    /// If `population_num` is out of bounds.
-    fn try_add_population(
+    /// If `sample_set_num` is out of bounds.
+    fn try_add_sample_set(
         &mut self,
-        populations: &SampleAlleleCounts,
-        population_num: usize,
+        sample_sets: &SampleAlleleCounts,
+        sample_set_num: usize,
         weight: f64,
     ) -> Result<(), PopgenError> {
         let diversity_new_site = Diversity::try_from_iter_sites(
-            populations.iter_population(population_num).ok_or_else(|| {
-                PopgenError::LibraryError(String::from("attempting to add OOB population"))
+            sample_sets.iter_sample_set(sample_set_num).ok_or_else(|| {
+                PopgenError::LibraryError(String::from("attempting to add OOB sample set"))
             })?,
         )?
         .as_raw();
@@ -363,16 +363,16 @@ impl FStatistics {
         self.pi_s.0 += weight * weight * diversity_new_site;
         self.pi_s.1 += weight * weight;
 
-        // there are more possible pairs of populations now
+        // there are more possible pairs of sample sets now
         self.divergence_between
             .try_extend(
-                self.populations
+                self.sample_sets
                     .iter()
                     .map(|(existing_pop, existing_pop_weight)| {
-                        let divergence_ij = populations
-                            .iter_population(*existing_pop)
+                        let divergence_ij = sample_sets
+                            .iter_sample_set(*existing_pop)
                             .unwrap()
-                            .zip(populations.iter_population(population_num).unwrap())
+                            .zip(sample_sets.iter_sample_set(sample_set_num).unwrap())
                             .map(|(s1, s2)| {
                                 if s1.total_alleles() == 0 || s2.total_alleles() == 0 {
                                     return Err(PopgenError::EmptySiteCounts);
@@ -406,27 +406,27 @@ impl FStatistics {
                     }),
             )?;
 
-        self.populations.push((population_num, weight));
+        self.sample_sets.push((sample_set_num, weight));
         Ok(())
     }
 
-    /// Stream selected populations of a [`SampleAlleleCounts`] into a computation of [`FStatistics`].
+    /// Stream selected sample sets of a [`SampleAlleleCounts`] into a computation of [`FStatistics`].
     ///
-    /// Populations are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a population.
+    /// Sample sets are both selected for inclusion/exclusion and assigned a weight using the input `pred`, which is called with the index of a sample set.
     /// The newly created struct immutably borrows from `self`.
     /// # Errors
-    /// - If no populations are selected for inclusion.
-    /// - If any population selected for inclusion has no sites or if any site on that population has zero present or total alleles.
-    pub fn try_from_populations(
-        populations: &SampleAlleleCounts,
+    /// - If no sample sets are selected for inclusion.
+    /// - If any sample set selected for inclusion has no sites or if any site on that sample set has zero present or total alleles.
+    pub fn try_from_sample_sets(
+        sample_sets: &SampleAlleleCounts,
         mut pred: impl FnMut(usize) -> Option<f64>,
     ) -> Result<Self, PopgenError> {
         let mut ret = Self::new();
 
         let mut any = false;
-        for pop_i in 0..populations.num_populations() {
+        for pop_i in 0..sample_sets.num_sample_sets() {
             if let Some(weight) = pred(pop_i) {
-                ret.try_add_population(populations, pop_i, weight)?;
+                ret.try_add_sample_set(sample_sets, pop_i, weight)?;
                 any = true;
             }
         }
@@ -448,15 +448,15 @@ impl FStatistics {
         self.pi_b
     }
 
-    /// The total diversity of these populations as defined by Charlesworth (1998) equations 1a and 2.
+    /// The total diversity of these sample sets as defined by Charlesworth (1998) equations 1a and 2.
     pub fn pi_t(&self) -> f64 {
         let (pi_s_unweighted, _) = self.pi_s_parts();
         let (pi_b_unweighted, _) = self.pi_b_parts();
         pi_s_unweighted + 2. * pi_b_unweighted
     }
 
-    /// The diversity of each population against itself as defined by Charlesworth (1998) equation 1b.
-    /// [`None`] if no populations have been added so this fraction is undefined.
+    /// The diversity of each sample set against itself as defined by Charlesworth (1998) equation 1b.
+    /// [`None`] if no sample sets have been added so this fraction is undefined.
     pub fn pi_s(&self) -> Option<f64> {
         let pi_s = self.pi_s_parts();
         match pi_s.1 {
@@ -465,8 +465,8 @@ impl FStatistics {
         }
     }
 
-    /// The diversity between distinct populations as defined by Charlesworth (1998) equation 1c.
-    /// [`None`] if no populations have been added so this fraction is undefined.
+    /// The diversity between distinct sample sets as defined by Charlesworth (1998) equation 1c.
+    /// [`None`] if no sample sets have been added so this fraction is undefined.
     pub fn pi_b(&self) -> Option<f64> {
         let pi_b = self.pi_b_parts();
         match pi_b.1 {
@@ -505,10 +505,10 @@ impl FStatistics {
     }
 
     fn internal_index_for(&self, deme: usize) -> Option<usize> {
-        match self.populations.len() {
-            0..100 => self.populations.iter().position(|(p, _w)| p == &deme),
+        match self.sample_sets.len() {
+            0..100 => self.sample_sets.iter().position(|(p, _w)| p == &deme),
             _more => self
-                .populations
+                .sample_sets
                 .binary_search_by_key(&deme, |(p, _w)| *p)
                 .ok(),
         }

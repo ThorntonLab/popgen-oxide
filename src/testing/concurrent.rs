@@ -32,7 +32,7 @@ fn diversity_equivalent_concurrent(
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
     let diversity =
         counts
-            .iter_population(0)
+            .iter_sample_set(0)
             .unwrap()
             .try_fold(Diversity::default(), |mut diversity, s| {
                 diversity.try_add_site(s)?;
@@ -40,7 +40,7 @@ fn diversity_equivalent_concurrent(
             });
 
     let mut components = counts
-        .iter_population(0)
+        .iter_sample_set(0)
         .unwrap()
         .map(|s| {
             let mut diversity = Diversity::default();
@@ -114,7 +114,7 @@ fn watterson_theta_equivalent_concurrent(
 
     let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
     let theta = counts
-        .iter_population(0)
+        .iter_sample_set(0)
         .unwrap()
         .try_fold(WattersonsTheta::default(), |mut theta, s| {
             theta.try_add_site(s)?;
@@ -122,7 +122,7 @@ fn watterson_theta_equivalent_concurrent(
         });
 
     let mut components = counts
-        .iter_population(0)
+        .iter_sample_set(0)
         .unwrap()
         .map(|s| {
             let mut theta = WattersonsTheta::default();
