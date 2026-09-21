@@ -4,7 +4,7 @@ import demes
 import msprime
 import numpy as np
 
-from hypothesis import given
+from hypothesis import given, reproduce_failure
 from hypothesis.strategies import integers
 
 import integration_tests
@@ -50,6 +50,7 @@ def test_f2_all_sample_nodes_infinite_sites_mutation(anc_seed, mut_seed):
        # NOTE: we get failures with smaller sample sizes, which we have to investigate later
        num_sample_nodes_deme1=integers(8, 100),
        num_sample_nodes_deme2=integers(8, 100))
+@reproduce_failure('6.155.7', b'AEJc4kEBQQhBCA==')
 def test_f2_subset_sample_nodes_infinite_sites_mutation(anc_seed, mut_seed, num_sample_nodes_deme1, num_sample_nodes_deme2):
     yaml = """
     time_units: generations
