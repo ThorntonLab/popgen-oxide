@@ -142,9 +142,9 @@ def test_reciprocal_fixation():
         [0, 1],
         [2, 3],
     ]
-    tsdiv = ts.divergence(
+    tsdivergence = ts.divergence(
         sample_sets=samples, span_normalise=False)
-    assert tsdiv == 1.0
+    assert tsdivergence == 1.0
     counts = integration_tests.counts_from_ts_holder_multi_sample_sets(
         tsholder, samples)
     fstats = integration_tests.fstats(counts)
@@ -153,4 +153,4 @@ def test_reciprocal_fixation():
             sample_sets=[samples[pop]], span_normalise=False)
         assert np.isclose(fstats.diversity(pop), tsdiv[0], 1e-10)
 
-    assert np.isclose(fstats.divergence(0, 1), tsdiv, 1e-10)
+    assert np.isclose(fstats.divergence(0, 1), tsdivergence, 1e-10)
