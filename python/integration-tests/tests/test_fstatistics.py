@@ -112,6 +112,8 @@ def test_f2_subset_sample_nodes_infinite_sites_mutation(anc_seed, mut_seed, num_
     assert np.isclose(f2, f2_py, 1e-10), f"{f2} {f2_py}"
 
 
+# Test the case of a single site where the two sample
+# sets are invariant but contain different alleles from one another
 def test_reciprocal_fixation():
     tables = tskit.TableCollection(10.)
     n0 = tables.nodes.add_row(tskit.NODE_IS_SAMPLE, 0.0)
@@ -140,6 +142,9 @@ def test_reciprocal_fixation():
         [0, 1],
         [2, 3],
     ]
+    tsdiv = ts.divergence(
+        sample_sets=samples, span_normalise=False)
+    assert tsdiv == 1.0
     counts = integration_tests.counts_from_ts_holder_multi_sample_sets(
         tsholder, samples)
     fstats = integration_tests.fstats(counts)
@@ -148,6 +153,4 @@ def test_reciprocal_fixation():
             sample_sets=[samples[pop]], span_normalise=False)
         assert np.isclose(fstats.diversity(pop), tsdiv[0], 1e-10)
 
-    tsdiv = ts.divergence(
-        sample_sets=samples, span_normalise=False)
     assert np.isclose(fstats.divergence(0, 1), tsdiv, 1e-10)
