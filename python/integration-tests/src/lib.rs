@@ -13,6 +13,19 @@ struct SingleSampleCounts {
 }
 
 #[pyclass]
+struct Fstatistics {
+    fstats: popgen::stats::FStatistics,
+}
+
+#[pymethods]
+impl Fstatistics {
+    pub fn f2(&self, set1: usize, set2: usize) -> PyResult<f64> {
+        let f2 = self.fstats.f2(set1, set2).unwrap();
+        Ok(f2)
+    }
+}
+
+#[pyclass]
 #[repr(transparent)]
 struct SingleSampleCountCollection(Vec<SingleSampleCounts>);
 
@@ -45,7 +58,7 @@ mod integration_tests {
     use popgen::stats::UnpolarisedSiteStat;
     use pyo3::prelude::*;
 
-    use crate::{SingleSampleCountCollection, SingleSampleCounts, TreeSequenceHolder};
+    use crate::{Fstatistics, SingleSampleCountCollection, SingleSampleCounts, TreeSequenceHolder};
 
     #[pyfunction]
     fn ts_holder_from_tables(py: Python<'_>, pytables: Py<PyAny>) -> PyResult<TreeSequenceHolder> {
@@ -174,10 +187,9 @@ mod integration_tests {
     }
 
     #[pyfunction]
-    fn f2(counts: &SingleSampleCounts, set1: usize, set2: usize) -> PyResult<f64> {
+    fn fstats(counts: &SingleSampleCounts) -> PyResult<Fstatistics> {
         let fstats =
             popgen::stats::FStatistics::try_from_sample_sets(&counts.counts, |_| Some(1.)).unwrap();
-        let f2 = fstats.f2(set1, set2).unwrap();
-        Ok(f2)
+        Ok(Fstatistics { fstats })
     }
 }
