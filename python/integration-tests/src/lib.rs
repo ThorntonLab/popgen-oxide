@@ -172,4 +172,12 @@ mod integration_tests {
         };
         Ok(div)
     }
+
+    #[pyfunction]
+    fn f2(counts: &SingleSampleCounts, set1: usize, set2: usize) -> PyResult<f64> {
+        let fstats =
+            popgen::stats::FStatistics::try_from_sample_sets(&counts.counts, |_| Some(1.)).unwrap();
+        let f2 = fstats.f2(set1, set2).unwrap();
+        Ok(f2)
+    }
 }

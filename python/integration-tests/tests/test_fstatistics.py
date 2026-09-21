@@ -9,7 +9,7 @@ import integration_tests
 
 
 @given(anc_seed=integers(1, 42000000), mut_seed=integers(1, 42000000))
-def test_f2_all_sample_nodes(anc_seed, mut_seed):
+def test_f2_all_sample_nodes_infinite_sites_mutation(anc_seed, mut_seed):
     yaml = """
     time_units: generations
     demes:
@@ -33,9 +33,12 @@ def test_f2_all_sample_nodes(anc_seed, mut_seed):
     ts = msprime.sim_mutations(
         ts, rate=1.2e-8, random_seed=mut_seed, model=msprime.InfiniteSites())
     tsholder = integration_tests.ts_holder_from_tables(ts.tables.copy())
+    samples = [
+        [i for i in ts.samples(population=1)],
+        [i for i in ts.samples(population=2)],
+    ]
     counts = integration_tests.counts_from_ts_holder_multi_sample_sets(
-        tsholder,
-        [
-            [i for i in range(ts.num_nodes) if ts.node(i).population == 1],
-            [i for i in range(ts.num_nodes) if ts.node(i).population == 2],
-        ])
+        tsholder, samples)
+    f2 = integration_tests.f2(counts, 0, 1)
+    f2_py = ts.f2(sample_sets=samples, span_normalise=False)
+    assert np.isclose(f2, f2_py, 1e-10)
