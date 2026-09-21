@@ -324,7 +324,7 @@ impl SampleAlleleCounts {
     pub fn iter_sample_set(
         &'_ self,
         sample_set_number: usize,
-    ) -> Option<SampleAlleleCountsSiteIter<'_>> {
+    ) -> Option<impl DoubleEndedIterator<Item = AlleleCounts<'_>> + ExactSizeIterator> {
         Some(self.sample_set(sample_set_number)?.into_iter())
     }
 }
