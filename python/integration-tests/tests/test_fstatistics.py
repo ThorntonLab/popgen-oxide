@@ -30,3 +30,10 @@ def test_f2_all_sample_nodes(anc_seed, mut_seed):
     demog = msprime.Demography.from_demes(graph)
     ts = msprime.sim_ancestry([0, 100, 100], sequence_length=1000000, demography=demog,
                               recombination_rate=1.2e-8, random_seed=anc_seed)
+    tsholder = integration_tests.ts_holder_from_tables(ts.tables.copy())
+    counts = integration_tests.counts_from_ts_holder_multi_sample_sets(
+        tsholder,
+        [
+            [i for i in range(ts.num_nodes) if ts.node(i).deme == 1],
+            [i for i in range(ts.num_nodes) if ts.node(i).deme == 2],
+        ])

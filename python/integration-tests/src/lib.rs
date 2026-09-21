@@ -93,6 +93,22 @@ mod integration_tests {
         Ok(SingleSampleCounts { counts })
     }
 
+    #[pyfunction]
+    fn counts_from_ts_holder_multi_sample_sets(
+        holder: &TreeSequenceHolder,
+        sample_sets: Vec<Vec<i32>>,
+    ) -> PyResult<SingleSampleCounts> {
+        let counts = popgen::SampleAlleleCounts::try_multi_sample_set_from_tree_sequence(
+            &holder.ts,
+            sample_sets
+                .into_iter()
+                .map(|i| i.into_iter().map(|j| j.into())),
+            None,
+        )
+        .unwrap();
+        Ok(SingleSampleCounts { counts })
+    }
+
     /// This is windows the "tskit-python" way,
     /// meaning that the windows must span the entire sequence length
     /// of the input
