@@ -23,6 +23,10 @@ impl Fstatistics {
         let f2 = self.fstats.f2(set1, set2).unwrap();
         Ok(f2)
     }
+
+    pub fn diversity(&self, set: usize) -> PyResult<f64> {
+        Ok(self.fstats.pi_within(set).unwrap())
+    }
 }
 
 #[pyclass]
