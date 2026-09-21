@@ -1,0 +1,32 @@
+import demes
+import msprime
+import numpy as np
+
+from hypothesis import given
+from hypothesis.strategies import integers
+
+import integration_tests
+
+
+@given(anc_seed=integers(1, 42000000), mut_seed=integers(1, 42000000))
+def test_f2_all_sample_nodes(anc_seed, mut_seed):
+    yaml = """
+    time_units: generations
+    demes:
+     - name: ancestor
+       epochs:
+        - start_size: 10000
+          end_time: 500
+     - name: d0
+       ancestors: [ancestor]
+       epochs:
+        - start_size: 10000
+     - name: d1
+       ancestors: [ancestor]
+       epochs:
+        - start_size: 10000
+    """
+    graph = demes.loads(yaml)
+    demog = msprime.Demography.from_demes(graph)
+    ts = msprime.sim_ancestry([0, 100, 100], sequence_length=1000000, demography=demog,
+                              recombination_rate=1.2e-8, random_seed=anc_seed)
