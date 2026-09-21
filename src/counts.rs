@@ -300,7 +300,6 @@ impl SampleAlleleCounts {
     pub fn iter_sample_sets(
         &'_ self,
     ) -> impl DoubleEndedIterator<Item = SingleSampleAlleleCounts<'_>>
-           + DoubleEndedIterator
            + ExactSizeIterator {
         SampleAlleleCountsSampleSetIter {
             inner: self,
