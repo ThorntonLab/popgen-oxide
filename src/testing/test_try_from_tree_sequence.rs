@@ -1565,3 +1565,47 @@ fn test_issue_112() {
             .map(|n| n.id()),
     );
 }
+
+#[test]
+fn test_reciprocal_fixation() {
+    let mut tables = tskit::TableCollection::new(10.).unwrap();
+    let n0 = tables
+        .add_node(tskit::NodeFlags::IS_SAMPLE, 0., -1, -1)
+        .unwrap();
+    let n1 = tables
+        .add_node(tskit::NodeFlags::IS_SAMPLE, 0., -1, -1)
+        .unwrap();
+    let n2 = tables
+        .add_node(tskit::NodeFlags::IS_SAMPLE, 0., -1, -1)
+        .unwrap();
+    let n3 = tables
+        .add_node(tskit::NodeFlags::IS_SAMPLE, 0., -1, -1)
+        .unwrap();
+    let n4 = tables.add_node(0, 1., -1, -1).unwrap();
+    let n5 = tables.add_node(0, 1., -1, -1).unwrap();
+    let n6 = tables.add_node(0, 2., -1, -1).unwrap();
+
+    let _ = tables.add_edge(0., 10., n4, n0);
+    let _ = tables.add_edge(0., 10., n4, n1);
+    let _ = tables.add_edge(0., 10., n5, n2);
+    let _ = tables.add_edge(0., 10., n5, n3);
+    let _ = tables.add_edge(0., 10., n6, n4);
+    let _ = tables.add_edge(0., 10., n6, n5);
+
+    let s = tables.add_site(5., Some(b"A")).unwrap();
+    let _ = tables.add_mutation(s, n5, -1, 1.1, Some(b"G")).unwrap();
+    tables.full_sort(0).unwrap();
+    tables.build_index().unwrap();
+    let ts = tables.tree_sequence(0).unwrap();
+    let counts = crate::SampleAlleleCounts::try_multi_sample_set_from_tree_sequence(
+        &ts,
+        [[0_i32, 1], [2, 3]]
+            .into_iter()
+            .map(|a| a.into_iter().map(|i| i.into())),
+        None,
+    )
+    .unwrap();
+    assert_eq!(counts.num_sites(), 1);
+    let fstats = crate::stats::FStatistics::try_from_sample_sets(&counts, |_| Some(1.)).unwrap();
+    assert_eq!(fstats.pi_between(0, 1).unwrap(), 1.);
+}

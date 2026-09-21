@@ -13,6 +13,27 @@ struct SingleSampleCounts {
 }
 
 #[pyclass]
+struct Fstatistics {
+    fstats: popgen::stats::FStatistics,
+}
+
+#[pymethods]
+impl Fstatistics {
+    pub fn f2(&self, set1: usize, set2: usize) -> PyResult<f64> {
+        let f2 = self.fstats.f2(set1, set2).unwrap();
+        Ok(f2)
+    }
+
+    pub fn diversity(&self, set: usize) -> PyResult<f64> {
+        Ok(self.fstats.pi_within(set).unwrap())
+    }
+
+    pub fn divergence(&self, set1: usize, set2: usize) -> PyResult<f64> {
+        Ok(self.fstats.pi_between(set1, set2).unwrap())
+    }
+}
+
+#[pyclass]
 #[repr(transparent)]
 struct SingleSampleCountCollection(Vec<SingleSampleCounts>);
 
@@ -45,7 +66,7 @@ mod integration_tests {
     use popgen::stats::UnpolarisedSiteStat;
     use pyo3::prelude::*;
 
-    use crate::{SingleSampleCountCollection, SingleSampleCounts, TreeSequenceHolder};
+    use crate::{Fstatistics, SingleSampleCountCollection, SingleSampleCounts, TreeSequenceHolder};
 
     #[pyfunction]
     fn ts_holder_from_tables(py: Python<'_>, pytables: Py<PyAny>) -> PyResult<TreeSequenceHolder> {
@@ -87,6 +108,22 @@ mod integration_tests {
         let counts = popgen::SampleAlleleCounts::try_from_tree_sequence(
             &holder.ts,
             samples.into_iter().map(|i| i.into()),
+            None,
+        )
+        .unwrap();
+        Ok(SingleSampleCounts { counts })
+    }
+
+    #[pyfunction]
+    fn counts_from_ts_holder_multi_sample_sets(
+        holder: &TreeSequenceHolder,
+        sample_sets: Vec<Vec<i32>>,
+    ) -> PyResult<SingleSampleCounts> {
+        let counts = popgen::SampleAlleleCounts::try_multi_sample_set_from_tree_sequence(
+            &holder.ts,
+            sample_sets
+                .into_iter()
+                .map(|i| i.into_iter().map(|j| j.into())),
             None,
         )
         .unwrap();
@@ -155,5 +192,12 @@ mod integration_tests {
             Err(e) => panic!("unexpected error {e:?}"),
         };
         Ok(div)
+    }
+
+    #[pyfunction]
+    fn fstats(counts: &SingleSampleCounts) -> PyResult<Fstatistics> {
+        let fstats =
+            popgen::stats::FStatistics::try_from_sample_sets(&counts.counts, |_| Some(1.)).unwrap();
+        Ok(Fstatistics { fstats })
     }
 }

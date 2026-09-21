@@ -395,56 +395,43 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         's: 'a,
         M: tskit::TableColumn<tskit::MutationId, tskit::MutationId>,
     {
-        let mut any_sample_sets_polymorphic = false;
         self.num_samples_inheriting_derived_state_at_site.clear();
-        for (nd, num_genomes) in self
+        for nd in self
             .tree_data
             .iter_mut()
-            .zip(self.num_sampled_genomes.iter())
-            .map(|(tree_data, num_genomes)| {
-                (
-                    tree_data.process_mutation(&mutation, mutation_parent),
-                    num_genomes,
-                )
-            })
+            .map(|tree_data| tree_data.process_mutation(&mutation, mutation_parent))
         {
-            // Check if mutation is polymorphic in this sample set
-            if nd > 0 && nd < *num_genomes {
-                any_sample_sets_polymorphic = true;
-            }
             self.num_samples_inheriting_derived_state_at_site.push(nd);
         }
-        if any_sample_sets_polymorphic {
-            let derived_state = *ts
-                .mutations()
-                .derived_state(mutation.id())
-                .as_ref()
-                .ok_or(FromTreeSequenceError::MutationMissingDerivedState)?;
-            match self
-                .alleles_at_site
-                .iter()
-                .position(|&x| x == derived_state)
-            {
-                Some(index) => {
-                    if index > 0 {
-                        for (i, j) in self
-                            .num_samples_inheriting_derived_state_at_site
-                            .iter()
-                            .enumerate()
-                        {
-                            self.allele_counts[i][index] += j;
-                        }
-                    }
-                }
-                None => {
-                    self.alleles_at_site.push(derived_state);
+        let derived_state = *ts
+            .mutations()
+            .derived_state(mutation.id())
+            .as_ref()
+            .ok_or(FromTreeSequenceError::MutationMissingDerivedState)?;
+        match self
+            .alleles_at_site
+            .iter()
+            .position(|&x| x == derived_state)
+        {
+            Some(index) => {
+                if index > 0 {
                     for (i, j) in self
                         .num_samples_inheriting_derived_state_at_site
                         .iter()
                         .enumerate()
                     {
-                        self.allele_counts[i].push(*j);
+                        self.allele_counts[i][index] += j;
                     }
+                }
+            }
+            None => {
+                self.alleles_at_site.push(derived_state);
+                for (i, j) in self
+                    .num_samples_inheriting_derived_state_at_site
+                    .iter()
+                    .enumerate()
+                {
+                    self.allele_counts[i].push(*j);
                 }
             }
         }
@@ -461,14 +448,25 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
                     (*num_sampled_genomes) - self.allele_counts[i].iter().skip(1).sum::<i64>()
             });
         assert!(self.allele_counts.iter().all(|v| v[0] >= 0));
-        // If ANY of the sample sets are polymorphic,
+        let mut seen = vec![0; self.allele_counts[0].len()];
+        let mut number_of_alleles_seen_across_sample_sets = 0;
+        for ac in self.allele_counts.iter() {
+            for (j, &count) in ac.iter().enumerate() {
+                if count > 0 {
+                    if seen[j] == 0 {
+                        number_of_alleles_seen_across_sample_sets += 1;
+                    }
+                    seen[j] = 1;
+                }
+            }
+            // Exit ASAP
+            if number_of_alleles_seen_across_sample_sets > 1 {
+                break;
+            }
+        }
+        // If more than one allele is seen across all sample sets,
         // record data for them.
-        if self.allele_counts.iter().enumerate().any(|(i, ac)| {
-            ac.iter()
-                .filter(|&&c| c > 0 && c < self.num_sampled_genomes[i])
-                .count()
-                > 1
-        }) {
+        if number_of_alleles_seen_across_sample_sets > 1 {
             self.counts.extend_sample_sets_from_site(|index| {
                 (&self.allele_counts[index], self.num_sampled_genomes[index])
             })?;
