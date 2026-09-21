@@ -3,6 +3,7 @@ import random
 import demes
 import msprime
 import numpy as np
+import tskit
 
 from hypothesis import given, reproduce_failure
 from hypothesis.strategies import integers
@@ -109,3 +110,44 @@ def test_f2_subset_sample_nodes_infinite_sites_mutation(anc_seed, mut_seed, num_
     assert np.isclose(fstats.divergence(0, 1), tsdiv, 1e-10)
 
     assert np.isclose(f2, f2_py, 1e-10), f"{f2} {f2_py}"
+
+
+def test_reciprocal_fixation():
+    tables = tskit.TableCollection(10.)
+    n0 = tables.nodes.add_row(tskit.NODE_IS_SAMPLE, 0.0)
+    n1 = tables.nodes.add_row(tskit.NODE_IS_SAMPLE, 0.0)
+    n2 = tables.nodes.add_row(tskit.NODE_IS_SAMPLE, 0.0)
+    n3 = tables.nodes.add_row(tskit.NODE_IS_SAMPLE, 0.0)
+    _n4 = tables.nodes.add_row(0, 1.)
+    n5 = tables.nodes.add_row(0, 1.)
+    _n6 = tables.nodes.add_row(0, 2.)
+
+    _ = tables.edges.add_row(0., 10., _n4, n0)
+    _ = tables.edges.add_row(0., 10., _n4, n1)
+    _ = tables.edges.add_row(0., 10., n5, n2)
+    _ = tables.edges.add_row(0., 10., n5, n3)
+    _ = tables.edges.add_row(0., 10., _n6, _n4)
+    _ = tables.edges.add_row(0., 10., _n6, n5)
+
+    s = tables.sites.add_row(5., ancestral_state='A')
+    _ = tables.mutations.add_row(node=n5, site=s, time=1.1, derived_state='G')
+
+    tables.sort()
+    tables.build_index()
+    ts = tables.tree_sequence()
+    tsholder = integration_tests.ts_holder_from_tables(ts.tables.copy())
+    samples = [
+        [0, 1],
+        [2, 3],
+    ]
+    counts = integration_tests.counts_from_ts_holder_multi_sample_sets(
+        tsholder, samples)
+    fstats = integration_tests.fstats(counts)
+    for pop in [0, 1]:
+        tsdiv = ts.diversity(
+            sample_sets=[samples[pop]], span_normalise=False)
+        assert np.isclose(fstats.diversity(pop), tsdiv[0], 1e-10)
+
+    tsdiv = ts.divergence(
+        sample_sets=samples, span_normalise=False)
+    assert np.isclose(fstats.divergence(0, 1), tsdiv, 1e-10)
