@@ -27,6 +27,10 @@ impl Fstatistics {
     pub fn diversity(&self, set: usize) -> PyResult<f64> {
         Ok(self.fstats.pi_within(set).unwrap())
     }
+
+    pub fn divergence(&self, set1: usize, set2: usize) -> PyResult<f64> {
+        Ok(self.fstats.pi_between(set1, set2).unwrap())
+    }
 }
 
 #[pyclass]

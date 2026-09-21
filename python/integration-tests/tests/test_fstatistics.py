@@ -47,6 +47,10 @@ def test_f2_all_sample_nodes_infinite_sites_mutation(anc_seed, mut_seed):
     for pop in [0, 1]:
         tsdiv = ts.diversity(sample_sets=[samples[pop]], span_normalise=False)
         assert np.isclose(fstats.diversity(pop), tsdiv[0], 1e-10)
+
+    tsdiv = ts.divergence(
+        sample_sets=samples, span_normalise=False)
+    assert np.isclose(fstats.divergence(0, 1), tsdiv, 1e-10)
     assert np.isclose(f2, f2_py, 1e-10)
 
 
@@ -99,4 +103,9 @@ def test_f2_subset_sample_nodes_infinite_sites_mutation(anc_seed, mut_seed, num_
         tsdiv = ts.diversity(
             sample_sets=[subsamples[pop]], span_normalise=False)
         assert np.isclose(fstats.diversity(pop), tsdiv[0], 1e-10)
+
+    tsdiv = ts.divergence(
+        sample_sets=subsamples, span_normalise=False)
+    assert np.isclose(fstats.divergence(0, 1), tsdiv, 1e-10)
+
     assert np.isclose(f2, f2_py, 1e-10), f"{f2} {f2_py}"
