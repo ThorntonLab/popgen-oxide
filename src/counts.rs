@@ -297,7 +297,9 @@ impl SampleAlleleCounts {
     }
 
     /// Convenience method equivalent to calling [`Self::iter_sample_set`] for each sample set in order.
-    pub fn iter_sample_sets(&'_ self) -> SampleAlleleCountsSampleSetIter<'_> {
+    pub fn iter_sample_sets(
+        &'_ self,
+    ) -> impl DoubleEndedIterator<Item = SingleSampleAlleleCounts<'_>> + ExactSizeIterator {
         SampleAlleleCountsSampleSetIter {
             inner: self,
             next_sample_set_ind: (0, self.num_sample_sets().saturating_sub(1)),
@@ -320,7 +322,7 @@ impl SampleAlleleCounts {
     pub fn iter_sample_set(
         &'_ self,
         sample_set_number: usize,
-    ) -> Option<SampleAlleleCountsSiteIter<'_>> {
+    ) -> Option<impl DoubleEndedIterator<Item = AlleleCounts<'_>> + ExactSizeIterator> {
         Some(self.sample_set(sample_set_number)?.into_iter())
     }
 }
