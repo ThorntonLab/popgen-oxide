@@ -1,4 +1,4 @@
-//! Example of concurrent computation enabled by the `SiteComposable` trait.
+//! Example of concurrent computation enabled by the `TryReduce` trait.
 
 use noodles::vcf;
 use popgen::adapter::vcf::record_to_genotypes_adapter;
