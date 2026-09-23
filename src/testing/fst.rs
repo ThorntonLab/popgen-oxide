@@ -207,3 +207,18 @@ fn f_st_from_random_data() {
         }
     }
 }
+
+#[test]
+fn f_st_reciprocal_fixation_two_sample_sets() {
+    let mut sample_sets = SampleAlleleCounts::of_empty_sample_sets(2);
+
+    let data = [([3, 0, 0], 3), ([0, 3, 0], 3)];
+    let weights = [1.0, 1.0];
+
+    sample_sets
+        .extend_sample_sets_from_site(|i| (&data[i].0, data[i].1))
+        .unwrap();
+    let f_st_from_counts =
+        FStatistics::try_from_sample_sets(&sample_sets, |i| Some(weights[i])).unwrap();
+    assert_eq!(f_st_from_counts.pi_between(0, 1).unwrap(), 1.0)
+}
