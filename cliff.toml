@@ -1,0 +1,12 @@
+# configuration file for git-cliff (0.1.0)
+
+[changelog]
+# changelog header
+header = """
+# Changelog\n
+All notable changes to this project will be documented in this file.\n
+"""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
