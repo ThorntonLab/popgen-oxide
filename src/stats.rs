@@ -1,8 +1,6 @@
 use crate::traits::TryReduce;
 use crate::util::StrictlyLowerTriangular;
 use crate::{AlleleCounts, Count, PopgenError, PopgenResult, SampleAlleleCounts};
-use fearless_simd::{dispatch, Level, Simd};
-use fearless_simd_macros::simd;
 use std::cmp::max;
 
 /// A statistic calculable by iterating over variation at individual sites
@@ -95,8 +93,9 @@ pub trait StatRepresentation<'stat> {
 #[repr(transparent)]
 pub struct Diversity(f64);
 
-#[simd]
-fn diversity_simd<S: Simd>(_: S, counts: &[Count]) -> (Count, Count) {
+#[cfg(feature = "simd")]
+#[fearless_simd_macros::simd]
+fn diversity_simd<S: fearless_simd::Simd>(_: S, counts: &[Count]) -> (Count, Count) {
     let mut sum = 0_i64;
     let mut n_homozygous = 0_i64;
 
@@ -112,8 +111,24 @@ impl UnpolarisedSiteStat for Diversity {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
 
-        let level = Level::new();
-        let (sum, n_homozygous) = dispatch!(level, simd => diversity_simd(simd, site.counts()));
+        #[cfg(feature = "simd")]
+        let (sum, n_homozygous) = {
+            let level = fearless_simd::Level::new();
+            fearless_simd::dispatch!(level, simd => diversity_simd(simd, site.counts()))
+        };
+
+        #[cfg(not(feature = "simd"))]
+        let (sum, n_homozygous) = {
+            let mut sum = 0_i64;
+            let mut n_homozygous = 0_i64;
+
+            for c in site.counts() {
+                sum += c;
+                n_homozygous += c * (c - 1);
+            }
+
+            (sum, n_homozygous)
+        };
 
         let n_comparisons = sum * (sum - 1);
 
@@ -168,8 +183,9 @@ impl<'statistic> StatRepresentation<'statistic> for Diversity {
 #[repr(transparent)]
 pub struct WattersonsTheta(f64);
 
-#[simd]
-fn wattersons_theta_details<S: Simd>(_: S, counts: &[Count]) -> (i32, Count) {
+#[cfg(feature = "simd")]
+#[fearless_simd_macros::simd]
+fn wattersons_theta_simd<S: fearless_simd::Simd>(_: S, counts: &[Count]) -> (i32, Count) {
     let mut num_variants = 0;
     let mut total_samples = 0;
 
@@ -187,9 +203,26 @@ impl UnpolarisedSiteStat for WattersonsTheta {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
 
-        let level = Level::new();
-        let (num_variants, total_samples) =
-            dispatch!(level, simd => wattersons_theta_details(simd, site.counts()));
+        #[cfg(feature = "simd")]
+        let (num_variants, total_samples) = {
+            let level = fearless_simd::Level::new();
+            fearless_simd::dispatch!(level, simd => wattersons_theta_details(simd, site.counts()));
+        };
+
+        #[cfg(not(feature = "simd"))]
+        let (num_variants, total_samples) = {
+            let mut num_variants = 0;
+            let mut total_samples = 0;
+
+            for c in site.counts() {
+                total_samples += c;
+                if *c > 0 {
+                    num_variants += 1;
+                }
+            }
+
+            (num_variants, total_samples)
+        };
 
         if num_variants != 1 {
             let harmonic = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
