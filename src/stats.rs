@@ -206,7 +206,7 @@ impl UnpolarisedSiteStat for WattersonsTheta {
         #[cfg(feature = "simd")]
         let (num_variants, total_samples) = {
             let level = fearless_simd::Level::new();
-            fearless_simd::dispatch!(level, simd => wattersons_theta_simd(simd, site.counts()));
+            fearless_simd::dispatch!(level, simd => wattersons_theta_simd(simd, site.counts()))
         };
 
         #[cfg(not(feature = "simd"))]
