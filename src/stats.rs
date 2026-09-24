@@ -93,17 +93,42 @@ pub trait StatRepresentation<'stat> {
 #[repr(transparent)]
 pub struct Diversity(f64);
 
+#[cfg(feature = "simd")]
+#[fearless_simd_macros::simd]
+fn diversity_simd<S: fearless_simd::Simd>(_: S, counts: &[Count]) -> (Count, Count) {
+    let mut sum = 0_i64;
+    let mut n_homozygous = 0_i64;
+
+    for c in counts {
+        sum += c;
+        n_homozygous += c * (c - 1);
+    }
+
+    (sum, n_homozygous)
+}
+
 impl UnpolarisedSiteStat for Diversity {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
 
-        let mut sum = 0_i64;
-        let mut n_homozygous = 0_i64;
+        #[cfg(feature = "simd")]
+        let (sum, n_homozygous) = {
+            let level = fearless_simd::Level::new();
+            fearless_simd::dispatch!(level, simd => diversity_simd(simd, site.counts()))
+        };
 
-        for c in site.counts() {
-            sum += c;
-            n_homozygous += c * (c - 1);
-        }
+        #[cfg(not(feature = "simd"))]
+        let (sum, n_homozygous) = {
+            let mut sum = 0_i64;
+            let mut n_homozygous = 0_i64;
+
+            for c in site.counts() {
+                sum += c;
+                n_homozygous += c * (c - 1);
+            }
+
+            (sum, n_homozygous)
+        };
 
         let n_comparisons = sum * (sum - 1);
 
@@ -120,6 +145,7 @@ impl UnpolarisedSiteStat for Diversity {
 
 impl TryReduce for Diversity {
     type Error = crate::PopgenError;
+
     fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
@@ -157,26 +183,46 @@ impl<'statistic> StatRepresentation<'statistic> for Diversity {
 #[repr(transparent)]
 pub struct WattersonsTheta(f64);
 
+#[cfg(feature = "simd")]
+#[fearless_simd_macros::simd]
+fn wattersons_theta_simd<S: fearless_simd::Simd>(_: S, counts: &[Count]) -> (i32, Count) {
+    let mut num_variants = 0;
+    let mut total_samples = 0;
+
+    for c in counts {
+        total_samples += c;
+        if *c > 0 {
+            num_variants += 1;
+        }
+    }
+
+    (num_variants, total_samples)
+}
+
 impl UnpolarisedSiteStat for WattersonsTheta {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
 
-        // requires rust 1.88
-        let (chunks, remainder) = site.counts().as_chunks::<2>();
+        #[cfg(feature = "simd")]
+        let (num_variants, total_samples) = {
+            let level = fearless_simd::Level::new();
+            fearless_simd::dispatch!(level, simd => wattersons_theta_simd(simd, site.counts()))
+        };
 
-        let mut num_variants = 0;
-        let mut total_samples = 0;
-        for w in chunks {
-            w.iter().filter(|&&c| c > 0).for_each(|&c| {
-                num_variants += 1;
+        #[cfg(not(feature = "simd"))]
+        let (num_variants, total_samples) = {
+            let mut num_variants = 0;
+            let mut total_samples = 0;
+
+            for c in site.counts() {
                 total_samples += c;
-            })
-        }
+                if *c > 0 {
+                    num_variants += 1;
+                }
+            }
 
-        remainder.iter().filter(|&&c| c > 0).for_each(|&c| {
-            num_variants += 1;
-            total_samples += c;
-        });
+            (num_variants, total_samples)
+        };
 
         if num_variants != 1 {
             let harmonic = (1..total_samples).map(|i| 1f64 / i as f64).sum::<f64>();
@@ -196,6 +242,7 @@ impl<'statistic> StatRepresentation<'statistic> for WattersonsTheta {
 
 impl TryReduce for WattersonsTheta {
     type Error = crate::PopgenError;
+
     fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
@@ -239,6 +286,7 @@ impl UnpolarisedSiteStat for TajimasD {
 
 impl<'statistic> StatRepresentation<'statistic> for TajimasD {
     type Output = f64;
+
     fn as_raw(&'statistic self) -> Self::Output {
         // we are going to stick as closely as feasible to the exact nomenclature of the paper
 
@@ -290,6 +338,7 @@ where
     WattersonsTheta: TryReduce,
 {
     type Error = PopgenError;
+
     fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
