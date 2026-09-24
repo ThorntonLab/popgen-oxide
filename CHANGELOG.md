@@ -1,3 +1,7 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
 ## [0.10.0-alpha.0] - 2026-09-24
 
 ### 🚀 Features
@@ -109,7 +113,6 @@
 - Update tskit pinned version (#95)
 - Set toolchain version for development (#99)
 - Manifest info needed for crates.io (#134)
-- Prep repo for an alpha release
 
 ### 💼 Other
 
