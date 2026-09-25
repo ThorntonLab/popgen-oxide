@@ -25,3 +25,11 @@ fn thetaw() {
             .unwrap();
     assert_eq!(thetaw.as_raw(), 0.)
 }
+
+#[test]
+fn tajd() {
+    let counts = make_data();
+    let thetaw =
+        popgen::stats::TajimasD::try_from_iter_sites(counts.iter_sample_set(0).unwrap()).unwrap();
+    assert!(thetaw.as_raw().is_nan())
+}
