@@ -1,6 +1,9 @@
 use popgen::stats::StatRepresentation;
 use popgen::stats::UnpolarisedSiteStat;
 
+// Test the case of a monomorphic site taking the form
+// of one non-missing allele and the remainder are missing.
+
 fn make_data() -> popgen::SampleAlleleCounts {
     let counts = vec![vec![Some(0.into()), None]];
     popgen::SampleAlleleCounts::try_from_tabular(counts).unwrap()
