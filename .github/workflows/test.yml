@@ -50,6 +50,13 @@ jobs:
           cargo run --example from_vcf_noodles_indexed --features=noodles
           cargo run --example from_vcf_htslib
           cargo run --example from_tskit --features=tskit
+      - name: Test 32 bit Linux
+        run: |
+          sudo apt-get -f install gcc-multilib
+          cargo hack check --all-targets --target=i686-unknown-linux-gnu --feature-powerset
+          cargo hack test --all-targets --target=i686-unknown-linux-gnu --feature-powerset
+          cargo hack test --doc --target=i686-unknown-linux-gnu --feature-powerset
+        if: matrix.os == 'ubuntu-24.04'
 
   fmt:
     name: rustfmt
