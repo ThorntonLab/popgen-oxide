@@ -4,22 +4,32 @@ use popgen::stats::UnpolarisedSiteStat;
 // Test the case of a monomorphic site taking the form
 // of one non-missing allele and the remainder are missing.
 
-fn make_data() -> popgen::SampleAlleleCounts {
+fn make_data_one_site() -> popgen::SampleAlleleCounts {
     let counts = vec![vec![Some(0.into()), None]];
     popgen::SampleAlleleCounts::try_from_tabular(counts).unwrap()
 }
 
 #[test]
 fn diversity() {
-    let counts = make_data();
-    let diversity =
-        popgen::stats::Diversity::try_from_iter_sites(counts.iter_sample_set(0).unwrap()).unwrap();
-    assert_eq!(diversity.as_raw(), 0.)
+    let counts = make_data_one_site();
+    assert!(matches!(
+        popgen::stats::Diversity::try_from_iter_sites(counts.iter_sample_set(0).unwrap()),
+        Err(popgen::PopgenError::CalculationError)
+    ));
+    assert!(matches!(
+        popgen::stats::Diversity::try_from_iter_sites(
+            counts
+                .iter_sample_set(0)
+                .unwrap()
+                .filter(|ac| ac.total_alleles() - ac.counts().iter().sum::<popgen::Count>() > 1),
+        ),
+        Err(popgen::PopgenError::EmptySiteCounts)
+    ));
 }
 
 #[test]
 fn thetaw() {
-    let counts = make_data();
+    let counts = make_data_one_site();
     let thetaw =
         popgen::stats::WattersonsTheta::try_from_iter_sites(counts.iter_sample_set(0).unwrap())
             .unwrap();
@@ -28,8 +38,18 @@ fn thetaw() {
 
 #[test]
 fn tajd() {
-    let counts = make_data();
-    let thetaw =
-        popgen::stats::TajimasD::try_from_iter_sites(counts.iter_sample_set(0).unwrap()).unwrap();
-    assert!(thetaw.as_raw().is_nan())
+    let counts = make_data_one_site();
+    assert!(matches!(
+        popgen::stats::TajimasD::try_from_iter_sites(counts.iter_sample_set(0).unwrap()),
+        Err(popgen::PopgenError::CalculationError)
+    ));
+    assert!(matches!(
+        popgen::stats::TajimasD::try_from_iter_sites(
+            counts
+                .iter_sample_set(0)
+                .unwrap()
+                .filter(|ac| ac.total_alleles() - ac.counts().iter().sum::<popgen::Count>() > 1),
+        ),
+        Err(popgen::PopgenError::EmptySiteCounts)
+    ));
 }
