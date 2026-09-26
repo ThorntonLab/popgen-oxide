@@ -2,6 +2,8 @@
 #![warn(missing_docs)]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 
+//! Efficient types and interfaces for population genetics
+
 use std::fmt::Debug;
 use std::str::FromStr;
 
