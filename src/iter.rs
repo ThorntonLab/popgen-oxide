@@ -1,3 +1,5 @@
+//! Iterator types
+
 #[cfg(test)]
 use crate::Count;
 use crate::SingleSampleAlleleCounts;

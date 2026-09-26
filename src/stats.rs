@@ -1,3 +1,5 @@
+//! Interfaces and types for calculating summaries of variation data.
+
 use crate::traits::TryReduce;
 use crate::util::StrictlyLowerTriangular;
 use crate::{AlleleCounts, Count, PopgenError, PopgenResult, SampleAlleleCounts};
