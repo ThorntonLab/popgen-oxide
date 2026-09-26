@@ -34,6 +34,7 @@ pub mod from_tskit {
 
 #[non_exhaustive]
 #[derive(Debug)]
+/// Error type
 pub enum PopgenError {
     #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
     #[cfg(feature = "noodles")]
