@@ -43,6 +43,7 @@ pub enum PopgenError {
     #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     Tskit(crate::from_tskit::FromTreeSequenceError),
     Io(std::io::Error),
+    /// Returned when [`Count`] values are invalid.
     NegativeCount(Count),
     TotalAllelesDeficient,
     MismatchedSliceLength,
@@ -93,6 +94,9 @@ impl From<std::io::Error> for PopgenError {
     }
 }
 
+/// The index/identifier of an allele at a given site.
+/// This type is primarily used when reading input data,
+/// such as allele records from a VCF file, etc..
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AlleleID(usize);
 
