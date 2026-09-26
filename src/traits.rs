@@ -3,8 +3,12 @@
 /// For count types like [`crate::counts::SampleAlleleCounts`], this means concatenating sites from the two inputs.
 /// For statistic types like [`crate::stats::Diversity`], this means composing the results from different data, as if the statistic was computed on the concatenated data originally.
 pub trait TryReduce {
+    /// Error type
     type Error: std::error::Error;
 
+    /// This function is the main logic.
+    /// Implementations must attempt to combine values
+    /// and return an error if it is not possible to do so.
     fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized;

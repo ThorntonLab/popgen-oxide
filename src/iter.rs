@@ -1,9 +1,11 @@
+//! Iterator types
+
 #[cfg(test)]
 use crate::Count;
 use crate::SingleSampleAlleleCounts;
 use crate::{AlleleCounts, SampleAlleleCounts};
 
-pub struct SampleAlleleCountsSampleSetIter<'inner> {
+pub(crate) struct SampleAlleleCountsSampleSetIter<'inner> {
     pub(crate) inner: &'inner SampleAlleleCounts,
     // index of next for forward iter, index of next for reverse iter
     pub(crate) next_sample_set_ind: (usize, usize),
@@ -61,6 +63,7 @@ impl DoubleEndedIterator for SampleAlleleCountsSampleSetIter<'_> {
     }
 }
 
+/// This is the [`IntoIterator::IntoIter`] type for [`SingleSampleAlleleCounts`]
 pub struct SampleAlleleCountsSiteIter<'inner> {
     pub(crate) inner: &'inner SampleAlleleCounts,
     pub(crate) sample_set_number: usize,

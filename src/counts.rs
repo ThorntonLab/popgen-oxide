@@ -223,7 +223,19 @@ impl SampleAlleleCounts {
         Ok(())
     }
 
-    /// [`Self::try_from_tree_sequence`], with the ability to specify
+    /// Construct count data from a tree sequence with respect to multiple
+    /// sample sets.
+    ///
+    /// # Paramters
+    ///
+    /// `ts`: [`tskit::TreeSequence`]
+    /// `samples`: Iterator over iterators of [`tskit::NodeId`]
+    /// `options`: [`FromTreeSequenceOptions`]
+    ///
+    /// # Errors
+    ///
+    /// [`PopgenError`] will be returned if errors occur during data
+    /// processing.
     #[cfg(feature = "tskit")]
     #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     pub fn try_multi_sample_set_from_tree_sequence<Outer, Inner>(
@@ -243,6 +255,25 @@ impl SampleAlleleCounts {
         )
     }
 
+    /// Construct count data from a tree sequence with respect to multiple
+    /// sample sets and site position ranges.
+    ///
+    /// # Paramters
+    ///
+    /// `ts`: [`tskit::TreeSequence`]
+    /// `samples`: Iterator over iterators of [`tskit::NodeId`]
+    /// `sites`: Iterator over [`tskit::SiteRef`]
+    /// `options`: [`FromTreeSequenceOptions`]
+    ///
+    /// # Notes
+    ///
+    /// The `sites` iterator should be obtained via [`tskit::TreeSequence::site_iter`]
+    /// and can be filtered using the [`Iterator`] API.
+    ///
+    /// # Errors
+    ///
+    /// [`PopgenError`] will be returned if errors occur during data
+    /// processing.
     #[cfg(feature = "tskit")]
     #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     pub fn try_multi_sample_set_from_tree_sequence_site_iter<'ts, Outer, Inner, S>(
@@ -401,10 +432,12 @@ impl<'i> SingleSampleAlleleCounts<'i> {
         self.inner.get_site(site_number, self.sample_set_number)
     }
 
+    /// Obtain the contained [`SampleAlleleCounts`]
     pub fn inner(&self) -> &'i SampleAlleleCounts {
         self.inner
     }
 
+    /// The number of sample sets.
     pub fn sample_set_number(&self) -> usize {
         self.sample_set_number
     }
@@ -451,11 +484,13 @@ impl<'inner> AlleleCounts<'inner> {
         })
     }
 
+    /// Slice of stored allele count data
     #[inline]
     pub fn counts(&self) -> &[Count] {
         self.counts
     }
 
+    /// The sum of [`Self::counts`] in O(1) time.
     #[inline]
     pub fn total_alleles(&self) -> i64 {
         self.total_alleles
