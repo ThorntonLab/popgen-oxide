@@ -21,7 +21,8 @@ fn main() {
     // one copy of allele 0 and one copy of allele 2.
     // At the second site we have one copy each of alleles
     // 0 and 1.
-    // (A None value would represent missing data.)
+    // (A None value would represent missing data.
+    //  There are NO MAGIC NUMBERS like -1 used!)
     let data: Vec<Vec<Option<popgen::AlleleID>>> = vec![
         vec![Some(0.into()), Some(2.into())],
         vec![Some(0.into()), Some(1.into())],
