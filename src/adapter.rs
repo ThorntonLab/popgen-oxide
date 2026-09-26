@@ -1,4 +1,5 @@
 #[cfg(feature = "noodles")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
 pub mod vcf {
     use crate::{AlleleID, Count, PopgenResult, SampleAlleleCounts};
     use noodles::vcf::variant::record::samples::keys::key;

@@ -74,6 +74,7 @@ impl SampleAlleleCounts {
     /// derived states are currently rejected as a hard error resulting
     /// in a panic.
     #[cfg(feature = "tskit")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     pub fn try_from_tree_sequence<N>(
         ts: &tskit::TreeSequence,
         samples: N,
@@ -87,6 +88,7 @@ impl SampleAlleleCounts {
 
     /// [`Self::try_from_tree_sequence`], but specifying a selection of sites using `sites`.
     #[cfg(feature = "tskit")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     pub fn try_from_tree_sequence_site_iter<'ts, N, S>(
         ts: &'ts tskit::TreeSequence,
         samples: N,
@@ -104,6 +106,7 @@ impl SampleAlleleCounts {
     ///
     /// Each window will be placed in a new `Self`, so this function returns a [`Vec`].
     #[cfg(feature = "tskit")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     pub fn try_from_tree_sequence_windows<N, W, P>(
         ts: &tskit::TreeSequence,
         samples: N,
@@ -222,6 +225,7 @@ impl SampleAlleleCounts {
 
     /// [`Self::try_from_tree_sequence`], with the ability to specify
     #[cfg(feature = "tskit")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     pub fn try_multi_sample_set_from_tree_sequence<Outer, Inner>(
         ts: &tskit::TreeSequence,
         samples: Outer,
@@ -240,6 +244,7 @@ impl SampleAlleleCounts {
     }
 
     #[cfg(feature = "tskit")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     pub fn try_multi_sample_set_from_tree_sequence_site_iter<'ts, Outer, Inner, S>(
         ts: &'ts tskit::TreeSequence,
         samples: Outer,

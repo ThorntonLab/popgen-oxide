@@ -21,6 +21,7 @@ pub use counts::*;
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
 #[cfg(feature = "tskit")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
 pub mod from_tskit {
     pub use super::from_tree_sequence::FromTreeSequenceError;
     pub use super::from_tree_sequence::FromTreeSequenceOptions;
@@ -29,9 +30,11 @@ pub mod from_tskit {
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum PopgenError {
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
     #[cfg(feature = "noodles")]
     NoodlesVCF(std::io::Error),
     #[cfg(feature = "tskit")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     Tskit(crate::from_tskit::FromTreeSequenceError),
     Io(std::io::Error),
     NegativeCount(Count),
@@ -66,8 +69,10 @@ impl std::fmt::Display for PopgenError {
             PopgenError::CalculationError => write!(f, "calculation produced an invalid value"),
             PopgenError::InvalidDeme => write!(f, "invalid deme label or index"),
             PopgenError::LibraryError(msg) => write!(f, "{msg}"),
+            #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
             #[cfg(feature = "tskit")]
             PopgenError::Tskit(e) => write!(f, "tskit conversion error: {}", e),
+            #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
             #[cfg(feature = "noodles")]
             PopgenError::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
         }
