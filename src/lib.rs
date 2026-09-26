@@ -1,4 +1,5 @@
 #![deny(rustdoc::broken_intra_doc_links)]
+#![warn(missing_docs)]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 
 use std::fmt::Debug;
