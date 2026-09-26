@@ -74,7 +74,9 @@ pub trait UnpolarisedSiteStat {
 /// * A developer could also choose to implemement [`From`] to consume
 ///   a statistic type into a low-level type.
 pub trait StatRepresentation<'stat> {
+    /// The output type
     type Output;
+    /// Return [`Self::Output`]
     fn as_raw(&'stat self) -> Self::Output;
 }
 
