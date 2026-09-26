@@ -1,5 +1,8 @@
 #![deny(rustdoc::broken_intra_doc_links)]
+#![warn(missing_docs)]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
+
+//! Efficient types and interfaces for population genetics
 
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -18,6 +21,8 @@ mod testing;
 
 pub use counts::*;
 
+/// Type alias for a [`Result`] where the
+/// error type is [`PopgenError`]
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
 #[cfg(feature = "tskit")]
@@ -29,6 +34,7 @@ pub mod from_tskit {
 
 #[non_exhaustive]
 #[derive(Debug)]
+/// Error type
 pub enum PopgenError {
     #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
     #[cfg(feature = "noodles")]
@@ -37,6 +43,7 @@ pub enum PopgenError {
     #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     Tskit(crate::from_tskit::FromTreeSequenceError),
     Io(std::io::Error),
+    /// Returned when [`Count`] values are invalid.
     NegativeCount(Count),
     TotalAllelesDeficient,
     MismatchedSliceLength,
@@ -87,6 +94,9 @@ impl From<std::io::Error> for PopgenError {
     }
 }
 
+/// The index/identifier of an allele at a given site.
+/// This type is primarily used when reading input data,
+/// such as allele records from a VCF file, etc..
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AlleleID(usize);
 

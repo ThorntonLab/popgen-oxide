@@ -5,16 +5,25 @@ use crate::{Count, PopgenError, PopgenResult, SampleAlleleCounts};
 #[derive(Debug, Default)]
 pub struct FromTreeSequenceOptions {}
 
+/// Error type related to tree sequence input
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum FromTreeSequenceError {
+    /// Holds [`tskit::TskitError`]
     Tskit(::tskit::TskitError),
+    /// A [`tskit::NodeId`] that is out of range with
+    /// respect to the node table of a given tree sequence.
     NodeIdOutOfRange {
+        /// The specific value that is out of range
         which: tskit::NodeId,
     },
+    /// A site requires an ancestral state but none was present
     SiteMissingAncestralState,
+    /// A mutation requires a derived state but none was present
     MutationMissingDerivedState,
+    /// Position values were not sorted in increasing order
     UnsortedPositions,
+    /// List of genomic windows is empty
     EmptyWindows,
     /// Returned if a window constains invalid positions,
     /// is not a proper interval,
