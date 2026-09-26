@@ -21,7 +21,7 @@ mod testing;
 
 pub use counts::*;
 
-/// Type alias for a [`Result`] where the 
+/// Type alias for a [`Result`] where the
 /// error type is [`PopgenError`]
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
