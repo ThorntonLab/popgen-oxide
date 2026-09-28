@@ -97,6 +97,54 @@ pub trait StatRepresentation<'stat> {
 #[repr(transparent)]
 pub struct Diversity(f64);
 
+impl std::fmt::Display for Diversity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<Diversity> for f64 {
+    fn from(value: Diversity) -> Self {
+        value.0
+    }
+}
+
+impl PartialEq for Diversity {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl PartialEq<f64> for Diversity {
+    fn eq(&self, other: &f64) -> bool {
+        self.0.eq(other)
+    }
+}
+
+impl PartialEq<Diversity> for f64 {
+    fn eq(&self, other: &Diversity) -> bool {
+        self.eq(&other.0)
+    }
+}
+
+impl PartialOrd for Diversity {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl PartialOrd<f64> for Diversity {
+    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
+    }
+}
+
+impl PartialOrd<Diversity> for f64 {
+    fn partial_cmp(&self, other: &Diversity) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(&other.0)
+    }
+}
+
 impl UnpolarisedSiteStat for Diversity {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
@@ -160,6 +208,54 @@ impl<'statistic> StatRepresentation<'statistic> for Diversity {
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(transparent)]
 pub struct WattersonsTheta(f64);
+
+impl std::fmt::Display for WattersonsTheta {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<WattersonsTheta> for f64 {
+    fn from(value: WattersonsTheta) -> Self {
+        value.0
+    }
+}
+
+impl PartialEq for WattersonsTheta {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl PartialEq<f64> for WattersonsTheta {
+    fn eq(&self, other: &f64) -> bool {
+        self.0.eq(other)
+    }
+}
+
+impl PartialEq<WattersonsTheta> for f64 {
+    fn eq(&self, other: &WattersonsTheta) -> bool {
+        self.eq(&other.0)
+    }
+}
+
+impl PartialOrd for WattersonsTheta {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl PartialOrd<f64> for WattersonsTheta {
+    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
+    }
+}
+
+impl PartialOrd<WattersonsTheta> for f64 {
+    fn partial_cmp(&self, other: &WattersonsTheta) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(&other.0)
+    }
+}
 
 impl UnpolarisedSiteStat for WattersonsTheta {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
