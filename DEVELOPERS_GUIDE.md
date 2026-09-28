@@ -28,6 +28,19 @@ fix(tskit): Fixed some bug
 
 A good way to learn our commit syntax is to read the commit log in addition to reading the URL given above.
 
+## Version numbering
+
+We follow [semantic versioning](https://semver.org/).
+See below for how undocumented API features interact with how we treat semantic versioning.
+
+### GitHub tags
+
+It is arguably helpful to generate GitHub tags corresponding to releases.
+For a pacakge version `x.y.z`, the corresponding tag is `vx.y.z`.
+For example, `v0.31.0-alpha.2`.
+
+NOTE: if we move to a cargo workspace, this section has to be rewritten!
+
 ## What is a breaking change?
 
 In general, a breaking change is any change breaking the public API.
