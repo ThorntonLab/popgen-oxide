@@ -1,0 +1,31 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+name: semver-checks
+
+jobs:
+  semver:
+    name: Run cargo-semver-checks
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - uses: actions/checkout@v6.0.0
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy
+      - name: Install cargo-semver-checks
+        uses: baptiste0928/cargo-install@v3.4.0
+        with:
+          crate: cargo-semver-checks
+          version: '0.49.0'
+      - name: run check-release
+      # semver checks doesn't respect cargo.lock,
+      # so we (manually...) pin to the rust-toolchain version
+      # to reduce the possibility for problems
+        run: cargo +1.92.0 semver-checks check-release
