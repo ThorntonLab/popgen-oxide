@@ -64,7 +64,7 @@ pub enum PopgenError {
     /// Catch-all for numeric errors
     CalculationError,
     /// Invalid sample set identifier
-    InvalidDeme,
+    InvalidSampleSet,
     /// General library error containing a string-like message.
     LibraryError(String),
 }
@@ -89,7 +89,7 @@ impl std::fmt::Display for PopgenError {
                 "cannot combine two collections with different sample set counts; {l} != {r}"
             ),
             PopgenError::CalculationError => write!(f, "calculation produced an invalid value"),
-            PopgenError::InvalidDeme => write!(f, "invalid deme label or index"),
+            PopgenError::InvalidSampleSet => write!(f, "invalid sample set label or index"),
             PopgenError::LibraryError(msg) => write!(f, "{msg}"),
             #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
             #[cfg(feature = "tskit")]

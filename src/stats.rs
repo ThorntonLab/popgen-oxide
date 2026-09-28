@@ -508,94 +508,101 @@ impl FStatistics {
         Some(self.pi_t()).zip(self.pi_s()).map(|(t, s)| (t - s) / t)
     }
 
-    fn internal_index_for(&self, deme: usize) -> Option<usize> {
+    fn internal_index_for(&self, sample_set: usize) -> Option<usize> {
         match self.sample_sets.len() {
-            0..100 => self.sample_sets.iter().position(|(p, _w)| p == &deme),
+            0..100 => self.sample_sets.iter().position(|(p, _w)| p == &sample_set),
             _more => self
                 .sample_sets
-                .binary_search_by_key(&deme, |(p, _w)| *p)
+                .binary_search_by_key(&sample_set, |(p, _w)| *p)
                 .ok(),
         }
     }
 
-    /// Get the diversity of this deme among its samples.
-    /// The deme number must follow the indexes of demes used to create this type.
+    /// Get the diversity of this sample set among its samples.
+    /// The sample set number must follow the indexes of sample sets used to create this type.
     ///
     /// # Errors
     ///
-    //// * If `deme` is out of range, return [`PopgenError::InvalidDeme`]
-    pub fn pi_within(&self, deme: usize) -> PopgenResult<f64> {
+    //// * If `sample_set` is out of range, return [`PopgenError::InvalidSampleSet`]
+    pub fn pi_within(&self, sample_set: usize) -> PopgenResult<f64> {
         Ok(self.diversity_within[self
-            .internal_index_for(deme)
-            .ok_or(PopgenError::InvalidDeme)?])
+            .internal_index_for(sample_set)
+            .ok_or(PopgenError::InvalidSampleSet)?])
     }
 
-    /// Get the [`Diversity`] of these two demes, comparing a sample from one against a sample from the other.
-    /// The deme numbers must follow the indexes of demes used to create this type.
+    /// Get the [`Diversity`] of these two sample sets, comparing a sample from one against a sample from the other.
+    /// The sample set numbers must follow the indexes of sample sets used to create this type.
     ///
     /// # Errors
     ///
-    /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
-    pub fn pi_between(&self, deme1: usize, deme2: usize) -> PopgenResult<f64> {
+    /// * If `sample_set1` or `sample_set2` is out of range, return [`PopgenError::InvalidSampleSet`]
+    pub fn pi_between(&self, sample_set1: usize, sample_set2: usize) -> PopgenResult<f64> {
         Ok(*self.divergence_between.get(
-            self.internal_index_for(deme1)
-                .ok_or(PopgenError::InvalidDeme)?,
-            self.internal_index_for(deme2)
-                .ok_or(PopgenError::InvalidDeme)?,
+            self.internal_index_for(sample_set1)
+                .ok_or(PopgenError::InvalidSampleSet)?,
+            self.internal_index_for(sample_set2)
+                .ok_or(PopgenError::InvalidSampleSet)?,
         ))
     }
 
-    /// Calculate F2(deme1, deme2).
-    /// The deme numbers must follow the indexes of demes used to create this type.
+    /// Calculate F2(sample_set1, sample_set2).
+    /// The sample set numbers must follow the indexes of sample sets used to create this type.
     ///
     /// We follow Equation 17 from
     /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
     ///
     /// # Errors
     ///
-    /// * If `deme1` or `deme2` is out of range, return [`PopgenError::InvalidDeme`]
-    pub fn f2(&self, deme1: usize, deme2: usize) -> Result<f64, PopgenError> {
-        let deme1_internal = self
-            .internal_index_for(deme1)
-            .ok_or(PopgenError::InvalidDeme)?;
-        let deme2_internal = self
-            .internal_index_for(deme2)
-            .ok_or(PopgenError::InvalidDeme)?;
+    /// * If `sample_set1` or `sample_set2` is out of range, return [`PopgenError::InvalidSampleSet`]
+    pub fn f2(&self, sample_set1: usize, sample_set2: usize) -> Result<f64, PopgenError> {
+        let sample_set1_internal = self
+            .internal_index_for(sample_set1)
+            .ok_or(PopgenError::InvalidSampleSet)?;
+        let sample_set2_internal = self
+            .internal_index_for(sample_set2)
+            .ok_or(PopgenError::InvalidSampleSet)?;
 
-        let divergence_12 = self.divergence_between.get(deme1_internal, deme2_internal);
+        let divergence_12 = self
+            .divergence_between
+            .get(sample_set1_internal, sample_set2_internal);
         let diversity_11 = self
             .diversity_within
-            .get(deme1_internal)
-            .ok_or(PopgenError::InvalidDeme)?;
+            .get(sample_set1_internal)
+            .ok_or(PopgenError::InvalidSampleSet)?;
         let diversity_22 = self
             .diversity_within
-            .get(deme2_internal)
-            .ok_or(PopgenError::InvalidDeme)?;
+            .get(sample_set2_internal)
+            .ok_or(PopgenError::InvalidSampleSet)?;
         Ok(divergence_12 - (diversity_11 + diversity_22) / 2.)
     }
 
-    /// Calculate F3(deme1; deme2, deme3).
-    /// The deme numbers must follow the indexes of demes used to create this type.
+    /// Calculate F3(sample_set1; sample_set2, sample_set3).
+    /// The sample set numbers must follow the indexes of sample sets used to create this type.
     ///
     /// We follow Equation 20b from
     /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/),
     /// with some change of notation.
-    /// He writes F3(deme X; deme 1, deme2).
+    /// He writes F3(sample set X; sample set 1, sample set2).
     ///
     /// Originally due to Reich 2009 (as cited in Peter).
     ///
     /// # Errors
     ///
-    /// * If any deme index is out of range, return [`PopgenError::InvalidDeme`]
-    pub fn f3(&self, deme1: usize, deme2: usize, deme3: usize) -> Result<f64, PopgenError> {
-        let a = self.f2(deme1, deme2)?;
-        let b = self.f2(deme1, deme3)?;
-        let c = self.f2(deme2, deme3)?;
+    /// * If any sample set index is out of range, return [`PopgenError::InvalidSampleSet`]
+    pub fn f3(
+        &self,
+        sample_set1: usize,
+        sample_set2: usize,
+        sample_set3: usize,
+    ) -> Result<f64, PopgenError> {
+        let a = self.f2(sample_set1, sample_set2)?;
+        let b = self.f2(sample_set1, sample_set3)?;
+        let c = self.f2(sample_set2, sample_set3)?;
         Ok((a + b - c) / 2.)
     }
 
-    /// Calculate F4(deme1, deme2; deme3, deme4).
-    /// The deme numbers must follow the indexes of demes used to create this type.
+    /// Calculate F4(sample_set1, sample_set2; sample_set3, sample_set4).
+    /// The sample set numbers must follow the indexes of sample sets used to create this type.
     ///
     /// We follow Equation 24b from
     /// [Peter, 2016](https://pubmed.ncbi.nlm.nih.gov/26857625/).
@@ -604,18 +611,18 @@ impl FStatistics {
     ///
     /// # Errors
     ///
-    /// * If any deme index is out of range, return [`PopgenError::InvalidDeme`]
+    /// * If any sample set index is out of range, return [`PopgenError::InvalidSampleSet`]
     pub fn f4(
         &self,
-        deme1: usize,
-        deme2: usize,
-        deme3: usize,
-        deme4: usize,
+        sample_set1: usize,
+        sample_set2: usize,
+        sample_set3: usize,
+        sample_set4: usize,
     ) -> Result<f64, PopgenError> {
-        let a = self.f2(deme1, deme4)?;
-        let b = self.f2(deme2, deme3)?;
-        let c = self.f2(deme1, deme3)?;
-        let d = self.f2(deme2, deme4)?;
+        let a = self.f2(sample_set1, sample_set4)?;
+        let b = self.f2(sample_set2, sample_set3)?;
+        let c = self.f2(sample_set1, sample_set3)?;
+        let d = self.f2(sample_set2, sample_set4)?;
         Ok((a + b - c - d) / 2.)
     }
 }
