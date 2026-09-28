@@ -28,6 +28,35 @@ fix(tskit): Fixed some bug
 
 A good way to learn our commit syntax is to read the commit log in addition to reading the URL given above.
 
+## What is a breaking change?
+
+In general, a breaking change is any change breaking the public API.
+This crate uses [semver checks](https://crates.io/crates/cargo-semver-checks) during CI to check for such changes.
+The semver checks tool is configured to only work on documented types and functions.
+Therefore, any API change to something documented is a breaking change.
+
+As developers, we need a way to release API features without strictly committing them to semantic versioning.
+The way to do this is not to document such features.
+When doing this, the new API elements **must** be decorated with `#[allow(missing_docs)]` (otherwise CI will fail).
+Futher, such elements *should* have a comment block that:
+
+* Provides minimal API documentation.
+  Use `//` syntax instead of `///` so that this documentation remains a comment block and is not interpreted as a docstring.
+* Contains a statement in the comment block that this feature is under development and may change in future releases.
+
+### Version numbering and breaking changes
+
+If CI fails because a PR contains a breaking change, **do not** bump the crate version number in that PR!
+Instead, submit a separate PR that **only** bumps the version, and explain why this is happening in PR comments.
+Once the version bump is merged, rebase the breaking PR.
+
+## Deprecating API features
+
+Deprecation can occur at any time.
+Well-configured projects using this crate will start to see linting failures due to using deprecated API elements and the developers of those projects will fix that.
+Removal of deprecated features should be coordinated with releases that include other breaking changes.
+In theory, with breaking changes being rare, this policy will result in minimal breakage for downstream projects.
+
 ## Releasing new versions
 
 The procedure is:
