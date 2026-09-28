@@ -1,7 +1,7 @@
 use crate::iter::{SampleAlleleCountsSampleSetIter, SampleAlleleCountsSiteIter};
 use crate::traits::TryReduce;
 #[cfg(feature = "tskit")]
-use crate::{from_tree_sequence, from_tskit::FromTreeSequenceOptions};
+use crate::{from_tree_sequence, FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
 use std::cmp::max;
 
