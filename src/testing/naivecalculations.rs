@@ -182,16 +182,20 @@ where
 // The implementation below is essentially re-testing that we are correctly calculating bits of Fst.
 // It may be useful to have and "f2_alt" approach based more explicitly on other way to write it
 // down?
-pub fn f2<Sites>(deme1: usize, deme2: usize, sample_sets: &mut dyn Iterator<Item = Sites>) -> f64
+pub fn f2<Sites>(
+    sample_set1: usize,
+    sample_set2: usize,
+    sample_sets: &mut dyn Iterator<Item = Sites>,
+) -> f64
 where
     Sites: IntoIterator<Item = Site>,
 {
     let freq_data: Vec<Vec<Site>> = sample_sets.map(|pop| pop.into_iter().collect()).collect();
-    let diversity_deme1 = diversity(freq_data[deme1].iter());
-    let diversity_deme2 = diversity(freq_data[deme2].iter());
+    let diversity_sample_set1 = diversity(freq_data[sample_set1].iter());
+    let diversity_sample_set2 = diversity(freq_data[sample_set2].iter());
     let divergence_ij = divergence_ij(
-        &mut freq_data[deme1].iter().cloned(),
-        &mut freq_data[deme2].iter().cloned(),
+        &mut freq_data[sample_set1].iter().cloned(),
+        &mut freq_data[sample_set2].iter().cloned(),
     );
-    divergence_ij - (diversity_deme1 + diversity_deme2) / 2.
+    divergence_ij - (diversity_sample_set1 + diversity_sample_set2) / 2.
 }

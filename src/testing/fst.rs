@@ -51,7 +51,7 @@ fn f_st() {
                     .as_raw())
             .abs()
                 < f64::EPSILON,
-            "pi_within is wrong for deme {p}"
+            "pi_within is wrong for sample set {p}"
         );
     }
 
@@ -122,11 +122,14 @@ fn f_st_skip_indices() {
 
     let f_st = FStatistics::try_from_sample_sets(&sample_sets, |i| weights[i]).unwrap();
     assert!(f_st.pi_within(0).is_ok());
-    assert!(matches!(f_st.pi_within(1), Err(PopgenError::InvalidDeme)));
+    assert!(matches!(
+        f_st.pi_within(1),
+        Err(PopgenError::InvalidSampleSet)
+    ));
     assert!(f_st.pi_within(2).is_ok());
 
     assert_eq!(f_st.f2(0, 2).unwrap(), f_st.f2(2, 0).unwrap());
-    assert!(matches!(f_st.f2(1, 2), Err(PopgenError::InvalidDeme)));
+    assert!(matches!(f_st.f2(1, 2), Err(PopgenError::InvalidSampleSet)));
 }
 
 #[test]
