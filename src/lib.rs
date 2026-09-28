@@ -28,11 +28,10 @@ pub type PopgenResult<T> = Result<T, PopgenError>;
 
 #[cfg(feature = "tskit")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-#[allow(missing_docs)]
-pub mod from_tskit {
-    pub use super::from_tree_sequence::FromTreeSequenceError;
-    pub use super::from_tree_sequence::FromTreeSequenceOptions;
-}
+pub use from_tree_sequence::FromTreeSequenceError;
+#[cfg(feature = "tskit")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
+pub use from_tree_sequence::FromTreeSequenceOptions;
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -43,10 +42,10 @@ pub enum PopgenError {
     #[cfg(feature = "noodles")]
     NoodlesVCF(std::io::Error),
     /// Errors from processing tree sequence input.
-    /// This variant wraps [`from_tskit::FromTreeSequenceError`]
+    /// This variant wraps [`FromTreeSequenceError`]
     #[cfg(feature = "tskit")]
     #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-    Tskit(crate::from_tskit::FromTreeSequenceError),
+    Tskit(from_tree_sequence::FromTreeSequenceError),
     /// Wraps [`std::io::Error`].
     Io(std::io::Error),
     /// Returned when [`Count`] values are invalid.
