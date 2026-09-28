@@ -1,6 +1,9 @@
+//! Adapter types for various input formats
+
 #[cfg(feature = "noodles")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
 pub mod vcf {
+    //! Helper functions for VCF record parsing using noodles.
     use crate::{AlleleID, Count, PopgenResult, SampleAlleleCounts};
     use noodles::vcf::variant::record::samples::keys::key;
     use noodles::vcf::variant::record::samples::series::Value;
@@ -10,6 +13,13 @@ pub mod vcf {
     use std::num::NonZeroI64;
     use std::ops::ControlFlow;
 
+    /// Process noodles input to a vector of [`Option`]al [`crate::AlleleID`]
+    ///
+    /// # Parameters
+    ///
+    /// * `header`: [`noodles::vcf::Header`]
+    /// * `record`: [`noodles::vcf::Record`]
+    /// * `ploidy`: the ploidy of the VCF records
     pub fn record_to_genotypes_adapter(
         header: &Header,
         record: &Record,
@@ -128,6 +138,7 @@ pub mod vcf {
             })
         }
 
+        /// Process a [`noodles::vcf::Record`] into allele count data.
         pub fn add_record(&mut self, record: &Record) -> PopgenResult<()> {
             let num_sample_sets = self.sample_sets.num_sample_sets();
 
@@ -186,6 +197,7 @@ pub mod vcf {
             Ok(())
         }
 
+        /// Consume `self`, returning [`crate::SampleAlleleCounts`]
         pub fn build(self) -> SampleAlleleCounts {
             self.sample_sets
         }

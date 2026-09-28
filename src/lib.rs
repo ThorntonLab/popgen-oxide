@@ -1,5 +1,8 @@
 #![deny(rustdoc::broken_intra_doc_links)]
+#![warn(missing_docs)]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
+
+//! Efficient types and interfaces for population genetics
 
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -10,6 +13,7 @@ mod counts;
 mod from_tree_sequence;
 pub mod iter;
 pub mod stats;
+#[allow(missing_docs)]
 pub mod traits;
 mod util;
 
@@ -18,10 +22,13 @@ mod testing;
 
 pub use counts::*;
 
+/// Type alias for a [`Result`] where the
+/// error type is [`PopgenError`]
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
 #[cfg(feature = "tskit")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
+#[allow(missing_docs)]
 pub mod from_tskit {
     pub use super::from_tree_sequence::FromTreeSequenceError;
     pub use super::from_tree_sequence::FromTreeSequenceOptions;
@@ -29,21 +36,36 @@ pub mod from_tskit {
 
 #[non_exhaustive]
 #[derive(Debug)]
+/// Error type
 pub enum PopgenError {
+    /// Errors arising from the noodles crate
     #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
     #[cfg(feature = "noodles")]
     NoodlesVCF(std::io::Error),
+    /// Errors from processing tree sequence input.
+    /// This variant wraps [`from_tskit::FromTreeSequenceError`]
     #[cfg(feature = "tskit")]
     #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
     Tskit(crate::from_tskit::FromTreeSequenceError),
+    /// Wraps [`std::io::Error`].
     Io(std::io::Error),
+    /// Returned when [`Count`] values are invalid.
     NegativeCount(Count),
+    /// When the sum of allele counts at a site is >
+    /// than the sample size (in genomes) at the same site.
     TotalAllelesDeficient,
+    /// When two slices are expected to be the same length but are not.
     MismatchedSliceLength,
+    /// When non-empty site count data structure are required.
     EmptySiteCounts,
+    /// When site count objects must contain the same number
+    /// of sample sets but do not.
     MismatchedSampleSetCount(usize, usize),
+    /// Catch-all for numeric errors
     CalculationError,
+    /// Invalid sample set identifier
     InvalidDeme,
+    /// General library error containing a string-like message.
     LibraryError(String),
 }
 
@@ -87,6 +109,9 @@ impl From<std::io::Error> for PopgenError {
     }
 }
 
+/// The index/identifier of an allele at a given site.
+/// This type is primarily used when reading input data,
+/// such as allele records from a VCF file, etc..
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AlleleID(usize);
 
