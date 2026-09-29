@@ -5,6 +5,62 @@ use crate::util::StrictlyLowerTriangular;
 use crate::{AlleleCounts, Count, PopgenError, PopgenResult, SampleAlleleCounts};
 use std::cmp::max;
 
+macro_rules! newtype_display {
+    ($stat: ty) => {
+        impl std::fmt::Display for $stat {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.0)
+            }
+        }
+    };
+}
+
+macro_rules! from_newtype {
+    ($stat: ty, $repr: ty) => {
+        impl From<$stat> for $repr {
+            fn from(value: $stat) -> Self {
+                value.0
+            }
+        }
+    };
+}
+
+macro_rules! newtype_partial_eq_partial_ord {
+    ($stat: ty, $repr: ty) => {
+        impl PartialEq<$repr> for $stat {
+            fn eq(&self, other: &$repr) -> bool {
+                self.0.eq(other)
+            }
+        }
+
+        impl PartialEq<$stat> for $repr {
+            fn eq(&self, other: &$stat) -> bool {
+                self.eq(&other.0)
+            }
+        }
+
+        impl PartialOrd<$repr> for $stat {
+            fn partial_cmp(&self, other: &$repr) -> Option<std::cmp::Ordering> {
+                self.0.partial_cmp(other)
+            }
+        }
+
+        impl PartialOrd<$stat> for $repr {
+            fn partial_cmp(&self, other: &$stat) -> Option<std::cmp::Ordering> {
+                self.partial_cmp(&other.0)
+            }
+        }
+    };
+}
+
+macro_rules! f64_stat_newtype_trait_impls {
+    ($stat: ty) => {
+        newtype_display!($stat);
+        from_newtype!($stat, f64);
+        newtype_partial_eq_partial_ord!($stat, f64);
+    };
+}
+
 /// A statistic calculable by iterating over variation at individual sites
 /// without needing to distinguish ancestral from derived allele states.
 pub trait UnpolarisedSiteStat {
@@ -93,57 +149,11 @@ pub trait StatRepresentation<'stat> {
 ///
 /// assert_eq!(Diversity::default().as_raw(), 0.0);
 /// ```
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct Diversity(f64);
 
-impl std::fmt::Display for Diversity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<Diversity> for f64 {
-    fn from(value: Diversity) -> Self {
-        value.0
-    }
-}
-
-impl PartialEq for Diversity {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
-    }
-}
-
-impl PartialEq<f64> for Diversity {
-    fn eq(&self, other: &f64) -> bool {
-        self.0.eq(other)
-    }
-}
-
-impl PartialEq<Diversity> for f64 {
-    fn eq(&self, other: &Diversity) -> bool {
-        self.eq(&other.0)
-    }
-}
-
-impl PartialOrd for Diversity {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl PartialOrd<f64> for Diversity {
-    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(other)
-    }
-}
-
-impl PartialOrd<Diversity> for f64 {
-    fn partial_cmp(&self, other: &Diversity) -> Option<std::cmp::Ordering> {
-        self.partial_cmp(&other.0)
-    }
-}
+f64_stat_newtype_trait_impls!(Diversity);
 
 impl UnpolarisedSiteStat for Diversity {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
@@ -205,57 +215,11 @@ impl<'statistic> StatRepresentation<'statistic> for Diversity {
 ///
 /// assert_eq!(WattersonsTheta::default().as_raw(), 0.0);
 /// ```
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct WattersonsTheta(f64);
 
-impl std::fmt::Display for WattersonsTheta {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<WattersonsTheta> for f64 {
-    fn from(value: WattersonsTheta) -> Self {
-        value.0
-    }
-}
-
-impl PartialEq for WattersonsTheta {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
-    }
-}
-
-impl PartialEq<f64> for WattersonsTheta {
-    fn eq(&self, other: &f64) -> bool {
-        self.0.eq(other)
-    }
-}
-
-impl PartialEq<WattersonsTheta> for f64 {
-    fn eq(&self, other: &WattersonsTheta) -> bool {
-        self.eq(&other.0)
-    }
-}
-
-impl PartialOrd for WattersonsTheta {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl PartialOrd<f64> for WattersonsTheta {
-    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(other)
-    }
-}
-
-impl PartialOrd<WattersonsTheta> for f64 {
-    fn partial_cmp(&self, other: &WattersonsTheta) -> Option<std::cmp::Ordering> {
-        self.partial_cmp(&other.0)
-    }
-}
+f64_stat_newtype_trait_impls!(WattersonsTheta);
 
 impl UnpolarisedSiteStat for WattersonsTheta {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
@@ -730,219 +694,35 @@ impl FStatistics {
 /// The mean number of pairwise differences between two sample sets.
 ///
 /// Values are obtained via [`FStatistics::pi_between`]
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct Divergence(f64);
 
-impl std::fmt::Display for Divergence {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<Divergence> for f64 {
-    fn from(value: Divergence) -> Self {
-        value.0
-    }
-}
-
-impl PartialEq for Divergence {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
-    }
-}
-
-impl PartialEq<f64> for Divergence {
-    fn eq(&self, other: &f64) -> bool {
-        self.0.eq(other)
-    }
-}
-
-impl PartialEq<Divergence> for f64 {
-    fn eq(&self, other: &Divergence) -> bool {
-        self.eq(&other.0)
-    }
-}
-
-impl PartialOrd for Divergence {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl PartialOrd<f64> for Divergence {
-    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(other)
-    }
-}
-
-impl PartialOrd<Divergence> for f64 {
-    fn partial_cmp(&self, other: &Divergence) -> Option<std::cmp::Ordering> {
-        self.partial_cmp(&other.0)
-    }
-}
+f64_stat_newtype_trait_impls!(Divergence);
 
 /// The F2 statistic
 ///
 /// Values are obtained via [`FStatistics::f2`]
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct F2(f64);
 
-impl std::fmt::Display for F2 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<F2> for f64 {
-    fn from(value: F2) -> Self {
-        value.0
-    }
-}
-
-impl PartialEq for F2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
-    }
-}
-
-impl PartialEq<f64> for F2 {
-    fn eq(&self, other: &f64) -> bool {
-        self.0.eq(other)
-    }
-}
-
-impl PartialEq<F2> for f64 {
-    fn eq(&self, other: &F2) -> bool {
-        self.eq(&other.0)
-    }
-}
-
-impl PartialOrd for F2 {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl PartialOrd<f64> for F2 {
-    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(other)
-    }
-}
-
-impl PartialOrd<F2> for f64 {
-    fn partial_cmp(&self, other: &F2) -> Option<std::cmp::Ordering> {
-        self.partial_cmp(&other.0)
-    }
-}
+f64_stat_newtype_trait_impls!(F2);
 
 /// The F3 statistic
 ///
 /// Values are obtained via [`FStatistics::f3`]
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct F3(f64);
 
-impl std::fmt::Display for F3 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<F3> for f64 {
-    fn from(value: F3) -> Self {
-        value.0
-    }
-}
-
-impl PartialEq for F3 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
-    }
-}
-
-impl PartialEq<f64> for F3 {
-    fn eq(&self, other: &f64) -> bool {
-        self.0.eq(other)
-    }
-}
-
-impl PartialEq<F3> for f64 {
-    fn eq(&self, other: &F3) -> bool {
-        self.eq(&other.0)
-    }
-}
-
-impl PartialOrd for F3 {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl PartialOrd<f64> for F3 {
-    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(other)
-    }
-}
-
-impl PartialOrd<F3> for f64 {
-    fn partial_cmp(&self, other: &F3) -> Option<std::cmp::Ordering> {
-        self.partial_cmp(&other.0)
-    }
-}
+f64_stat_newtype_trait_impls!(F3);
 
 /// The F4 statistic
 ///
 /// Values are obtained via [`FStatistics::f4`]
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct F4(f64);
 
-impl std::fmt::Display for F4 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<F4> for f64 {
-    fn from(value: F4) -> Self {
-        value.0
-    }
-}
-
-impl PartialEq for F4 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
-    }
-}
-
-impl PartialEq<f64> for F4 {
-    fn eq(&self, other: &f64) -> bool {
-        self.0.eq(other)
-    }
-}
-
-impl PartialEq<F4> for f64 {
-    fn eq(&self, other: &F4) -> bool {
-        self.eq(&other.0)
-    }
-}
-
-impl PartialOrd for F4 {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl PartialOrd<f64> for F4 {
-    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(other)
-    }
-}
-
-impl PartialOrd<F4> for f64 {
-    fn partial_cmp(&self, other: &F4) -> Option<std::cmp::Ordering> {
-        self.partial_cmp(&other.0)
-    }
-}
+f64_stat_newtype_trait_impls!(F4);
