@@ -1,7 +1,7 @@
 //! Example of concurrent computation enabled by the `TryReduce` trait.
 
 use noodles::vcf;
-use popgen::adapter::vcf::record_to_genotypes_adapter;
+use popgen::adapter::noodles_vcf::record_to_genotypes_adapter;
 use popgen::stats::{Diversity, UnpolarisedSiteStat};
 use popgen::traits::TryReduce;
 use popgen::{PopgenError, SampleAlleleCounts};

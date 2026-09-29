@@ -1,4 +1,4 @@
-use crate::adapter::vcf::{record_to_genotypes_adapter, VCFToSampleSetAdapter};
+use crate::adapter::noodles_vcf::{record_to_genotypes_adapter, VCFToSampleSetAdapter};
 use crate::counts::SampleAlleleCounts;
 use crate::{AlleleID, PopgenResult};
 use noodles::vcf::header::record::value::map::{Contig, Format};

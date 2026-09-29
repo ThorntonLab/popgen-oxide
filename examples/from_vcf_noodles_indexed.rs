@@ -1,5 +1,5 @@
 use noodles::core::{Position, Region};
-use popgen::adapter::vcf::record_to_genotypes_adapter;
+use popgen::adapter::noodles_vcf::record_to_genotypes_adapter;
 use popgen::SampleAlleleCounts;
 use std::io::Write;
 

@@ -2,7 +2,7 @@
 
 #[cfg(feature = "noodles")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
-pub mod vcf {
+pub mod noodles_vcf {
     //! Helper functions for VCF record parsing using noodles.
     use crate::{AlleleID, Count, PopgenResult, SampleAlleleCounts};
     use noodles::vcf::variant::record::samples::keys::key;
