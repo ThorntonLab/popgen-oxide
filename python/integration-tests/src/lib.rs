@@ -20,16 +20,16 @@ struct Fstatistics {
 #[pymethods]
 impl Fstatistics {
     pub fn f2(&self, set1: usize, set2: usize) -> PyResult<f64> {
-        let f2 = self.fstats.f2(set1, set2).unwrap();
+        let f2 = self.fstats.f2(set1, set2).unwrap().into();
         Ok(f2)
     }
 
     pub fn diversity(&self, set: usize) -> PyResult<f64> {
-        Ok(self.fstats.pi_within(set).unwrap())
+        Ok(self.fstats.pi_within(set).unwrap().into())
     }
 
     pub fn divergence(&self, set1: usize, set2: usize) -> PyResult<f64> {
-        Ok(self.fstats.pi_between(set1, set2).unwrap())
+        Ok(self.fstats.pi_between(set1, set2).unwrap().into())
     }
 }
 

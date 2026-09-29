@@ -620,10 +620,12 @@ impl FStatistics {
     /// # Errors
     ///
     //// * If `sample_set` is out of range, return [`PopgenError::InvalidSampleSet`]
-    pub fn pi_within(&self, sample_set: usize) -> PopgenResult<f64> {
-        Ok(self.diversity_within[self
-            .internal_index_for(sample_set)
-            .ok_or(PopgenError::InvalidSampleSet)?])
+    pub fn pi_within(&self, sample_set: usize) -> PopgenResult<Diversity> {
+        Ok(Diversity(
+            self.diversity_within[self
+                .internal_index_for(sample_set)
+                .ok_or(PopgenError::InvalidSampleSet)?],
+        ))
     }
 
     /// Get the [`Diversity`] of these two sample sets, comparing a sample from one against a sample from the other.
@@ -632,12 +634,14 @@ impl FStatistics {
     /// # Errors
     ///
     /// * If `sample_set1` or `sample_set2` is out of range, return [`PopgenError::InvalidSampleSet`]
-    pub fn pi_between(&self, sample_set1: usize, sample_set2: usize) -> PopgenResult<f64> {
-        Ok(*self.divergence_between.get(
-            self.internal_index_for(sample_set1)
-                .ok_or(PopgenError::InvalidSampleSet)?,
-            self.internal_index_for(sample_set2)
-                .ok_or(PopgenError::InvalidSampleSet)?,
+    pub fn pi_between(&self, sample_set1: usize, sample_set2: usize) -> PopgenResult<Divergence> {
+        Ok(Divergence(
+            *self.divergence_between.get(
+                self.internal_index_for(sample_set1)
+                    .ok_or(PopgenError::InvalidSampleSet)?,
+                self.internal_index_for(sample_set2)
+                    .ok_or(PopgenError::InvalidSampleSet)?,
+            ),
         ))
     }
 
@@ -650,7 +654,7 @@ impl FStatistics {
     /// # Errors
     ///
     /// * If `sample_set1` or `sample_set2` is out of range, return [`PopgenError::InvalidSampleSet`]
-    pub fn f2(&self, sample_set1: usize, sample_set2: usize) -> Result<f64, PopgenError> {
+    pub fn f2(&self, sample_set1: usize, sample_set2: usize) -> Result<F2, PopgenError> {
         let sample_set1_internal = self
             .internal_index_for(sample_set1)
             .ok_or(PopgenError::InvalidSampleSet)?;
@@ -669,7 +673,7 @@ impl FStatistics {
             .diversity_within
             .get(sample_set2_internal)
             .ok_or(PopgenError::InvalidSampleSet)?;
-        Ok(divergence_12 - (diversity_11 + diversity_22) / 2.)
+        Ok(F2(divergence_12 - (diversity_11 + diversity_22) / 2.))
     }
 
     /// Calculate F3(sample_set1; sample_set2, sample_set3).
@@ -690,11 +694,11 @@ impl FStatistics {
         sample_set1: usize,
         sample_set2: usize,
         sample_set3: usize,
-    ) -> Result<f64, PopgenError> {
-        let a = self.f2(sample_set1, sample_set2)?;
-        let b = self.f2(sample_set1, sample_set3)?;
-        let c = self.f2(sample_set2, sample_set3)?;
-        Ok((a + b - c) / 2.)
+    ) -> Result<F3, PopgenError> {
+        let a = f64::from(self.f2(sample_set1, sample_set2)?);
+        let b = f64::from(self.f2(sample_set1, sample_set3)?);
+        let c = f64::from(self.f2(sample_set2, sample_set3)?);
+        Ok(F3((a + b - c) / 2.))
     }
 
     /// Calculate F4(sample_set1, sample_set2; sample_set3, sample_set4).
@@ -714,11 +718,231 @@ impl FStatistics {
         sample_set2: usize,
         sample_set3: usize,
         sample_set4: usize,
-    ) -> Result<f64, PopgenError> {
-        let a = self.f2(sample_set1, sample_set4)?;
-        let b = self.f2(sample_set2, sample_set3)?;
-        let c = self.f2(sample_set1, sample_set3)?;
-        let d = self.f2(sample_set2, sample_set4)?;
-        Ok((a + b - c - d) / 2.)
+    ) -> Result<F4, PopgenError> {
+        let a = f64::from(self.f2(sample_set1, sample_set4)?);
+        let b = f64::from(self.f2(sample_set2, sample_set3)?);
+        let c = f64::from(self.f2(sample_set1, sample_set3)?);
+        let d = f64::from(self.f2(sample_set2, sample_set4)?);
+        Ok(F4((a + b - c - d) / 2.))
+    }
+}
+
+/// The mean number of pairwise differences between two sample sets.
+///
+/// Values are obtained via [`FStatistics::pi_between`]
+#[derive(Debug, Copy, Clone, Default)]
+#[repr(transparent)]
+pub struct Divergence(f64);
+
+impl std::fmt::Display for Divergence {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<Divergence> for f64 {
+    fn from(value: Divergence) -> Self {
+        value.0
+    }
+}
+
+impl PartialEq for Divergence {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl PartialEq<f64> for Divergence {
+    fn eq(&self, other: &f64) -> bool {
+        self.0.eq(other)
+    }
+}
+
+impl PartialEq<Divergence> for f64 {
+    fn eq(&self, other: &Divergence) -> bool {
+        self.eq(&other.0)
+    }
+}
+
+impl PartialOrd for Divergence {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl PartialOrd<f64> for Divergence {
+    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
+    }
+}
+
+impl PartialOrd<Divergence> for f64 {
+    fn partial_cmp(&self, other: &Divergence) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(&other.0)
+    }
+}
+
+/// The F2 statistic
+///
+/// Values are obtained via [`FStatistics::f2`]
+#[derive(Debug, Copy, Clone, Default)]
+#[repr(transparent)]
+pub struct F2(f64);
+
+impl std::fmt::Display for F2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<F2> for f64 {
+    fn from(value: F2) -> Self {
+        value.0
+    }
+}
+
+impl PartialEq for F2 {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl PartialEq<f64> for F2 {
+    fn eq(&self, other: &f64) -> bool {
+        self.0.eq(other)
+    }
+}
+
+impl PartialEq<F2> for f64 {
+    fn eq(&self, other: &F2) -> bool {
+        self.eq(&other.0)
+    }
+}
+
+impl PartialOrd for F2 {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl PartialOrd<f64> for F2 {
+    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
+    }
+}
+
+impl PartialOrd<F2> for f64 {
+    fn partial_cmp(&self, other: &F2) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(&other.0)
+    }
+}
+
+/// The F3 statistic
+///
+/// Values are obtained via [`FStatistics::f3`]
+#[derive(Debug, Copy, Clone, Default)]
+#[repr(transparent)]
+pub struct F3(f64);
+
+impl std::fmt::Display for F3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<F3> for f64 {
+    fn from(value: F3) -> Self {
+        value.0
+    }
+}
+
+impl PartialEq for F3 {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl PartialEq<f64> for F3 {
+    fn eq(&self, other: &f64) -> bool {
+        self.0.eq(other)
+    }
+}
+
+impl PartialEq<F3> for f64 {
+    fn eq(&self, other: &F3) -> bool {
+        self.eq(&other.0)
+    }
+}
+
+impl PartialOrd for F3 {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl PartialOrd<f64> for F3 {
+    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
+    }
+}
+
+impl PartialOrd<F3> for f64 {
+    fn partial_cmp(&self, other: &F3) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(&other.0)
+    }
+}
+
+/// The F4 statistic
+///
+/// Values are obtained via [`FStatistics::f4`]
+#[derive(Debug, Copy, Clone, Default)]
+#[repr(transparent)]
+pub struct F4(f64);
+
+impl std::fmt::Display for F4 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<F4> for f64 {
+    fn from(value: F4) -> Self {
+        value.0
+    }
+}
+
+impl PartialEq for F4 {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl PartialEq<f64> for F4 {
+    fn eq(&self, other: &f64) -> bool {
+        self.0.eq(other)
+    }
+}
+
+impl PartialEq<F4> for f64 {
+    fn eq(&self, other: &F4) -> bool {
+        self.eq(&other.0)
+    }
+}
+
+impl PartialOrd for F4 {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl PartialOrd<f64> for F4 {
+    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
+    }
+}
+
+impl PartialOrd<F4> for f64 {
+    fn partial_cmp(&self, other: &F4) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(&other.0)
     }
 }

@@ -45,7 +45,7 @@ fn f_st() {
 
     for p in 0..sample_sets.num_sample_sets() {
         assert!(
-            (f_st.pi_within(p).unwrap()
+            (f_st.pi_within(p).unwrap().as_raw()
                 - Diversity::try_from_iter_sites(sample_sets.iter_sample_set(p).unwrap())
                     .unwrap()
                     .as_raw())
@@ -204,7 +204,10 @@ fn f_st_from_random_data() {
                     let naivef2 =
                         crate::testing::naivecalculations::f2(i, j, &mut pops.iter().cloned());
                     let f2 = f_st_from_counts.f2(i, j).unwrap();
-                    assert!((naivef2 - f2).abs() < 1e-6, "{i} {j}: {naivef2} != {f2}");
+                    assert!(
+                        (naivef2 - f64::from(f2)).abs() < 1e-6,
+                        "{i} {j}: {naivef2} != {f2}"
+                    );
                 }
             }
         }
