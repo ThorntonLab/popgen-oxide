@@ -199,6 +199,33 @@ fn f_st_from_random_data() {
             assert!((1.0 - (f_st_from_counts.pi_t() / pi_total_naive)).abs() < 0.00001);
             assert!((1.0 - (f_st_from_counts.pi_s().unwrap() / pi_self_naive)).abs() < 0.00001);
             assert!((1.0 - (f_st_from_counts.pi_b().unwrap() / pi_between_naive)).abs() < 0.00001);
+            // Add tests on absolute diffs, which should be approx machine precision
+            assert!((pi_self_naive - f_st_from_counts.pi_s().unwrap()).abs() <= 1e-8);
+            assert!((pi_between_naive - f_st_from_counts.pi_b().unwrap()).abs() <= 1e-8);
+            assert!((pi_total_naive - f_st_from_counts.pi_t()).abs() <= 1e-8);
+            // Charlesworth 1998, eq 3a, pi_d/(pi_s + pi_d)
+            // pi_d =  pi_b - pi_s
+            let pi_d_naive = pi_between_naive - pi_self_naive;
+            let weir_cockerham_naive = pi_d_naive / (pi_self_naive + pi_d_naive);
+            assert!(
+                (weir_cockerham_naive - f64::from(f_st_from_counts.weir_cockerham().unwrap())).abs()
+                    <= 1e-8,
+                "{weir_cockerham_naive} !~ {} | pi_s: naive = {}, api = {}, pi_b: naive = {}, api = {}",
+                f_st_from_counts.weir_cockerham().unwrap(),
+                pi_self_naive,
+                f_st_from_counts.pi_s().unwrap(),
+                pi_between_naive,
+                f_st_from_counts.pi_b().unwrap(),
+            );
+            // Equation 3b from Charlesworth
+            let slatkin_naive = pi_d_naive / (pi_self_naive + pi_between_naive);
+            assert!((slatkin_naive - f64::from(f_st_from_counts.slatkin().unwrap())).abs() <= 1e-8);
+            // Equation 3c from Charlesworth
+            let hbk_naive = (pi_total_naive - pi_self_naive) / pi_total_naive;
+            assert!(
+                (hbk_naive - f64::from(f_st_from_counts.hudson_boos_kaplan().unwrap())).abs()
+                    <= 1e-8
+            );
             for i in 0..n_pops {
                 for j in i + 1..n_pops {
                     let naivef2 =
