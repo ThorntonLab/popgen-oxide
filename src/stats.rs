@@ -554,7 +554,10 @@ impl FStatistics {
         // eqn 3a
         self.pi_d()
             .zip(self.pi_s())
-            .map(|(d, s)| d / (s + d))
+            .map(|(d, s)| {
+                println!("{d} {s}");
+                d / (s + d)
+            })
             .map(WeirCockerhamFst)
     }
 
