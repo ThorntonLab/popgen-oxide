@@ -809,6 +809,18 @@ where
     Ok(counts)
 }
 
+pub fn try_multi_sample_set_from_tree_sequence<'ts, Outer, Inner>(
+    ts: &'ts tskit::TreeSequence,
+    samples: Outer,
+    options: Option<FromTreeSequenceOptions>,
+) -> Result<crate::SampleAlleleCounts, FromTreeSequenceError>
+where
+    Outer: Iterator<Item = Inner>,
+    Inner: Iterator<Item = tskit::NodeId>,
+{
+    try_from_tree_sequence_multi_with_site_iter(ts, samples, ts.site_iter(), options)
+}
+
 pub fn try_from_tree_sequence_multi_with_site_iter<'ts, Outer, Inner, S>(
     ts: &'ts tskit::TreeSequence,
     samples: Outer,
