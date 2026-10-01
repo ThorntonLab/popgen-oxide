@@ -77,7 +77,33 @@ pub mod single_sample_set {
     }
 }
 
-pub mod multiple_sample_sets {}
+pub mod multiple_sample_sets {
+    pub fn try_get_allele_counts<'ts, Outer, Inner>(
+        ts: &'ts tskit::TreeSequence,
+        samples: Outer,
+        options: Option<super::FromTreeSequenceOptions>,
+    ) -> Result<popgen::SampleAlleleCounts, super::FromTreeSequenceError>
+    where
+        Outer: Iterator<Item = Inner>,
+        Inner: Iterator<Item = tskit::NodeId>,
+    {
+        super::try_multi_sample_set_from_tree_sequence(ts, samples, options)
+    }
+
+    pub fn try_get_allele_counts_with_site_iter<'ts, Outer, Inner, S>(
+        ts: &'ts tskit::TreeSequence,
+        samples: Outer,
+        sites: S,
+        options: Option<super::FromTreeSequenceOptions>,
+    ) -> Result<crate::SampleAlleleCounts, super::FromTreeSequenceError>
+    where
+        Outer: Iterator<Item = Inner>,
+        Inner: Iterator<Item = tskit::NodeId>,
+        S: Iterator<Item = tskit::SiteRef<'ts>>,
+    {
+        super::try_from_tree_sequence_multi_with_site_iter(ts, samples, sites, options)
+    }
+}
 
 impl std::fmt::Display for FromTreeSequenceError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -855,7 +881,7 @@ where
     Ok(counts)
 }
 
-pub fn try_multi_sample_set_from_tree_sequence<'ts, Outer, Inner>(
+fn try_multi_sample_set_from_tree_sequence<'ts, Outer, Inner>(
     ts: &'ts tskit::TreeSequence,
     samples: Outer,
     options: Option<FromTreeSequenceOptions>,
@@ -867,7 +893,7 @@ where
     try_from_tree_sequence_multi_with_site_iter(ts, samples, ts.site_iter(), options)
 }
 
-pub fn try_from_tree_sequence_multi_with_site_iter<'ts, Outer, Inner, S>(
+fn try_from_tree_sequence_multi_with_site_iter<'ts, Outer, Inner, S>(
     ts: &'ts tskit::TreeSequence,
     samples: Outer,
     sites: S,
