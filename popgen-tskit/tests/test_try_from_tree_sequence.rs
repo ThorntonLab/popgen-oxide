@@ -961,7 +961,7 @@ fn test_7_site_iter() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    let counts = popgen_tskit::try_from_tree_sequence_site_iter(
+    let counts = popgen_tskit::try_from_tree_sequence_with_site_iter(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -1124,7 +1124,7 @@ fn test_7_site_iter_reversed() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    assert!(popgen_tskit::try_from_tree_sequence_site_iter(
+    assert!(popgen_tskit::try_from_tree_sequence_with_site_iter(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -1282,7 +1282,7 @@ fn test_13() {
 }
 
 #[cfg(test)]
-fn extract_subsample(data: &popgen_tskit, sample: usize) -> Vec<AlleleCounts<'_>> {
+fn extract_subsample(data: &popgen::SampleAlleleCounts, sample: usize) -> Vec<AlleleCounts<'_>> {
     // We need to filter out sites that are monomorphic in
     // the focal sample set
     data.iter_sample_set(sample)
@@ -1448,7 +1448,7 @@ mod with_ancient_samples {
             ],
         );
 
-        let counts = popgen_tskit::try_from_tree_sequence_site_iter(
+        let counts = popgen_tskit::try_from_tree_sequence_with_site_iter(
             &ts,
             ts.node_iter()
                 .filter(|n| n.flags().is_sample())
