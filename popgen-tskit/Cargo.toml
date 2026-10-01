@@ -12,3 +12,5 @@ popgen = { version = "0.10.0-alpha.0", path = "../popgen" }
 tskit2tskit = { version = "0.1.0-alpha.0", git = "https://github.com/molpopgen/tskit2tskit", branch = "main"}
 tskit = { workspace = true }
 
+[[example]]
+name = "from_tskit"

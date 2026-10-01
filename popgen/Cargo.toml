@@ -39,7 +39,3 @@ required-features = ["noodles"]
 
 [[example]]
 name = "from_vcf_htslib"
-
-[[example]]
-name = "from_tskit"
-required-features = ["tskit"]
