@@ -1,7 +1,7 @@
-use crate::{Count, PopgenError, PopgenResult, SampleAlleleCounts};
+use popgen::{Count, SampleAlleleCounts};
 
 /// Options affecting the behavior of
-/// [crate::SampleAlleleCounts::try_from_tree_sequence]
+/// [`crate::try_from_tree_sequence`]
 #[derive(Debug, Default)]
 pub struct FromTreeSequenceOptions {}
 
@@ -29,12 +29,8 @@ pub enum FromTreeSequenceError {
     /// is not a proper interval,
     /// or if it overlaps with another window
     InvalidWindow((tskit::Position, tskit::Position)),
-}
-
-impl From<FromTreeSequenceError> for PopgenError {
-    fn from(e: FromTreeSequenceError) -> Self {
-        Self::Tskit(e)
-    }
+    /// Contains [`popgen::PopgenError`]
+    Popgen(popgen::PopgenError),
 }
 
 impl std::fmt::Display for FromTreeSequenceError {
@@ -59,7 +55,16 @@ impl std::fmt::Display for FromTreeSequenceError {
             FromTreeSequenceError::InvalidWindow(w) => {
                 write!(f, "invalid window: {w:?}")
             }
+            FromTreeSequenceError::Popgen(e) => {
+                write!(f, "{e:?}")
+            }
         }
+    }
+}
+
+impl From<popgen::PopgenError> for FromTreeSequenceError {
+    fn from(value: popgen::PopgenError) -> Self {
+        Self::Popgen(value)
     }
 }
 
@@ -168,7 +173,7 @@ fn setup_samples_from_node_ids<I>(
     num_nodes: usize,
     iter: I,
     td: &mut TreeData,
-) -> Result<i32, crate::PopgenError>
+) -> Result<i32, FromTreeSequenceError>
 where
     I: Iterator<Item = tskit::NodeId>,
 {
@@ -195,7 +200,7 @@ where
 fn setup_samples<N>(
     ts: &tskit::TreeSequence,
     samples: N,
-) -> Result<(TreeData, i32), crate::PopgenError>
+) -> Result<(TreeData, i32), FromTreeSequenceError>
 where
     N: Iterator<Item = tskit::NodeId>,
 {
@@ -208,7 +213,7 @@ where
 fn setup_multi_sample_sets<Outer, Inner>(
     ts: &tskit::TreeSequence,
     samples: Outer,
-) -> Result<Vec<(TreeData, i32)>, crate::PopgenError>
+) -> Result<Vec<(TreeData, i32)>, FromTreeSequenceError>
 where
     Outer: Iterator<Item = Inner>,
     Inner: Iterator<Item = tskit::NodeId>,
@@ -247,7 +252,7 @@ trait SampleSets<'s> {
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a;
@@ -256,12 +261,12 @@ trait SampleSets<'s> {
         ts: &'ts tskit::TreeSequence,
         mutation_parent: &'a M,
         mutation: tskit::MutationRef<'a>,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a,
         M: tskit::TableColumn<tskit::MutationId, tskit::MutationId>;
-    fn update_allele_counts(&mut self) -> PopgenResult<()>;
+    fn update_allele_counts(&mut self) -> Result<(), FromTreeSequenceError>;
     fn output(self) -> Self::Output;
 }
 
@@ -269,7 +274,7 @@ fn setup_alleles_at_site<'ts, 'a>(
     ts: &'ts tskit::TreeSequence,
     site: tskit::SiteId,
     alleles_at_site: &mut Vec<&'a [u8]>,
-) -> PopgenResult<()>
+) -> Result<(), FromTreeSequenceError>
 where
     'ts: 'a,
 {
@@ -304,7 +309,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         ts: &'ts tskit::TreeSequence,
         mutation_parent: &'a M,
         mutation: tskit::MutationRef<'a>,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a,
@@ -340,7 +345,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         Ok(())
     }
 
-    fn update_allele_counts(&mut self) -> PopgenResult<()> {
+    fn update_allele_counts(&mut self) -> Result<(), FromTreeSequenceError> {
         self.allele_counts[0] =
             // TODO: we should simply sum the desired quantity as we go along,
             // eliminating the need for an iteration here.
@@ -364,7 +369,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a,
@@ -398,7 +403,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         ts: &'ts tskit::TreeSequence,
         mutation_parent: &'a M,
         mutation: tskit::MutationRef<'a>,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a,
@@ -448,7 +453,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         Ok(())
     }
 
-    fn update_allele_counts(&mut self) -> PopgenResult<()> {
+    fn update_allele_counts(&mut self) -> Result<(), FromTreeSequenceError> {
         self.num_sampled_genomes
             .iter()
             .enumerate()
@@ -487,7 +492,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a,
@@ -507,7 +512,7 @@ fn try_from_tree_sequence_details<'s, S, I>(
     options: Option<FromTreeSequenceOptions>,
     site_iter: I, // NOTE: this iterator must iterate in order of INCREASING site position!
     sample_sets: S,
-) -> PopgenResult<S::Output>
+) -> Result<S::Output, FromTreeSequenceError>
 where
     S: SampleSets<'s>,
     I: Iterator<Item = tskit::SiteRef<'s>>,
@@ -589,7 +594,7 @@ pub fn try_from_tree_sequence_with_site_iter<'ts, N, S>(
     samples: N,
     sites: S,
     options: Option<FromTreeSequenceOptions>,
-) -> PopgenResult<SampleAlleleCounts>
+) -> Result<SampleAlleleCounts, FromTreeSequenceError>
 where
     N: Iterator<Item = tskit::NodeId>,
     S: Iterator<Item = tskit::SiteRef<'ts>>,
@@ -614,7 +619,7 @@ pub fn try_from_tree_sequence_windows<'ts, N, W, P>(
     samples: N,
     windows: W,
     options: Option<FromTreeSequenceOptions>,
-) -> Result<Vec<SampleAlleleCounts>, PopgenError>
+) -> Result<Vec<SampleAlleleCounts>, FromTreeSequenceError>
 where
     N: Iterator<Item = tskit::NodeId>,
     W: Iterator<Item = (P, P)>,
@@ -798,7 +803,7 @@ pub fn try_from_tree_sequence_multi_with_site_iter<'ts, Outer, Inner, S>(
     samples: Outer,
     sites: S,
     options: Option<FromTreeSequenceOptions>,
-) -> Result<crate::SampleAlleleCounts, PopgenError>
+) -> Result<crate::SampleAlleleCounts, FromTreeSequenceError>
 where
     Outer: Iterator<Item = Inner>,
     Inner: Iterator<Item = tskit::NodeId>,

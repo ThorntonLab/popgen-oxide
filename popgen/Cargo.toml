@@ -10,11 +10,9 @@ repository = "https://github.com/ThorntonLab/popgen-oxide"
 
 [features]
 noodles = ["dep:noodles"]
-tskit = ["dep:tskit"]
 
 [dependencies]
 noodles = { version = ">=0.109.0", features = ["vcf"], optional = true }
-tskit = { workspace = true, optional = true, features = ["bindings"] }
 
 [dev-dependencies]
 rand = { workspace = true }
