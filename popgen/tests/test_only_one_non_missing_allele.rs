@@ -67,11 +67,11 @@ fn thetaw() {
 fn tajd() {
     let counts = make_data_one_site();
     assert!(matches!(
-        popgen::stats::TajimasD::try_from_iter_sites(counts.iter_sample_set(0).unwrap()),
+        popgen::stats::TajimasDBuilder::try_from_iter_sites(counts.iter_sample_set(0).unwrap()),
         Err(popgen::PopgenError::CalculationError)
     ));
     assert!(matches!(
-        popgen::stats::TajimasD::try_from_iter_sites(
+        popgen::stats::TajimasDBuilder::try_from_iter_sites(
             counts.iter_sample_set(0).unwrap().filter(|ac| ac
                 .counts()
                 .iter()

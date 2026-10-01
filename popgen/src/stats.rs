@@ -280,15 +280,19 @@ impl TryReduce for WattersonsTheta {
 /// Users should only use the [`Default`] implementation if they plan to do updates after construction, or to impute a value in response to [`PopgenError::EmptySiteCounts`].
 ///
 /// Tajima's D is derived from [`Diversity`] and [`WattersonsTheta`], and [`Diversity`] is not defined over an empty dataset, so the default value is not meaningful.
+///
+/// This type deliberately does not implement [`StatRepresentation`], because it does not store a final scalar value.
+/// This is why it is referred to as a builder.
+/// The scalar value can be computed on demand using [`Self::build`].
 #[derive(Debug, Copy, Clone, Default)]
-pub struct TajimasD {
+pub struct TajimasDBuilder {
     k_hat: Diversity,
     theta: WattersonsTheta,
     num_samples: usize,
     num_sites: usize,
 }
 
-impl UnpolarisedSiteStat for TajimasD {
+impl UnpolarisedSiteStat for TajimasDBuilder {
     fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
         self.k_hat.try_add_site(site.clone())?;
@@ -301,9 +305,9 @@ impl UnpolarisedSiteStat for TajimasD {
     }
 }
 
-impl<'statistic> StatRepresentation<'statistic> for TajimasD {
-    type Output = f64;
-    fn as_raw(&'statistic self) -> Self::Output {
+impl TajimasDBuilder {
+    /// Compute a scalar value from this type, returning a frozen, non-updatable [`TajimasD`].
+    pub fn build(&self) -> TajimasD {
         // we are going to stick as closely as feasible to the exact nomenclature of the paper
 
         let n = self.num_samples;
@@ -337,18 +341,37 @@ impl<'statistic> StatRepresentation<'statistic> for TajimasD {
         let S = self.num_sites as f64;
 
         let denom = e_1 * S + e_2 * S * (S - 1.);
-        if denom > 0. {
+        TajimasD(if denom > 0. {
             // eqn 38
             d / denom.sqrt()
         } else {
             // We return not-a-number instead of inf
             // when the denominator is invalid.
             f64::NAN
-        }
+        })
     }
 }
 
-impl TryReduce for TajimasD
+/// A computed, finalized value of Tajima's D.
+/// See [`TajimasDBuilder`] for information about this statistic.
+///
+/// This type only stores a scalar value.
+/// That means that this type cannot be updated (that is, it is not [`UnpolarisedSiteStat`]).
+/// However, unlike the parent type [`TajimasDBuilder`], this type _does_ implement [`StatRepresentation`].
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct TajimasD(f64);
+f64_stat_newtype_trait_impls!(TajimasD);
+
+impl<'statistic> StatRepresentation<'statistic> for TajimasD {
+    type Output = f64;
+
+    fn as_raw(&'statistic self) -> Self::Output {
+        self.0
+    }
+}
+
+impl TryReduce for TajimasDBuilder
 where
     Diversity: TryReduce,
     WattersonsTheta: TryReduce,
