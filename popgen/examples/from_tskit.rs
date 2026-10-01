@@ -1,3 +1,5 @@
+//! Example reading data in from tree sequences
+
 use popgen::SampleAlleleCounts;
 
 fn process_nodes_from_ts(ts: &tskit::TreeSequence) {

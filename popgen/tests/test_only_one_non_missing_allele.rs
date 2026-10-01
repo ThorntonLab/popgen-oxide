@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use popgen::stats::StatRepresentation;
 use popgen::stats::UnpolarisedSiteStat;
 

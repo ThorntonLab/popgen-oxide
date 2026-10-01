@@ -1,3 +1,5 @@
+//! Example using noodles VCF record adapter with a bgzf index file
+
 use noodles::core::{Position, Region};
 use popgen::adapter::noodles_vcf::record_to_genotypes_adapter;
 use popgen::SampleAlleleCounts;
