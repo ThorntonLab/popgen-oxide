@@ -1,6 +1,5 @@
-#[cfg(test)]
-use crate::counts::AlleleCounts;
-use crate::Count;
+use popgen::AlleleCounts;
+use popgen::Count;
 use tskit::prelude::StreamingIterator;
 
 #[cfg(test)]
@@ -62,7 +61,7 @@ struct SiteCountContents {
 }
 
 #[cfg(test)]
-fn validate_site_counts(counts: &crate::counts::AlleleCounts, expected: &SiteCountContents) {
+fn validate_site_counts(counts: &AlleleCounts, expected: &SiteCountContents) {
     let num_alleles = expected
         .derived
         .iter()
@@ -616,7 +615,7 @@ where
 {
     let samples = options.collect::<Vec<_>>();
     let counts =
-        crate::SampleAlleleCounts::try_from_tree_sequence(ts, samples.iter().cloned(), None)
+        popgen::SampleAlleleCounts::try_from_tree_sequence(ts, samples.iter().cloned(), None)
             .unwrap();
     assert_eq!(counts.num_sample_sets(), 1);
     // Instead of relying on the internal node sample-ness status,
