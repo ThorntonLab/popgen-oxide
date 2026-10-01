@@ -42,7 +42,10 @@ jobs:
           cargo hack test --all-targets --feature-powerset
       - name: run doc tests (powerset)
         run: |
-          cargo hack test --doc --feature-powerset
+          # NOTE: python-integration-tests compiles to a cdylib, which is incompatible
+          # with doctests. Therefore we must manually specify which crates in the workspace
+          # we run
+          cargo hack test --doc --feature-powerset --manifest-path popgen/Cargo.toml
       - name: run examples
         run: |
           cargo run --example concurrent --features=noodles
