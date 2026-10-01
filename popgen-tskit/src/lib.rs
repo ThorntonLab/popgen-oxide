@@ -589,6 +589,17 @@ where
     Ok(sample_sets.output())
 }
 
+pub fn try_from_tree_sequence<'ts, N>(
+    ts: &'ts tskit::TreeSequence,
+    samples: N,
+    options: Option<FromTreeSequenceOptions>,
+) -> Result<SampleAlleleCounts, FromTreeSequenceError>
+where
+    N: Iterator<Item = tskit::NodeId>,
+{
+    try_from_tree_sequence_with_site_iter(ts, samples, ts.site_iter(), options)
+}
+
 pub fn try_from_tree_sequence_with_site_iter<'ts, N, S>(
     ts: &'ts tskit::TreeSequence,
     samples: N,
