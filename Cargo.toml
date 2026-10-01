@@ -22,6 +22,9 @@ proptest = "1.10.0"
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(doc_cfg)'] }
 missing_docs = "warn"
 
+[workspace.lints.rustdoc]
+broken_intra_doc_links = { level = "deny" }
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [profile.release]
 lto = "fat"
