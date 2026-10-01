@@ -1,3 +1,5 @@
+//! Example using noodles VCF record adapter
+
 use noodles::vcf;
 use popgen::{adapter::noodles_vcf::record_to_genotypes_adapter, SampleAlleleCounts};
 

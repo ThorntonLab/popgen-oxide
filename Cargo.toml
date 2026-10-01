@@ -20,6 +20,7 @@ proptest = "1.10.0"
 [workspace.lints.rust]
 # Added for rust 1.80.0
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(doc_cfg)'] }
+missing_docs = "warn"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [profile.release]
