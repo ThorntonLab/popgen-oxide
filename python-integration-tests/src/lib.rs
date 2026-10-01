@@ -39,6 +39,7 @@ struct SingleSampleCountCollection(Vec<SingleSampleCounts>);
 
 #[pymethods]
 impl SingleSampleCountCollection {
+    pub fn foo(&self) {}
     /// For the purposes of testing, we treat empty count objects
     /// as having a diversity of 0.0
     pub fn diversity(&self) -> Vec<f64> {
