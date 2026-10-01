@@ -17,11 +17,11 @@ noodles = { version = ">=0.109.0", features = ["vcf"], optional = true }
 tskit = { workspace = true, optional = true, features = ["bindings"] }
 
 [dev-dependencies]
-rand = "0.9.0"
+rand = { workspace = true }
 noodles = { version = "0.109.0", features = ["vcf", "csi", "tabix", "bgzf", "core"] }
-rand_distr = "0.5.1"
-rayon = "1.11.0"
-proptest = "1.10.0"
+rand_distr = { workspace = true }
+rayon = { workspace = true }
+proptest = { workspace = true }
 rust-htslib = { version = "1.0.0", default-features = false }
 
 [lints]
