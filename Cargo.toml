@@ -11,7 +11,6 @@ edition = "2021"
 rust-version = "1.88.0"
 
 [workspace.lints.rust]
-missing_docs = "warn"
 # Added for rust 1.80.0
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(doc_cfg)'] }
 
