@@ -549,6 +549,8 @@ impl FStatistics {
     // pi_(T-S) is done fastest as pi_T - pi_S instead of with pi_D as in eqn 2b
 
     /// F_ST as defined by [Weir and Cockerham (1984)](https://doi.org/10.1111/j.1558-5646.1984.tb05657.x).
+    ///
+    /// In scikit-allel and sgkit, this is known by its equivalent formulation in [Hudson, Slatkin, and Maddison (1992)](https://doi.org/10.1093/genetics/132.2.583).
     /// [`None`] if any of the required terms is undefined.
     pub fn weir_cockerham(&self) -> Option<WeirCockerhamFst> {
         // eqn 3a
