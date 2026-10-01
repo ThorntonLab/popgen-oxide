@@ -1,51 +1,12 @@
-[package]
-name = "popgen"
-version = "0.10.0-alpha.0"
-edition = "2021"
-rust-version = "1.88.0"
-license = "MIT"
-description = "Efficient types for population genetic analysis."
-homepage = "https://github.com/ThorntonLab/popgen-oxide"
-repository = "https://github.com/ThorntonLab/popgen-oxide"
+[workspace]
+resolver = "3"
 
-[features]
-noodles = ["dep:noodles"]
-tskit = ["dep:tskit"]
+members = [
+    "popgen",
+    "python-integration-tests"
+]
 
-[dependencies]
-noodles = { version = ">=0.109.0", features = ["vcf"], optional = true }
-tskit = { version = ">=0.16.3", optional = true, features = ["bindings"] }
-
-[dev-dependencies]
-rand = "0.9.0"
-noodles = { version = "0.109.0", features = ["vcf", "csi", "tabix", "bgzf", "core"] }
-rand_distr = "0.5.1"
-rayon = "1.11.0"
-proptest = "1.10.0"
-rust-htslib = { version = "1.0.0", default-features = false }
-
-[lints.rust]
-# Added for rust 1.80.0
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(doc_cfg)'] }
-
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [profile.release]
 lto = "fat"
-
-[[example]]
-name = "concurrent"
-required-features = ["noodles"]
-
-[[example]]
-name = "from_vcf_noodles"
-required-features = ["noodles"]
-
-[[example]]
-name = "from_vcf_noodles_indexed"
-required-features = ["noodles"]
-
-[[example]]
-name = "from_vcf_htslib"
-
-[[example]]
-name = "from_tskit"
-required-features = ["tskit"]
+codegen-units = 1
