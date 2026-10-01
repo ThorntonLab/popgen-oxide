@@ -181,14 +181,14 @@ where
     for node_id in iter {
         // Should be an Err condition!
         if node_id == tskit::NodeId::NULL {
-            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id }.into());
+            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id });
         }
         // Should be an Err condition!
         assert!(node_id.as_usize() < num_nodes);
         if let Some(value) = td.num_sample_descendants.get_mut(node_id.as_usize()) {
             *value += 1;
         } else {
-            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id }.into());
+            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id });
         }
         num_sampled_genomes += 1;
     }
@@ -562,7 +562,7 @@ where
             if site_ref.position() < right {
                 if let Some(lp) = lastpos.as_ref() {
                     if *lp >= site_ref.position() {
-                        return Err(FromTreeSequenceError::UnsortedPositions.into());
+                        return Err(FromTreeSequenceError::UnsortedPositions);
                     }
                 }
                 sample_sets.initialize_site(ts, site_ref.id())?;
@@ -652,7 +652,7 @@ where
         .map(|(a, b)| (a.into(), b.into()))
         .collect::<Vec<_>>();
     if windows.is_empty() {
-        return Err(FromTreeSequenceError::EmptyWindows.into());
+        return Err(FromTreeSequenceError::EmptyWindows);
     }
 
     for w in windows.windows(2) {
@@ -660,14 +660,14 @@ where
         let j = w[1];
         for k in [i.0, i.1] {
             if k < 0.0 || k > ts.tables().sequence_length() || !f64::from(k).is_finite() {
-                return Err(FromTreeSequenceError::InvalidWindow(i).into());
+                return Err(FromTreeSequenceError::InvalidWindow(i));
             }
         }
         if i.0 >= i.1 {
-            return Err(FromTreeSequenceError::InvalidWindow(i).into());
+            return Err(FromTreeSequenceError::InvalidWindow(i));
         }
         if i.1 > j.0 {
-            return Err(FromTreeSequenceError::InvalidWindow(i).into());
+            return Err(FromTreeSequenceError::InvalidWindow(i));
         }
     }
     let mut windows = windows.into_iter();
@@ -725,7 +725,7 @@ where
                 if site_ref.position() < right {
                     if let Some(lp) = lastpos.as_ref() {
                         if *lp >= site_ref.position() {
-                            return Err(FromTreeSequenceError::UnsortedPositions.into());
+                            return Err(FromTreeSequenceError::UnsortedPositions);
                         }
                     }
                     setup_alleles_at_site(ts, site_ref.id(), &mut alleles_at_site)?;

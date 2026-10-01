@@ -1,6 +1,3 @@
-// NOTE: these tests require compiling
-// with the tskit feature
-
 #[cfg(test)]
 use crate::counts::AlleleCounts;
 use crate::Count;
