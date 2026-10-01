@@ -52,7 +52,7 @@ jobs:
           cargo run --example from_vcf_noodles --features=noodles
           cargo run --example from_vcf_noodles_indexed --features=noodles
           cargo run --example from_vcf_htslib
-          cargo run --example from_tskit --features=tskit
+          cargo run --example from_tskit
       - name: Test 32 bit Linux
       # NOTE: we do not cross compile python-integration-tests for 32 bit.
       # AGAIN, we must specify specific manifest paths
