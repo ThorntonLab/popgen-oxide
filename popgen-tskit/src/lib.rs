@@ -1,3 +1,5 @@
+//! API to generate [`popgen::SampleAlleleCounts`] from [`tskit::TreeSequence`]
+
 use popgen::{Count, SampleAlleleCounts};
 
 /// Options affecting the behavior of
@@ -32,6 +34,50 @@ pub enum FromTreeSequenceError {
     /// Contains [`popgen::PopgenError`]
     Popgen(popgen::PopgenError),
 }
+
+pub mod single_sample_set {
+    //! API for obtaining sample counts from single sample sets
+
+    pub fn try_get_allele_counts<'ts, N>(
+        ts: &'ts tskit::TreeSequence,
+        samples: N,
+        options: Option<super::FromTreeSequenceOptions>,
+    ) -> Result<popgen::SampleAlleleCounts, super::FromTreeSequenceError>
+    where
+        N: Iterator<Item = tskit::NodeId>,
+    {
+        super::try_from_tree_sequence(ts, samples, options)
+    }
+
+    pub fn try_get_allele_counts_with_site_iter<'ts, N, S>(
+        ts: &'ts tskit::TreeSequence,
+        samples: N,
+        sites: S,
+        options: Option<super::FromTreeSequenceOptions>,
+    ) -> Result<popgen::SampleAlleleCounts, super::FromTreeSequenceError>
+    where
+        N: Iterator<Item = tskit::NodeId>,
+        S: Iterator<Item = tskit::SiteRef<'ts>>,
+    {
+        super::try_from_tree_sequence_with_site_iter(ts, samples, sites, options)
+    }
+
+    pub fn try_get_allele_counts_from_windows<'ts, N, W, P>(
+        ts: &'ts tskit::TreeSequence,
+        samples: N,
+        windows: W,
+        options: Option<super::FromTreeSequenceOptions>,
+    ) -> Result<Vec<popgen::SampleAlleleCounts>, super::FromTreeSequenceError>
+    where
+        N: Iterator<Item = tskit::NodeId>,
+        W: Iterator<Item = (P, P)>,
+        P: Into<tskit::Position>,
+    {
+        super::try_from_tree_sequence_windows(ts, samples, windows, options)
+    }
+}
+
+pub mod multiple_sample_sets {}
 
 impl std::fmt::Display for FromTreeSequenceError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -589,7 +635,7 @@ where
     Ok(sample_sets.output())
 }
 
-pub fn try_from_tree_sequence<'ts, N>(
+fn try_from_tree_sequence<'ts, N>(
     ts: &'ts tskit::TreeSequence,
     samples: N,
     options: Option<FromTreeSequenceOptions>,
@@ -600,7 +646,7 @@ where
     try_from_tree_sequence_with_site_iter(ts, samples, ts.site_iter(), options)
 }
 
-pub fn try_from_tree_sequence_with_site_iter<'ts, N, S>(
+fn try_from_tree_sequence_with_site_iter<'ts, N, S>(
     ts: &'ts tskit::TreeSequence,
     samples: N,
     sites: S,
@@ -625,7 +671,7 @@ where
 // we don't (yet) have a generic abstraction for doing this over
 // iterators over samples, sites, windows, etc..
 // The long term goal is to identify that pattern and refactor.
-pub fn try_from_tree_sequence_windows<'ts, N, W, P>(
+fn try_from_tree_sequence_windows<'ts, N, W, P>(
     ts: &'ts tskit::TreeSequence,
     samples: N,
     windows: W,
