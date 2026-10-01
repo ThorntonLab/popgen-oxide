@@ -1,0 +1,14 @@
+[package]
+name = "popgen-tskit"
+version = "0.10.0-alpha.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+popgen = { version = "0.10.0-alpha.0", path = "../popgen" }
+tskit2tskit = { version = "0.1.0-alpha.0", git = "https://github.com/molpopgen/tskit2tskit", branch = "main"}
+tskit = { workspace = true }
+
