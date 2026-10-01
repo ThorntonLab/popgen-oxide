@@ -79,7 +79,8 @@ proptest!(
         let counts = crate::testing::testdata::single_pop_counts(&mut sites.iter());
 
         // get the calcs
-        let diversity_from_counts = TajimasDBuilder::try_from_iter_sites(counts.iter_sample_set(0).unwrap());
+        let diversity_from_counts =
+            TajimasDBuilder::try_from_iter_sites(counts.iter_sample_set(0).unwrap());
         if let Ok(value) = diversity_from_counts {
             if !value.build().as_raw().is_nan() {
                 let splitlen = counts.num_sites() / max_num_splits;
@@ -90,16 +91,32 @@ proptest!(
                     } else {
                         counts.num_sites() - nsplits * splitlen
                     };
-                    let div = TajimasDBuilder::try_from_iter_sites(counts.iter_sample_set(0).unwrap().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
+                    let div = TajimasDBuilder::try_from_iter_sites(
+                        counts
+                            .iter_sample_set(0)
+                            .unwrap()
+                            .skip(nsplits * splitlen)
+                            .take(takelen),
+                    )
+                    .unwrap_or_default();
                     div_split.push(div);
                 }
-                let reduced = div_split.iter().fold(TajimasDBuilder::default(), |acc, &i| acc.try_reduce(i).unwrap());
+                let reduced = div_split
+                    .iter()
+                    .fold(TajimasDBuilder::default(), |acc, &i| {
+                        acc.try_reduce(i).unwrap()
+                    });
 
                 let value = value.build();
                 let reduced = reduced.build();
 
                 let absdiff = (value.as_raw() - reduced.as_raw()).abs();
-                assert!(absdiff <= 1e-9, "{value:?} != {reduced:?} ({} {} {absdiff}) ({div_split:?}) {splitlen} {counts:?}", value.as_raw(), reduced.as_raw())
+                assert!(
+                    absdiff <= 1e-9,
+                    "{value:?} != {reduced:?} ({} {} {absdiff}) ({div_split:?}) {splitlen} {counts:?}",
+                    value.as_raw(),
+                    reduced.as_raw()
+                )
             }
         }
     }
