@@ -1,12 +1,13 @@
 //! Adapter types for [`rust-htslib`]
 
-use popgen::{AlleleID, PopgenResult};
-use rust_htslib::htslib;
+use popgen::{AlleleID};
 
+/// Error type
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum Error {
     // NOTE: this is a bad name...
+    /// Encapsulation of errors from [`rust_htslib`]
     RecordError(rust_htslib::errors::Error),
 }
 
@@ -26,6 +27,7 @@ impl From<rust_htslib::errors::Error> for Error {
     }
 }
 
+/// Convert a BCF/VCF into allele counts
 pub fn bcf_record_to_genotypes_adapter(
     record: &rust_htslib::bcf::Record,
 ) -> Result<Vec<Option<AlleleID>>, Error> {
