@@ -17,6 +17,3 @@ proptest = { workspace = true }
 
 [lints]
 workspace = true
-
-[[example]]
-name = "from_vcf_htslib"

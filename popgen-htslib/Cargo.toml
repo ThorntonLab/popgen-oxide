@@ -12,3 +12,6 @@ popgen = { version = "0.10.0-alpha.0", path = "../popgen" }
 rust-htslib = { version = "1.0.0", default-features = false }
 
 [dev-dependencies]
+
+[[example]]
+name = "from_vcf_htslib"
