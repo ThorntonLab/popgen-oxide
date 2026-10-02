@@ -9,13 +9,8 @@ homepage = "https://github.com/ThorntonLab/popgen-oxide"
 repository = "https://github.com/ThorntonLab/popgen-oxide"
 
 [dependencies]
-noodles = { version = ">=0.109.0", features = ["vcf"], optional = true }
 
 [dev-dependencies]
-rand = { workspace = true }
-noodles = { version = "0.109.0", features = ["vcf", "csi", "tabix", "bgzf", "core"] }
-rand_distr = { workspace = true }
-rayon = { workspace = true }
 proptest = { workspace = true }
 rust-htslib = { version = "1.0.0", default-features = false }
 
