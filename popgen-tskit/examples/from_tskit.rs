@@ -1,7 +1,7 @@
 //! Example reading data in from tree sequences
 
 fn process_nodes_from_ts(ts: &tskit::TreeSequence) {
-    let counts = popgen_tskit::single_sample_set::try_get_allele_counts(
+    let counts = popgen_tskit::try_get_single_sample_allele_counts(
         ts,
         ts.node_iter().filter_map(|n| {
             if n.flags().is_sample() {
@@ -48,7 +48,7 @@ fn process_individuals_from_ts(ts: &tskit::TreeSequence) {
         }
     }
     if ts.individuals().num_rows() > 0 {
-        let counts = popgen_tskit::single_sample_set::try_get_allele_counts(
+        let counts = popgen_tskit::try_get_single_sample_allele_counts(
             ts,
             ts.individual_iter().flat_map(|i| IndividualNodeIter {
                 ind: i,
