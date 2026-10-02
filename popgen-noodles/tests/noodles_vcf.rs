@@ -1,6 +1,3 @@
-use crate::adapter::noodles_vcf::{record_to_genotypes_adapter, VCFToSampleSetAdapter};
-use crate::counts::SampleAlleleCounts;
-use crate::{AlleleID, PopgenResult};
 use noodles::vcf::header::record::value::map::{Contig, Format};
 use noodles::vcf::header::record::value::Map;
 use noodles::vcf::variant::io::Write;
@@ -12,6 +9,9 @@ use noodles::vcf::variant::record_buf::samples::sample::Value;
 use noodles::vcf::variant::record_buf::samples::Keys;
 use noodles::vcf::variant::record_buf::{AlternateBases, Samples};
 use noodles::vcf::variant::RecordBuf;
+use popgen::SampleAlleleCounts;
+use popgen::{AlleleID, PopgenResult};
+use popgen_noodles::{record_to_genotypes_adapter, VCFToSampleSetAdapter};
 use rand::prelude::SliceRandom;
 use rand::rng;
 use std::collections::HashMap;
@@ -151,7 +151,7 @@ fn counts_from_vcf(
         .records()
         .map(Result::unwrap)
         .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy))
-        .collect::<PopgenResult<Vec<_>>>()
+        .collect::<Result<Vec<_>, popgen_noodles::Error>>()
         .unwrap();
     let counts = SampleAlleleCounts::try_from_tabular(all_alleles.iter().cloned()).unwrap();
     (all_alleles, counts)
