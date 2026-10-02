@@ -1,7 +1,5 @@
 use crate::iter::{SampleAlleleCountsSampleSetIter, SampleAlleleCountsSiteIter};
 use crate::traits::TryReduce;
-#[cfg(feature = "tskit")]
-use crate::{from_tree_sequence, FromTreeSequenceOptions};
 use crate::{AlleleID, PopgenError, PopgenResult};
 use std::cmp::max;
 
@@ -54,71 +52,6 @@ impl SampleAlleleCounts {
         ret.num_sample_sets = 1;
 
         Ok(ret)
-    }
-
-    /// Obtain site counts from a [`tskit::TreeSequence`].
-    /// All sites will be placed in one sample set; if that is not desired, use [`Self::try_multi_sample_set_from_tree_sequence`] and related functions.
-    ///
-    /// # Parameters
-    ///
-    /// * `ts`: [`tskit::TreeSequence`]
-    /// * `options`: modify the behavior using  [`FromTreeSequenceOptions`]
-    ///
-    /// # Errors
-    ///
-    /// Any errors from [`tskit`] will be propagated.
-    ///
-    /// # Panics
-    ///
-    /// Sites with empty ancestral states and mutations with empty
-    /// derived states are currently rejected as a hard error resulting
-    /// in a panic.
-    #[cfg(feature = "tskit")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-    pub fn try_from_tree_sequence<N>(
-        ts: &tskit::TreeSequence,
-        samples: N,
-        options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError>
-    where
-        N: Iterator<Item = tskit::NodeId>,
-    {
-        Self::try_from_tree_sequence_site_iter(ts, samples, ts.site_iter(), options)
-    }
-
-    /// [`Self::try_from_tree_sequence`], but specifying a selection of sites using `sites`.
-    #[cfg(feature = "tskit")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-    pub fn try_from_tree_sequence_site_iter<'ts, N, S>(
-        ts: &'ts tskit::TreeSequence,
-        samples: N,
-        sites: S,
-        options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError>
-    where
-        N: Iterator<Item = tskit::NodeId>,
-        S: Iterator<Item = tskit::SiteRef<'ts>>,
-    {
-        from_tree_sequence::try_from_tree_sequence_with_site_iter(ts, samples, sites, options)
-    }
-
-    /// [`Self::try_from_tree_sequence`], but specifying a selection of genomic windows using `windows`.
-    ///
-    /// Each window will be placed in a new `Self`, so this function returns a [`Vec`].
-    #[cfg(feature = "tskit")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-    pub fn try_from_tree_sequence_windows<N, W, P>(
-        ts: &tskit::TreeSequence,
-        samples: N,
-        windows: W,
-        options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Vec<Self>, PopgenError>
-    where
-        N: Iterator<Item = tskit::NodeId>,
-        W: Iterator<Item = (P, P)>,
-        P: Into<tskit::Position>,
-    {
-        crate::from_tree_sequence::try_from_tree_sequence_windows(ts, samples, windows, options)
     }
 
     /// Add a site from an iterator of potentially missing allele IDs.
@@ -221,73 +154,6 @@ impl SampleAlleleCounts {
         }
 
         Ok(())
-    }
-
-    /// Construct count data from a tree sequence with respect to multiple
-    /// sample sets.
-    ///
-    /// # Paramters
-    ///
-    /// `ts`: [`tskit::TreeSequence`]
-    /// `samples`: Iterator over iterators of [`tskit::NodeId`]
-    /// `options`: [`FromTreeSequenceOptions`]
-    ///
-    /// # Errors
-    ///
-    /// [`PopgenError`] will be returned if errors occur during data
-    /// processing.
-    #[cfg(feature = "tskit")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-    pub fn try_multi_sample_set_from_tree_sequence<Outer, Inner>(
-        ts: &tskit::TreeSequence,
-        samples: Outer,
-        options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError>
-    where
-        Outer: Iterator<Item = Inner>,
-        Inner: Iterator<Item = tskit::NodeId>,
-    {
-        Self::try_multi_sample_set_from_tree_sequence_site_iter(
-            ts,
-            samples,
-            ts.site_iter(),
-            options,
-        )
-    }
-
-    /// Construct count data from a tree sequence with respect to multiple
-    /// sample sets and site position ranges.
-    ///
-    /// # Paramters
-    ///
-    /// `ts`: [`tskit::TreeSequence`]
-    /// `samples`: Iterator over iterators of [`tskit::NodeId`]
-    /// `sites`: Iterator over [`tskit::SiteRef`]
-    /// `options`: [`FromTreeSequenceOptions`]
-    ///
-    /// # Notes
-    ///
-    /// The `sites` iterator should be obtained via [`tskit::TreeSequence::site_iter`]
-    /// and can be filtered using the [`Iterator`] API.
-    ///
-    /// # Errors
-    ///
-    /// [`PopgenError`] will be returned if errors occur during data
-    /// processing.
-    #[cfg(feature = "tskit")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-    pub fn try_multi_sample_set_from_tree_sequence_site_iter<'ts, Outer, Inner, S>(
-        ts: &'ts tskit::TreeSequence,
-        samples: Outer,
-        sites: S,
-        options: Option<FromTreeSequenceOptions>,
-    ) -> Result<Self, PopgenError>
-    where
-        Outer: Iterator<Item = Inner>,
-        Inner: Iterator<Item = tskit::NodeId>,
-        S: Iterator<Item = tskit::SiteRef<'ts>>,
-    {
-        from_tree_sequence::try_from_tree_sequence_multi_with_site_iter(ts, samples, sites, options)
     }
 
     /// Return the number of sample sets contained in [`Self`].

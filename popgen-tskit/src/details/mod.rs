@@ -1,67 +1,7 @@
-use crate::{Count, PopgenError, PopgenResult, SampleAlleleCounts};
+use popgen::{Count, SampleAlleleCounts};
 
-/// Options affecting the behavior of
-/// [crate::SampleAlleleCounts::try_from_tree_sequence]
-#[derive(Debug, Default)]
-pub struct FromTreeSequenceOptions {}
-
-/// Error type related to tree sequence input
-#[non_exhaustive]
-#[derive(Debug)]
-pub enum FromTreeSequenceError {
-    /// Holds [`tskit::TskitError`]
-    Tskit(::tskit::TskitError),
-    /// A [`tskit::NodeId`] that is out of range with
-    /// respect to the node table of a given tree sequence.
-    NodeIdOutOfRange {
-        /// The specific value that is out of range
-        which: tskit::NodeId,
-    },
-    /// A site requires an ancestral state but none was present
-    SiteMissingAncestralState,
-    /// A mutation requires a derived state but none was present
-    MutationMissingDerivedState,
-    /// Position values were not sorted in increasing order
-    UnsortedPositions,
-    /// List of genomic windows is empty
-    EmptyWindows,
-    /// Returned if a window constains invalid positions,
-    /// is not a proper interval,
-    /// or if it overlaps with another window
-    InvalidWindow((tskit::Position, tskit::Position)),
-}
-
-impl From<FromTreeSequenceError> for PopgenError {
-    fn from(e: FromTreeSequenceError) -> Self {
-        Self::Tskit(e)
-    }
-}
-
-impl std::fmt::Display for FromTreeSequenceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            FromTreeSequenceError::Tskit(e) => write!(f, "tskit error: {e}"),
-            FromTreeSequenceError::NodeIdOutOfRange { which } => {
-                write!(f, "node id {which} out of range")
-            }
-            FromTreeSequenceError::SiteMissingAncestralState => {
-                write!(f, "site is missing ancestral state")
-            }
-            FromTreeSequenceError::MutationMissingDerivedState => {
-                write!(f, "mutation is missing derived state")
-            }
-            FromTreeSequenceError::UnsortedPositions => {
-                write!(f, "positions are not in increasing order")
-            }
-            FromTreeSequenceError::EmptyWindows => {
-                write!(f, "empty windows")
-            }
-            FromTreeSequenceError::InvalidWindow(w) => {
-                write!(f, "invalid window: {w:?}")
-            }
-        }
-    }
-}
+use super::FromTreeSequenceError;
+use super::FromTreeSequenceOptions;
 
 fn update_right<P, E>(right: f64, index: usize, position_slice: &P, diff_slice: &E) -> f64
 where
@@ -168,7 +108,7 @@ fn setup_samples_from_node_ids<I>(
     num_nodes: usize,
     iter: I,
     td: &mut TreeData,
-) -> Result<i32, crate::PopgenError>
+) -> Result<i32, FromTreeSequenceError>
 where
     I: Iterator<Item = tskit::NodeId>,
 {
@@ -176,14 +116,14 @@ where
     for node_id in iter {
         // Should be an Err condition!
         if node_id == tskit::NodeId::NULL {
-            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id }.into());
+            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id });
         }
         // Should be an Err condition!
         assert!(node_id.as_usize() < num_nodes);
         if let Some(value) = td.num_sample_descendants.get_mut(node_id.as_usize()) {
             *value += 1;
         } else {
-            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id }.into());
+            return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id });
         }
         num_sampled_genomes += 1;
     }
@@ -195,7 +135,7 @@ where
 fn setup_samples<N>(
     ts: &tskit::TreeSequence,
     samples: N,
-) -> Result<(TreeData, i32), crate::PopgenError>
+) -> Result<(TreeData, i32), FromTreeSequenceError>
 where
     N: Iterator<Item = tskit::NodeId>,
 {
@@ -208,7 +148,7 @@ where
 fn setup_multi_sample_sets<Outer, Inner>(
     ts: &tskit::TreeSequence,
     samples: Outer,
-) -> Result<Vec<(TreeData, i32)>, crate::PopgenError>
+) -> Result<Vec<(TreeData, i32)>, FromTreeSequenceError>
 where
     Outer: Iterator<Item = Inner>,
     Inner: Iterator<Item = tskit::NodeId>,
@@ -238,7 +178,7 @@ struct MultitpleSampleSets<'ts> {
     counts: SampleAlleleCounts,
 }
 
-trait SampleSets<'s> {
+pub(crate) trait SampleSets<'s> {
     type Output: Sized;
 
     fn process_input_edge(&mut self, parent: usize, child: usize);
@@ -247,7 +187,7 @@ trait SampleSets<'s> {
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a;
@@ -256,12 +196,12 @@ trait SampleSets<'s> {
         ts: &'ts tskit::TreeSequence,
         mutation_parent: &'a M,
         mutation: tskit::MutationRef<'a>,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a,
         M: tskit::TableColumn<tskit::MutationId, tskit::MutationId>;
-    fn update_allele_counts(&mut self) -> PopgenResult<()>;
+    fn update_allele_counts(&mut self) -> Result<(), FromTreeSequenceError>;
     fn output(self) -> Self::Output;
 }
 
@@ -269,7 +209,7 @@ fn setup_alleles_at_site<'ts, 'a>(
     ts: &'ts tskit::TreeSequence,
     site: tskit::SiteId,
     alleles_at_site: &mut Vec<&'a [u8]>,
-) -> PopgenResult<()>
+) -> Result<(), FromTreeSequenceError>
 where
     'ts: 'a,
 {
@@ -304,7 +244,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         ts: &'ts tskit::TreeSequence,
         mutation_parent: &'a M,
         mutation: tskit::MutationRef<'a>,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a,
@@ -340,7 +280,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         Ok(())
     }
 
-    fn update_allele_counts(&mut self) -> PopgenResult<()> {
+    fn update_allele_counts(&mut self) -> Result<(), FromTreeSequenceError> {
         self.allele_counts[0] =
             // TODO: we should simply sum the desired quantity as we go along,
             // eliminating the need for an iteration here.
@@ -364,7 +304,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a,
@@ -398,7 +338,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         ts: &'ts tskit::TreeSequence,
         mutation_parent: &'a M,
         mutation: tskit::MutationRef<'a>,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a,
@@ -448,7 +388,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         Ok(())
     }
 
-    fn update_allele_counts(&mut self) -> PopgenResult<()> {
+    fn update_allele_counts(&mut self) -> Result<(), FromTreeSequenceError> {
         self.num_sampled_genomes
             .iter()
             .enumerate()
@@ -487,7 +427,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         &'a mut self,
         ts: &'ts tskit::TreeSequence,
         site: tskit::SiteId,
-    ) -> PopgenResult<()>
+    ) -> Result<(), FromTreeSequenceError>
     where
         'ts: 's,
         's: 'a,
@@ -502,12 +442,12 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
     }
 }
 
-fn try_from_tree_sequence_details<'s, S, I>(
+pub fn try_from_tree_sequence_details<'s, S, I>(
     ts: &'s tskit::TreeSequence,
     options: Option<FromTreeSequenceOptions>,
     site_iter: I, // NOTE: this iterator must iterate in order of INCREASING site position!
     sample_sets: S,
-) -> PopgenResult<S::Output>
+) -> Result<S::Output, FromTreeSequenceError>
 where
     S: SampleSets<'s>,
     I: Iterator<Item = tskit::SiteRef<'s>>,
@@ -557,7 +497,7 @@ where
             if site_ref.position() < right {
                 if let Some(lp) = lastpos.as_ref() {
                     if *lp >= site_ref.position() {
-                        return Err(FromTreeSequenceError::UnsortedPositions.into());
+                        return Err(FromTreeSequenceError::UnsortedPositions);
                     }
                 }
                 sample_sets.initialize_site(ts, site_ref.id())?;
@@ -584,12 +524,23 @@ where
     Ok(sample_sets.output())
 }
 
+pub fn try_from_tree_sequence<N>(
+    ts: &tskit::TreeSequence,
+    samples: N,
+    options: Option<FromTreeSequenceOptions>,
+) -> Result<SampleAlleleCounts, FromTreeSequenceError>
+where
+    N: Iterator<Item = tskit::NodeId>,
+{
+    try_from_tree_sequence_with_site_iter(ts, samples, ts.site_iter(), options)
+}
+
 pub fn try_from_tree_sequence_with_site_iter<'ts, N, S>(
     ts: &'ts tskit::TreeSequence,
     samples: N,
     sites: S,
     options: Option<FromTreeSequenceOptions>,
-) -> PopgenResult<SampleAlleleCounts>
+) -> Result<SampleAlleleCounts, FromTreeSequenceError>
 where
     N: Iterator<Item = tskit::NodeId>,
     S: Iterator<Item = tskit::SiteRef<'ts>>,
@@ -614,7 +565,7 @@ pub fn try_from_tree_sequence_windows<'ts, N, W, P>(
     samples: N,
     windows: W,
     options: Option<FromTreeSequenceOptions>,
-) -> Result<Vec<SampleAlleleCounts>, PopgenError>
+) -> Result<Vec<SampleAlleleCounts>, FromTreeSequenceError>
 where
     N: Iterator<Item = tskit::NodeId>,
     W: Iterator<Item = (P, P)>,
@@ -647,7 +598,7 @@ where
         .map(|(a, b)| (a.into(), b.into()))
         .collect::<Vec<_>>();
     if windows.is_empty() {
-        return Err(FromTreeSequenceError::EmptyWindows.into());
+        return Err(FromTreeSequenceError::EmptyWindows);
     }
 
     for w in windows.windows(2) {
@@ -655,14 +606,14 @@ where
         let j = w[1];
         for k in [i.0, i.1] {
             if k < 0.0 || k > ts.tables().sequence_length() || !f64::from(k).is_finite() {
-                return Err(FromTreeSequenceError::InvalidWindow(i).into());
+                return Err(FromTreeSequenceError::InvalidWindow(i));
             }
         }
         if i.0 >= i.1 {
-            return Err(FromTreeSequenceError::InvalidWindow(i).into());
+            return Err(FromTreeSequenceError::InvalidWindow(i));
         }
         if i.1 > j.0 {
-            return Err(FromTreeSequenceError::InvalidWindow(i).into());
+            return Err(FromTreeSequenceError::InvalidWindow(i));
         }
     }
     let mut windows = windows.into_iter();
@@ -720,7 +671,7 @@ where
                 if site_ref.position() < right {
                     if let Some(lp) = lastpos.as_ref() {
                         if *lp >= site_ref.position() {
-                            return Err(FromTreeSequenceError::UnsortedPositions.into());
+                            return Err(FromTreeSequenceError::UnsortedPositions);
                         }
                     }
                     setup_alleles_at_site(ts, site_ref.id(), &mut alleles_at_site)?;
@@ -793,12 +744,24 @@ where
     Ok(counts)
 }
 
+pub fn try_multi_sample_set_from_tree_sequence<Outer, Inner>(
+    ts: &tskit::TreeSequence,
+    samples: Outer,
+    options: Option<FromTreeSequenceOptions>,
+) -> Result<crate::SampleAlleleCounts, FromTreeSequenceError>
+where
+    Outer: Iterator<Item = Inner>,
+    Inner: Iterator<Item = tskit::NodeId>,
+{
+    try_from_tree_sequence_multi_with_site_iter(ts, samples, ts.site_iter(), options)
+}
+
 pub fn try_from_tree_sequence_multi_with_site_iter<'ts, Outer, Inner, S>(
     ts: &'ts tskit::TreeSequence,
     samples: Outer,
     sites: S,
     options: Option<FromTreeSequenceOptions>,
-) -> Result<crate::SampleAlleleCounts, PopgenError>
+) -> Result<crate::SampleAlleleCounts, FromTreeSequenceError>
 where
     Outer: Iterator<Item = Inner>,
     Inner: Iterator<Item = tskit::NodeId>,

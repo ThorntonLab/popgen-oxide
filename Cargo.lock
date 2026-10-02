@@ -485,6 +485,7 @@ name = "integration-tests"
 version = "0.1.0"
 dependencies = [
  "popgen",
+ "popgen-tskit",
  "pyo3",
  "tskit",
  "tskit2tskit",
@@ -746,6 +747,13 @@ dependencies = [
  "rand_distr",
  "rayon",
  "rust-htslib",
+]
+
+[[package]]
+name = "popgen-tskit"
+version = "0.10.0-alpha.0"
+dependencies = [
+ "popgen",
  "tskit",
 ]
 

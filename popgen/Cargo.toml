@@ -10,11 +10,9 @@ repository = "https://github.com/ThorntonLab/popgen-oxide"
 
 [features]
 noodles = ["dep:noodles"]
-tskit = ["dep:tskit"]
 
 [dependencies]
 noodles = { version = ">=0.109.0", features = ["vcf"], optional = true }
-tskit = { workspace = true, optional = true, features = ["bindings"] }
 
 [dev-dependencies]
 rand = { workspace = true }
@@ -41,7 +39,3 @@ required-features = ["noodles"]
 
 [[example]]
 name = "from_vcf_htslib"
-
-[[example]]
-name = "from_tskit"
-required-features = ["tskit"]

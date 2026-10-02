@@ -3,8 +3,6 @@ mod testdata;
 
 // tests of TYPES go below
 mod counts;
-#[cfg(feature = "tskit")]
-mod test_try_from_tree_sequence;
 
 // tests of CALCULATIONS go below
 

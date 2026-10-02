@@ -7,8 +7,6 @@ use std::str::FromStr;
 
 pub mod adapter;
 mod counts;
-#[cfg(feature = "tskit")]
-mod from_tree_sequence;
 pub mod iter;
 pub mod stats;
 #[allow(missing_docs)]
@@ -24,13 +22,6 @@ pub use counts::*;
 /// error type is [`PopgenError`]
 pub type PopgenResult<T> = Result<T, PopgenError>;
 
-#[cfg(feature = "tskit")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-pub use from_tree_sequence::FromTreeSequenceError;
-#[cfg(feature = "tskit")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-pub use from_tree_sequence::FromTreeSequenceOptions;
-
 #[non_exhaustive]
 #[derive(Debug)]
 /// Error type
@@ -39,11 +30,6 @@ pub enum PopgenError {
     #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
     #[cfg(feature = "noodles")]
     NoodlesVCF(std::io::Error),
-    /// Errors from processing tree sequence input.
-    /// This variant wraps [`FromTreeSequenceError`]
-    #[cfg(feature = "tskit")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-    Tskit(from_tree_sequence::FromTreeSequenceError),
     /// Wraps [`std::io::Error`].
     Io(std::io::Error),
     /// Returned when [`Count`] values are invalid.
@@ -88,9 +74,6 @@ impl std::fmt::Display for PopgenError {
             PopgenError::CalculationError => write!(f, "calculation produced an invalid value"),
             PopgenError::InvalidSampleSet => write!(f, "invalid sample set label or index"),
             PopgenError::LibraryError(msg) => write!(f, "{msg}"),
-            #[cfg_attr(doc_cfg, doc(cfg(feature = "tskit")))]
-            #[cfg(feature = "tskit")]
-            PopgenError::Tskit(e) => write!(f, "tskit conversion error: {}", e),
             #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
             #[cfg(feature = "noodles")]
             PopgenError::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),

@@ -3,6 +3,7 @@ resolver = "3"
 
 members = [
     "popgen",
+    "popgen-tskit",
     "python-integration-tests"
 ]
 
@@ -11,7 +12,10 @@ edition = "2021"
 rust-version = "1.88.0"
 
 [workspace.dependencies]
+# dependencies
 tskit = { version = ">=0.16.3" }
+
+# dev dependencies
 rand = "0.9.0"
 rand_distr = "0.5.1"
 rayon = "1.11.0"
