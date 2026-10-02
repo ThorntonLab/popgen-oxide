@@ -755,7 +755,6 @@ version = "0.10.0-alpha.0"
 dependencies = [
  "popgen",
  "tskit",
- "tskit2tskit",
 ]
 
 [[package]]
