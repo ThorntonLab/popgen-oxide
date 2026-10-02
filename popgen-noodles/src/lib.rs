@@ -1,4 +1,4 @@
-//! Adapter types for various input formats
+//! Adapter types for input via the [`noodles`] crate.
 
 use noodles::vcf::variant::record::samples::keys::key;
 use noodles::vcf::variant::record::samples::series::Value;
