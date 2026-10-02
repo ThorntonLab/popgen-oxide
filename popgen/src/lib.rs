@@ -5,7 +5,6 @@
 use std::fmt::Debug;
 use std::str::FromStr;
 
-pub mod adapter;
 mod counts;
 pub mod iter;
 pub mod stats;

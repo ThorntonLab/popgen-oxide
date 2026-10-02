@@ -750,6 +750,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "popgen-noodles"
+version = "0.10.0-alpha.0"
+dependencies = [
+ "noodles",
+ "popgen",
+ "rand",
+ "rand_distr",
+ "rayon",
+]
+
+[[package]]
 name = "popgen-tskit"
 version = "0.10.0-alpha.0"
 dependencies = [
