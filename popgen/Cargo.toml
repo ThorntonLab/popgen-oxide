@@ -14,10 +14,6 @@ repository = "https://github.com/ThorntonLab/popgen-oxide"
 rand = { workspace = true }
 rand_distr = { workspace = true }
 proptest = { workspace = true }
-rust-htslib = { version = "1.0.0", default-features = false }
 
 [lints]
 workspace = true
-
-[[example]]
-name = "from_vcf_htslib"
