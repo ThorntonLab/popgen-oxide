@@ -1,6 +1,10 @@
 //! Adapter types for [`rust_htslib`]
 
 use popgen::AlleleID;
+use rust_htslib::{
+    bcf::record::{Buffer, Genotypes},
+    htslib,
+};
 
 /// Error type
 #[non_exhaustive]
@@ -51,4 +55,23 @@ pub fn bcf_record_to_genotypes_adapter(
         }
     }
     Ok(site_counts_from_record)
+}
+
+struct AlleleIdIterator<'a> {
+    gts: Genotypes<'a, Buffer>,
+}
+
+impl<'a> Iterator for AlleleIdIterator<'a> {
+    type Item = Option<AlleleID>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        todo!()
+    }
+}
+
+pub fn bcf_record_to_genotypes_iterator_adapter(
+    record: &rust_htslib::bcf::Record,
+) -> Result<impl Iterator<Item = Option<AlleleID>> + '_, Error> {
+    let gts = record.genotypes()?;
+    Ok(AlleleIdIterator { gts })
 }
