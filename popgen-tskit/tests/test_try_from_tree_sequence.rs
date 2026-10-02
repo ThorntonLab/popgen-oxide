@@ -1,3 +1,5 @@
+//! Simple integration tests
+
 use popgen::AlleleCounts;
 use popgen::Count;
 use tskit::prelude::StreamingIterator;
