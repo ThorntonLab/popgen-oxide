@@ -3,7 +3,7 @@
 use popgen::{Count, SampleAlleleCounts};
 
 /// Options affecting the behavior of
-/// [`crate::try_from_tree_sequence`]
+/// functions processing tree sequence input.
 #[derive(Debug, Default)]
 pub struct FromTreeSequenceOptions {}
 
@@ -93,7 +93,7 @@ where
 ///
 /// The additional parameter is:
 ///
-/// `windows`: Iterator over a tuple of two [`tskit::Postition`]
+/// `windows`: Iterator over a tuple of two [`tskit::Position`]
 ///
 /// # Returns
 ///
