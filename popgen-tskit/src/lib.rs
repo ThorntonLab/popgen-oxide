@@ -95,7 +95,8 @@ where
 ///
 /// The additional parameter is:
 ///
-/// `windows`: Iterator over a tuple of two [`tskit::Position`]
+/// `windows`: Iterator over a tuple of two elements convertible to
+///            [`tskit::Position`] via [`From`].
 ///
 /// # Returns
 ///
