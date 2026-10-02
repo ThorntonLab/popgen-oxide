@@ -1,3 +1,5 @@
+//! Basic integration tests
+
 use noodles::vcf::header::record::value::map::{Contig, Format};
 use noodles::vcf::header::record::value::Map;
 use noodles::vcf::variant::io::Write;
@@ -9,8 +11,8 @@ use noodles::vcf::variant::record_buf::samples::sample::Value;
 use noodles::vcf::variant::record_buf::samples::Keys;
 use noodles::vcf::variant::record_buf::{AlternateBases, Samples};
 use noodles::vcf::variant::RecordBuf;
+use popgen::AlleleID;
 use popgen::SampleAlleleCounts;
-use popgen::{AlleleID, PopgenResult};
 use popgen_noodles::{record_to_genotypes_adapter, VCFToSampleSetAdapter};
 use rand::prelude::SliceRandom;
 use rand::rng;
