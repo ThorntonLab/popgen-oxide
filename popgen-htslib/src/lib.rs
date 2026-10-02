@@ -58,6 +58,8 @@ pub fn bcf_record_to_genotypes_adapter(
 }
 
 struct AlleleIdIterator<'a> {
+    current_sample: usize,
+    num_samples: usize,
     gts: Genotypes<'a, Buffer>,
 }
 
@@ -73,5 +75,11 @@ pub fn bcf_record_to_genotypes_iterator_adapter(
     record: &rust_htslib::bcf::Record,
 ) -> Result<impl Iterator<Item = Option<AlleleID>> + '_, Error> {
     let gts = record.genotypes()?;
-    Ok(AlleleIdIterator { gts })
+    let current_sample = 0;
+    let num_samples = record.sample_count() as usize;
+    Ok(AlleleIdIterator {
+        current_sample,
+        num_samples,
+        gts,
+    })
 }
