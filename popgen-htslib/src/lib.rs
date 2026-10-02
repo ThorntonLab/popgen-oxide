@@ -1,6 +1,6 @@
-//! Adapter types for [`rust-htslib`]
+//! Adapter types for [`rust_htslib`]
 
-use popgen::{AlleleID};
+use popgen::AlleleID;
 
 /// Error type
 #[non_exhaustive]
