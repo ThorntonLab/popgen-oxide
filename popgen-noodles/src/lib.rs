@@ -13,7 +13,7 @@ use std::ops::ControlFlow;
 #[derive(Debug)]
 /// Error type
 pub enum Error {
-    /// Errors arising from the noodles crate
+    /// Errors arising from the noodles crate when processing VCF records
     NoodlesVCF(std::io::Error),
 }
 
