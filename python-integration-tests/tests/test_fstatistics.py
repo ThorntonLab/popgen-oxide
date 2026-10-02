@@ -8,7 +8,7 @@ import tskit
 from hypothesis import given, reproduce_failure
 from hypothesis.strategies import integers
 
-import integration_tests
+import python_integration_tests
 
 
 @given(anc_seed=integers(1, 42000000), mut_seed=integers(1, 42000000))
@@ -35,14 +35,14 @@ def test_f2_all_sample_nodes_infinite_sites_mutation(anc_seed, mut_seed):
                               recombination_rate=1.2e-8, random_seed=anc_seed)
     ts = msprime.sim_mutations(
         ts, rate=1.2e-8, random_seed=mut_seed, model=msprime.InfiniteSites())
-    tsholder = integration_tests.ts_holder_from_tables(ts.tables.copy())
+    tsholder = python_integration_tests.ts_holder_from_tables(ts.tables.copy())
     samples = [
         [i for i in ts.samples(population=1)],
         [i for i in ts.samples(population=2)],
     ]
-    counts = integration_tests.counts_from_ts_holder_multi_sample_sets(
+    counts = python_integration_tests.counts_from_ts_holder_multi_sample_sets(
         tsholder, samples)
-    fstats = integration_tests.fstats(counts)
+    fstats = python_integration_tests.fstats(counts)
     f2 = fstats.f2(0, 1)
     f2_py = ts.f2(sample_sets=samples, span_normalise=False)
     for pop in [0, 1]:
@@ -84,7 +84,7 @@ def test_f2_subset_sample_nodes_infinite_sites_mutation(anc_seed, mut_seed, num_
                               recombination_rate=1.2e-8, random_seed=anc_seed)
     ts = msprime.sim_mutations(
         ts, rate=1.2e-8, random_seed=mut_seed, model=msprime.InfiniteSites())
-    tsholder = integration_tests.ts_holder_from_tables(ts.tables.copy())
+    tsholder = python_integration_tests.ts_holder_from_tables(ts.tables.copy())
     samples = [
         [i for i in ts.samples(population=1)],
         [i for i in ts.samples(population=2)],
@@ -93,9 +93,9 @@ def test_f2_subset_sample_nodes_infinite_sites_mutation(anc_seed, mut_seed, num_
     random.shuffle(samples[1])
     subsamples = [samples[0][:num_sample_nodes_deme1],
                   samples[1][:num_sample_nodes_deme2]]
-    counts = integration_tests.counts_from_ts_holder_multi_sample_sets(
+    counts = python_integration_tests.counts_from_ts_holder_multi_sample_sets(
         tsholder, subsamples)
-    fstats = integration_tests.fstats(counts)
+    fstats = python_integration_tests.fstats(counts)
     f2 = fstats.f2(0, 1)
     f2_py = ts.f2(sample_sets=subsamples, span_normalise=False)
     for pop in [0, 1]:
@@ -135,7 +135,7 @@ def test_reciprocal_fixation():
     tables.sort()
     tables.build_index()
     ts = tables.tree_sequence()
-    tsholder = integration_tests.ts_holder_from_tables(ts.tables.copy())
+    tsholder = python_integration_tests.ts_holder_from_tables(ts.tables.copy())
     samples = [
         [0, 1],
         [2, 3],
@@ -143,9 +143,9 @@ def test_reciprocal_fixation():
     tsdivergence = ts.divergence(
         sample_sets=samples, span_normalise=False)
     assert tsdivergence == 1.0
-    counts = integration_tests.counts_from_ts_holder_multi_sample_sets(
+    counts = python_integration_tests.counts_from_ts_holder_multi_sample_sets(
         tsholder, samples)
-    fstats = integration_tests.fstats(counts)
+    fstats = python_integration_tests.fstats(counts)
     for pop in [0, 1]:
         tsdiv = ts.diversity(
             sample_sets=[samples[pop]], span_normalise=False)

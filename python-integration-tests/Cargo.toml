@@ -1,5 +1,5 @@
 [package]
-name = "integration-tests"
+name = "python-integration-tests"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
@@ -7,7 +7,7 @@ publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
-name = "integration_tests"
+name = "python_integration_tests"
 crate-type = ["cdylib"]
 
 [dependencies]

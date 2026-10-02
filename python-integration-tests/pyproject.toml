@@ -12,7 +12,7 @@ dev = [
 ]
 
 [project]
-name = "integration-tests"
+name = "python-integration-tests"
 requires-python = ">=3.13"
 classifiers = [
     "Programming Language :: Rust",

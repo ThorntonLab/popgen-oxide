@@ -62,7 +62,7 @@ impl SingleSampleCountCollection {
 
 /// A Python module implemented in Rust.
 #[pymodule]
-mod integration_tests {
+mod python_integration_tests {
     use popgen::stats::StatRepresentation;
     use popgen::stats::UnpolarisedSiteStat;
     use pyo3::prelude::*;
