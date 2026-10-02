@@ -481,17 +481,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "integration-tests"
-version = "0.1.0"
-dependencies = [
- "popgen",
- "popgen-tskit",
- "pyo3",
- "tskit",
- "tskit2tskit",
-]
-
-[[package]]
 name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -874,6 +863,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "python-integration-tests"
+version = "0.1.0"
+dependencies = [
+ "popgen",
+ "popgen-tskit",
+ "pyo3",
+ "tskit",
+ "tskit2tskit",
 ]
 
 [[package]]
