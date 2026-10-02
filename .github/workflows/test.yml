@@ -43,9 +43,8 @@ jobs:
       - name: run doc tests (powerset)
         run: |
           # NOTE: python-integration-tests compiles to a cdylib, which is incompatible
-          # with doctests. Therefore we must manually specify which crates in the workspace
-          # we run
-          cargo hack test --doc --feature-powerset --manifest-path popgen/Cargo.toml
+          # with doctests. 
+          cargo hack test --doc --feature-powerset --workspace --exclude python-integration-tests
       - name: run examples
         run: |
           cargo run --example concurrent
@@ -54,13 +53,13 @@ jobs:
           cargo run --example from_vcf_htslib
           cargo run --example from_tskit
       - name: Test 32 bit Linux
-      # NOTE: we do not cross compile python-integration-tests for 32 bit.
-      # AGAIN, we must specify specific manifest paths
+      # NOTE: we do not cross compile python-integration-tests for 32 bit,
+      # so we skip it here
         run: |
           sudo apt-get -f install gcc-multilib
-          cargo hack check --all-targets --target=i686-unknown-linux-gnu --feature-powerset --manifest-path popgen/Cargo.toml
-          cargo hack test --all-targets --target=i686-unknown-linux-gnu --feature-powerset --manifest-path popgen/Cargo.toml
-          cargo hack test --doc --target=i686-unknown-linux-gnu --feature-powerset --manifest-path popgen/Cargo.toml
+          cargo hack check --all-targets --target=i686-unknown-linux-gnu --feature-powerset --workspace --exclude python-integration-tests
+          cargo hack test --all-targets --target=i686-unknown-linux-gnu --feature-powerset --workspace --exclude python-integration-tests
+          cargo hack test --doc --target=i686-unknown-linux-gnu --feature-powerset --workspace --exclude python-integration-tests
         if: matrix.os == 'ubuntu-24.04'
 
   fmt:
