@@ -1,10 +1,34 @@
 //! Adapter types for [`rust-htslib`]
 
 use popgen::{AlleleID, PopgenResult};
+use rust_htslib::htslib;
+
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum Error {
+    // NOTE: this is a bad name...
+    RecordError(rust_htslib::errors::Error),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::RecordError(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl From<rust_htslib::errors::Error> for Error {
+    fn from(value: rust_htslib::errors::Error) -> Self {
+        Self::RecordError(value)
+    }
+}
 
 pub fn bcf_record_to_genotypes_adapter(
     record: &rust_htslib::bcf::Record,
-) -> PopgenResult<Vec<Option<AlleleID>>> {
+) -> Result<Vec<Option<AlleleID>>, Error> {
     let mut site_counts_from_record = Vec::<Option<AlleleID>>::default();
     // NOTE: the error type is from std::num and we don't want that held in our
     // error type, so we need to map it to something else
