@@ -733,6 +733,13 @@ dependencies = [
  "proptest",
  "rand",
  "rand_distr",
+]
+
+[[package]]
+name = "popgen-htslib"
+version = "0.10.0-alpha.0"
+dependencies = [
+ "popgen",
  "rust-htslib",
 ]
 
