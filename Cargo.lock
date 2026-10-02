@@ -742,6 +742,8 @@ name = "popgen"
 version = "0.10.0-alpha.0"
 dependencies = [
  "proptest",
+ "rand",
+ "rand_distr",
  "rust-htslib",
 ]
 

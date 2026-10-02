@@ -11,6 +11,8 @@ repository = "https://github.com/ThorntonLab/popgen-oxide"
 [dependencies]
 
 [dev-dependencies]
+rand = { workspace = true }
+rand_distr = { workspace = true }
 proptest = { workspace = true }
 rust-htslib = { version = "1.0.0", default-features = false }
 
