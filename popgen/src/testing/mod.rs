@@ -15,5 +15,3 @@ mod wattersons_theta;
 // input formats, follow
 
 mod concurrent;
-#[cfg(feature = "noodles")]
-mod noodles_vcf;

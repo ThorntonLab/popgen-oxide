@@ -1,7 +1,8 @@
 //! Example using noodles VCF record adapter
 
 use noodles::vcf;
-use popgen::{adapter::noodles_vcf::record_to_genotypes_adapter, SampleAlleleCounts};
+use popgen::SampleAlleleCounts;
+use popgen_noodles::record_to_genotypes_adapter;
 
 static VCF_FILE: &str = r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">

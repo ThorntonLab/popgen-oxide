@@ -5,7 +5,6 @@
 use std::fmt::Debug;
 use std::str::FromStr;
 
-pub mod adapter;
 mod counts;
 pub mod iter;
 pub mod stats;
@@ -26,10 +25,6 @@ pub type PopgenResult<T> = Result<T, PopgenError>;
 #[derive(Debug)]
 /// Error type
 pub enum PopgenError {
-    /// Errors arising from the noodles crate
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
-    #[cfg(feature = "noodles")]
-    NoodlesVCF(std::io::Error),
     /// Wraps [`std::io::Error`].
     Io(std::io::Error),
     /// Returned when [`Count`] values are invalid.
@@ -74,9 +69,6 @@ impl std::fmt::Display for PopgenError {
             PopgenError::CalculationError => write!(f, "calculation produced an invalid value"),
             PopgenError::InvalidSampleSet => write!(f, "invalid sample set label or index"),
             PopgenError::LibraryError(msg) => write!(f, "{msg}"),
-            #[cfg_attr(doc_cfg, doc(cfg(feature = "noodles")))]
-            #[cfg(feature = "noodles")]
-            PopgenError::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
         }
     }
 }

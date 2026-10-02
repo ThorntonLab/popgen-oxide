@@ -8,34 +8,16 @@ description = "Efficient types for population genetic analysis."
 homepage = "https://github.com/ThorntonLab/popgen-oxide"
 repository = "https://github.com/ThorntonLab/popgen-oxide"
 
-[features]
-noodles = ["dep:noodles"]
-
 [dependencies]
-noodles = { version = ">=0.109.0", features = ["vcf"], optional = true }
 
 [dev-dependencies]
 rand = { workspace = true }
-noodles = { version = "0.109.0", features = ["vcf", "csi", "tabix", "bgzf", "core"] }
 rand_distr = { workspace = true }
-rayon = { workspace = true }
 proptest = { workspace = true }
 rust-htslib = { version = "1.0.0", default-features = false }
 
 [lints]
 workspace = true
-
-[[example]]
-name = "concurrent"
-required-features = ["noodles"]
-
-[[example]]
-name = "from_vcf_noodles"
-required-features = ["noodles"]
-
-[[example]]
-name = "from_vcf_noodles_indexed"
-required-features = ["noodles"]
 
 [[example]]
 name = "from_vcf_htslib"

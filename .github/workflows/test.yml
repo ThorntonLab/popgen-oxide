@@ -48,9 +48,9 @@ jobs:
           cargo hack test --doc --feature-powerset --manifest-path popgen/Cargo.toml
       - name: run examples
         run: |
-          cargo run --example concurrent --features=noodles
-          cargo run --example from_vcf_noodles --features=noodles
-          cargo run --example from_vcf_noodles_indexed --features=noodles
+          cargo run --example concurrent
+          cargo run --example from_vcf_noodles
+          cargo run --example from_vcf_noodles_indexed
           cargo run --example from_vcf_htslib
           cargo run --example from_tskit
       - name: Test 32 bit Linux

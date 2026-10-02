@@ -1,0 +1,26 @@
+[package]
+name = "popgen-noodles"
+version = "0.10.0-alpha.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+popgen = { version = "0.10.0-alpha.0", path = "../popgen" }
+noodles = { version = "0.109.0", features = ["vcf", "csi", "tabix", "bgzf", "core"] }
+
+[dev-dependencies]
+rand = { workspace = true }
+rand_distr = { workspace = true }
+rayon = { workspace = true }
+
+[[example]]
+name = "concurrent"
+
+[[example]]
+name = "from_vcf_noodles"
+
+[[example]]
+name = "from_vcf_noodles_indexed"

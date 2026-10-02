@@ -741,12 +741,21 @@ checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 name = "popgen"
 version = "0.10.0-alpha.0"
 dependencies = [
- "noodles",
  "proptest",
  "rand",
  "rand_distr",
- "rayon",
  "rust-htslib",
+]
+
+[[package]]
+name = "popgen-noodles"
+version = "0.10.0-alpha.0"
+dependencies = [
+ "noodles",
+ "popgen",
+ "rand",
+ "rand_distr",
+ "rayon",
 ]
 
 [[package]]
