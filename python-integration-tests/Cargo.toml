@@ -7,7 +7,7 @@ publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
-name = "python-integration_tests"
+name = "python_integration_tests"
 crate-type = ["cdylib"]
 
 [dependencies]
