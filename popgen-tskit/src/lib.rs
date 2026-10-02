@@ -35,74 +35,68 @@ pub enum FromTreeSequenceError {
     Popgen(popgen::PopgenError),
 }
 
-pub mod single_sample_set {
-    //! API for obtaining sample counts from single sample sets
-
-    pub fn try_get_allele_counts<'ts, N>(
-        ts: &'ts tskit::TreeSequence,
-        samples: N,
-        options: Option<super::FromTreeSequenceOptions>,
-    ) -> Result<popgen::SampleAlleleCounts, super::FromTreeSequenceError>
-    where
-        N: Iterator<Item = tskit::NodeId>,
-    {
-        super::try_from_tree_sequence(ts, samples, options)
-    }
-
-    pub fn try_get_allele_counts_with_site_iter<'ts, N, S>(
-        ts: &'ts tskit::TreeSequence,
-        samples: N,
-        sites: S,
-        options: Option<super::FromTreeSequenceOptions>,
-    ) -> Result<popgen::SampleAlleleCounts, super::FromTreeSequenceError>
-    where
-        N: Iterator<Item = tskit::NodeId>,
-        S: Iterator<Item = tskit::SiteRef<'ts>>,
-    {
-        super::try_from_tree_sequence_with_site_iter(ts, samples, sites, options)
-    }
-
-    pub fn try_get_allele_counts_from_windows<'ts, N, W, P>(
-        ts: &'ts tskit::TreeSequence,
-        samples: N,
-        windows: W,
-        options: Option<super::FromTreeSequenceOptions>,
-    ) -> Result<Vec<popgen::SampleAlleleCounts>, super::FromTreeSequenceError>
-    where
-        N: Iterator<Item = tskit::NodeId>,
-        W: Iterator<Item = (P, P)>,
-        P: Into<tskit::Position>,
-    {
-        super::try_from_tree_sequence_windows(ts, samples, windows, options)
-    }
+pub fn try_get_single_sample_allele_counts<'ts, N>(
+    ts: &'ts tskit::TreeSequence,
+    samples: N,
+    options: Option<FromTreeSequenceOptions>,
+) -> Result<popgen::SampleAlleleCounts, FromTreeSequenceError>
+where
+    N: Iterator<Item = tskit::NodeId>,
+{
+    try_from_tree_sequence(ts, samples, options)
 }
 
-pub mod multiple_sample_sets {
-    pub fn try_get_allele_counts<'ts, Outer, Inner>(
-        ts: &'ts tskit::TreeSequence,
-        samples: Outer,
-        options: Option<super::FromTreeSequenceOptions>,
-    ) -> Result<popgen::SampleAlleleCounts, super::FromTreeSequenceError>
-    where
-        Outer: Iterator<Item = Inner>,
-        Inner: Iterator<Item = tskit::NodeId>,
-    {
-        super::try_multi_sample_set_from_tree_sequence(ts, samples, options)
-    }
+pub fn try_get_single_sample_allele_counts_with_site_iter<'ts, N, S>(
+    ts: &'ts tskit::TreeSequence,
+    samples: N,
+    sites: S,
+    options: Option<FromTreeSequenceOptions>,
+) -> Result<popgen::SampleAlleleCounts, FromTreeSequenceError>
+where
+    N: Iterator<Item = tskit::NodeId>,
+    S: Iterator<Item = tskit::SiteRef<'ts>>,
+{
+    try_from_tree_sequence_with_site_iter(ts, samples, sites, options)
+}
 
-    pub fn try_get_allele_counts_with_site_iter<'ts, Outer, Inner, S>(
-        ts: &'ts tskit::TreeSequence,
-        samples: Outer,
-        sites: S,
-        options: Option<super::FromTreeSequenceOptions>,
-    ) -> Result<crate::SampleAlleleCounts, super::FromTreeSequenceError>
-    where
-        Outer: Iterator<Item = Inner>,
-        Inner: Iterator<Item = tskit::NodeId>,
-        S: Iterator<Item = tskit::SiteRef<'ts>>,
-    {
-        super::try_from_tree_sequence_multi_with_site_iter(ts, samples, sites, options)
-    }
+pub fn try_get_single_sample_allele_counts_from_windows<'ts, N, W, P>(
+    ts: &'ts tskit::TreeSequence,
+    samples: N,
+    windows: W,
+    options: Option<FromTreeSequenceOptions>,
+) -> Result<Vec<popgen::SampleAlleleCounts>, FromTreeSequenceError>
+where
+    N: Iterator<Item = tskit::NodeId>,
+    W: Iterator<Item = (P, P)>,
+    P: Into<tskit::Position>,
+{
+    try_from_tree_sequence_windows(ts, samples, windows, options)
+}
+
+pub fn try_get_multi_sample_allele_counts<'ts, Outer, Inner>(
+    ts: &'ts tskit::TreeSequence,
+    samples: Outer,
+    options: Option<FromTreeSequenceOptions>,
+) -> Result<popgen::SampleAlleleCounts, FromTreeSequenceError>
+where
+    Outer: Iterator<Item = Inner>,
+    Inner: Iterator<Item = tskit::NodeId>,
+{
+    try_multi_sample_set_from_tree_sequence(ts, samples, options)
+}
+
+pub fn try_get_multi_sample_allele_counts_with_site_iter<'ts, Outer, Inner, S>(
+    ts: &'ts tskit::TreeSequence,
+    samples: Outer,
+    sites: S,
+    options: Option<FromTreeSequenceOptions>,
+) -> Result<crate::SampleAlleleCounts, FromTreeSequenceError>
+where
+    Outer: Iterator<Item = Inner>,
+    Inner: Iterator<Item = tskit::NodeId>,
+    S: Iterator<Item = tskit::SiteRef<'ts>>,
+{
+    try_from_tree_sequence_multi_with_site_iter(ts, samples, sites, options)
 }
 
 impl std::fmt::Display for FromTreeSequenceError {
