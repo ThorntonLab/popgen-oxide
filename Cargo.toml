@@ -3,6 +3,7 @@ resolver = "3"
 
 members = [
     "popgen",
+    "popgen-htslib",
     "popgen-noodles",
     "popgen-tskit",
     "python-integration-tests"

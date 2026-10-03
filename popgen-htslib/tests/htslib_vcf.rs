@@ -1,0 +1,54 @@
+//! Basic integration tests
+
+use rust_htslib::bcf;
+use rust_htslib::bcf::Read;
+
+#[test]
+fn test_basic_vcf_input() {
+    use std::io::Write;
+
+    static VCF_FILE: &str = r#"##fileformat=VCFv4.6
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
+chr0	1	.	A	C	.	.	.	GT	0/0	0/1	0/1	0/0	0/1	0/0	0/1	0/0	0/0	0/0	0/0	1/1	1/0	0/1	0/0	./.	0/1	0/0
+chr0	1	.	G	A	.	.	.	GT	0/0	./.	0/1	0/0	0/1	0/1	0/0	0/0	0/0	0/0	0/0	0/0	0/1	./.	0/1	0/1	0/0	0/0"#;
+    let mut tfile = tempfile::NamedTempFile::new().unwrap();
+    tfile.write_all(VCF_FILE.as_bytes()).unwrap();
+    let (_, tfile_path) = tfile.into_parts();
+    let mut bcf = bcf::Reader::from_path(tfile_path.as_os_str()).expect("Error opening file.");
+    let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(1);
+    for record_result in bcf.records() {
+        let record = record_result.unwrap();
+        let num_samples = record.sample_count() as usize;
+        let allele_counts = popgen_htslib::bcf_record_to_genotypes_adapter(&record).unwrap();
+        assert_eq!(allele_counts.len(), 2 * num_samples, "{allele_counts:?}");
+        counts.add_site(allele_counts.into_iter()).unwrap();
+    }
+    assert_eq!(
+        counts
+            .iter_sample_set(0)
+            .unwrap()
+            .filter(|c| c.total_alleles() == 36)
+            .count(),
+        2
+    );
+    assert_eq!(counts.num_sites(), 2);
+    let num_non_missing = counts
+        .iter_sample_set(0)
+        .unwrap()
+        .take(1)
+        .map(|a| a.counts().iter().sum::<i64>())
+        .collect::<Vec<_>>()[0];
+    assert_eq!(num_non_missing, 2 * 18 - 2);
+    let num_non_missing = counts
+        .iter_sample_set(0)
+        .unwrap()
+        .skip(1)
+        .map(|a| a.counts().iter().sum::<i64>())
+        .collect::<Vec<_>>()[0];
+    assert_eq!(num_non_missing, 2 * 18 - 4);
+    for i in counts.iter_sample_set(0).unwrap() {
+        assert_eq!(i.counts().len(), 2)
+    }
+}
