@@ -48,4 +48,7 @@ chr0	1	.	G	A	.	.	.	GT	0/0	./.	0/1	0/0	0/1	0/1	0/0	0/0	0/0	0/0	0/0	0/0	0/1	./.	0/
         .map(|a| a.counts().iter().sum::<i64>())
         .collect::<Vec<_>>()[0];
     assert_eq!(num_non_missing, 2 * 18 - 4);
+    for i in counts.iter_sample_set(0).unwrap() {
+        assert_eq!(i.counts().len(), 2)
+    }
 }

@@ -43,9 +43,9 @@ pub fn bcf_record_to_genotypes_adapter(
     for sample_index in 0..sample_count {
         for gt in gts.get(sample_index).iter() {
             match gt {
-                rust_htslib::bcf::record::GenotypeAllele::Phased(_)
-                | rust_htslib::bcf::record::GenotypeAllele::Unphased(_) => {
-                    site_counts_from_record.push(Some(sample_index.into()))
+                rust_htslib::bcf::record::GenotypeAllele::Phased(index)
+                | rust_htslib::bcf::record::GenotypeAllele::Unphased(index) => {
+                    site_counts_from_record.push(Some((*index as usize).into()))
                 }
                 rust_htslib::bcf::record::GenotypeAllele::PhasedMissing
                 | rust_htslib::bcf::record::GenotypeAllele::UnphasedMissing => {
@@ -57,29 +57,46 @@ pub fn bcf_record_to_genotypes_adapter(
     Ok(site_counts_from_record)
 }
 
-struct AlleleIdIterator<'a> {
-    current_sample: usize,
-    num_samples: usize,
-    gts: Genotypes<'a, Buffer>,
-}
-
-impl<'a> Iterator for AlleleIdIterator<'a> {
-    type Item = Option<AlleleID>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        todo!()
-    }
-}
-
-pub fn bcf_record_to_genotypes_iterator_adapter(
-    record: &rust_htslib::bcf::Record,
-) -> Result<impl Iterator<Item = Option<AlleleID>> + '_, Error> {
-    let gts = record.genotypes()?;
-    let current_sample = 0;
-    let num_samples = record.sample_count() as usize;
-    Ok(AlleleIdIterator {
-        current_sample,
-        num_samples,
-        gts,
-    })
-}
+//struct AlleleIdIterator<'a> {
+//    current_sample: usize,
+//    num_samples: usize,
+//    gts: Genotypes<'a, Buffer>,
+//}
+//
+//impl<'a> AlleleIdIterator<'a> {
+//    fn next_genotype(&'a self) -> Option<Option<AlleleID>> {}
+//}
+//
+//impl<'a> Iterator for AlleleIdIterator<'a> {
+//    type Item = Option<AlleleID>;
+//
+//    fn next(&mut self) -> Option<Self::Item> {
+//        todo!()
+//    }
+//}
+//
+//pub fn bcf_record_to_genotypes_iterator_adapter(
+//    record: &rust_htslib::bcf::Record,
+//) -> Result<impl Iterator<Item = Option<AlleleID>> + '_, Error> {
+//    let gts = record.genotypes()?;
+//    let current_sample = 0;
+//    let num_samples = record.sample_count() as usize;
+//    let iter = (0..num_samples)
+//        .map(|u| gts.get(u))
+//        .into_iter()
+//        .flat_map(|gt| {
+//            gt.iter().map(|&g| match g {
+//                rust_htslib::bcf::record::GenotypeAllele::Phased(index)
+//                | rust_htslib::bcf::record::GenotypeAllele::Unphased(index) => {
+//                    Some(AlleleID::from(index as usize))
+//                }
+//                rust_htslib::bcf::record::GenotypeAllele::PhasedMissing
+//                | rust_htslib::bcf::record::GenotypeAllele::UnphasedMissing => None,
+//            })
+//        });
+//    Ok(AlleleIdIterator {
+//        current_sample,
+//        num_samples,
+//        gts,
+//    })
+//}
