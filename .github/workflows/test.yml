@@ -61,6 +61,12 @@ jobs:
           cargo hack test --all-targets --target=i686-unknown-linux-gnu --feature-powerset --workspace --exclude python-integration-tests
           cargo hack test --doc --target=i686-unknown-linux-gnu --feature-powerset --workspace --exclude python-integration-tests
         if: matrix.os == 'ubuntu-24.04'
+      - name: valgrind (crates using unsafe)
+        run: | 
+          sudo apt-get install -y valgrind
+          cargo install cargo-valgrind
+          cargo valgrind test --manifest-path popgen-htslib/Cargo.toml
+        if: matrix.os == 'ubuntu-24.04'
 
   fmt:
     name: rustfmt
