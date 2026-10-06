@@ -13,7 +13,7 @@ use noodles::vcf::variant::record_buf::{AlternateBases, Samples};
 use noodles::vcf::variant::RecordBuf;
 use popgen::AlleleID;
 use popgen::SampleAlleleCounts;
-use popgen_noodles::{record_to_genotypes_adapter, VCFToSampleSetAdapter};
+use popgen_noodles::{record_to_alleles_adapter, VCFToSampleSetAdapter};
 use rand::prelude::SliceRandom;
 use rand::rng;
 use std::collections::HashMap;
@@ -149,7 +149,7 @@ fn counts_from_vcf(vcf_buf: &str) -> (Vec<Vec<Option<AlleleID>>>, SampleAlleleCo
     let all_alleles = reader
         .records()
         .map(Result::unwrap)
-        .map(|rec| record_to_genotypes_adapter(&header, &rec))
+        .map(|rec| record_to_alleles_adapter(&header, &rec))
         .collect::<Result<Vec<_>, popgen_noodles::Error>>()
         .unwrap();
     let counts = SampleAlleleCounts::try_from_tabular(all_alleles.iter().cloned()).unwrap();
@@ -329,7 +329,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         for record in vcf_reader.records() {
             assert!(record.is_ok(), "{record:?}");
             let record = record.unwrap();
-            let res = crate::record_to_genotypes_adapter(&header, &record);
+            let res = crate::record_to_alleles_adapter(&header, &record);
             v.push(res);
         }
         assert_eq!(v.iter().filter(|i| i.is_ok()).count(), 1);
@@ -361,7 +361,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         for record in vcf_reader.records() {
             assert!(record.is_ok(), "{record:?}");
             let record = record.unwrap();
-            let res = crate::record_to_genotypes_adapter(&header, &record);
+            let res = crate::record_to_alleles_adapter(&header, &record);
             v.push(res);
         }
         assert_eq!(v.iter().filter(|i| i.is_ok()).count(), 1);
@@ -380,7 +380,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         for record in vcf_reader.records() {
             assert!(record.is_ok(), "{record:?}");
             let record = record.unwrap();
-            let res = crate::record_to_genotypes_adapter(&header, &record);
+            let res = crate::record_to_alleles_adapter(&header, &record);
             v.push(res);
         }
         assert_eq!(v.iter().filter(|i| i.is_ok()).count(), 1);
@@ -400,7 +400,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         for record in vcf_reader.records() {
             assert!(record.is_ok(), "{record:?}");
             let record = record.unwrap();
-            let res = crate::record_to_genotypes_adapter(&header, &record);
+            let res = crate::record_to_alleles_adapter(&header, &record);
             v.push(res);
         }
         assert_eq!(v.iter().filter(|i| i.is_ok()).count(), 1);

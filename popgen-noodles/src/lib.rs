@@ -37,7 +37,7 @@ impl std::error::Error for Error {}
 /// * `header`: [`noodles::vcf::Header`]
 /// * `record`: [`noodles::vcf::Record`]
 /// * `ploidy`: the ploidy of the VCF records
-pub fn record_to_genotypes_adapter(
+pub fn record_to_alleles_adapter(
     header: &Header,
     record: &Record,
 ) -> Result<Vec<Option<AlleleID>>, Error> {
