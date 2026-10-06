@@ -248,7 +248,6 @@ fn load_vcf_multi_sample_set() {
 #[cfg(test)]
 mod noodles_spec_conformity {
     use noodles::vcf::variant::record::samples::keys::key;
-    use noodles::vcf::variant::record::samples::series::Value;
     use noodles::vcf::variant::record::samples::Sample;
 
     // The noodles crate currently accepts malformed sample input.
@@ -258,16 +257,16 @@ mod noodles_spec_conformity {
     // What we do here is generate various bad inputs where one
     // sample is missing.
 
-    fn make_vcf_missing_last_record_1() -> &'static str {
+    fn make_vcf_missing_last_sample_1() -> &'static str {
         r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##contig=<ID=chr0>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
-chr0	1	.	A	C	.	.	.	GT	/ 0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0	/0	/1	/0	/1	/1  
-chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/"#
+chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0
+chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0	/0	/1	/0	/1	/1	/0"#
     }
 
-    fn make_vcf_missing_last_record_2() -> &'static str {
+    fn make_vcf_missing_last_sample_2() -> &'static str {
         r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##contig=<ID=chr0>
@@ -276,16 +275,16 @@ chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0	/0	/1	/0	/1	/1	/0
 chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0"#
     }
 
-    fn make_vcf_missing_middle_record_1() -> &'static str {
+    fn make_vcf_missing_middle_sample_1() -> &'static str {
         r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##contig=<ID=chr0>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
-chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0		/1	/0	/1	/1  /0
+chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0      /1	/0	/1	/1  /0
 chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
     }
 
-    fn make_vcf_missing_middle_record_2() -> &'static str {
+    fn make_vcf_missing_middle_sample_2() -> &'static str {
         r#"##fileformat=VCFv4.5
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##contig=<ID=chr0>
@@ -300,10 +299,10 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
     fn test_missing_samples() {
         for r in [
             super::make_vcf(),
-            make_vcf_missing_last_record_1(),
-            make_vcf_missing_last_record_2(),
-            make_vcf_missing_middle_record_1(),
-            make_vcf_missing_middle_record_2(),
+            make_vcf_missing_last_sample_1(),
+            make_vcf_missing_last_sample_2(),
+            make_vcf_missing_middle_sample_1(),
+            make_vcf_missing_middle_sample_2(),
         ] {
             let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
                 .build_from_reader(r.as_bytes())
@@ -323,27 +322,65 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
     }
 
     #[test]
-    fn test_adapter_with_malformed_records() {
-        let mut i = 1;
-        for r in [
-            super::make_vcf(),
-            //make_vcf_missing_last_record_1(),
-            make_vcf_missing_last_record_2(),
-            //make_vcf_missing_middle_record_1(),
-            //make_vcf_missing_middle_record_2(),
-        ] {
-            let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
-                .build_from_reader(r.as_bytes())
-                .unwrap();
-            let header = vcf_reader.read_header().unwrap();
-            for record in vcf_reader.records() {
-                assert!(record.is_ok(), "{record:?}");
-                let record = record.unwrap();
-                println!("{record:?}");
-                let res = crate::record_to_genotypes_adapter(&header, &record, 1);
-                assert!(res.is_ok(), "{i}: {res:?} {record:?} {r}");
-            }
-            i += 1;
+    fn test_missing_last_sample_1() {
+        let r = make_vcf_missing_last_sample_1();
+        let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+            .build_from_reader(r.as_bytes())
+            .unwrap();
+        let header = vcf_reader.read_header().unwrap();
+        for record in vcf_reader.records() {
+            assert!(record.is_ok(), "{record:?}");
+            let record = record.unwrap();
+            println!("{record:?}");
+            let res = crate::record_to_genotypes_adapter(&header, &record, 1);
+            assert!(res.is_ok(), "{res:?} {record:?} {r}");
+        }
+    }
+
+    #[test]
+    fn test_missing_last_sample_2() {
+        let r = make_vcf_missing_last_sample_2();
+        let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+            .build_from_reader(r.as_bytes())
+            .unwrap();
+        let header = vcf_reader.read_header().unwrap();
+        for record in vcf_reader.records() {
+            assert!(record.is_ok(), "{record:?}");
+            let record = record.unwrap();
+            println!("{record:?}");
+            let res = crate::record_to_genotypes_adapter(&header, &record, 1);
+            assert!(res.is_ok(), "{res:?} {record:?} {r}");
+        }
+    }
+    #[test]
+    fn test_missing_middle_sample_1() {
+        let r = make_vcf_missing_middle_sample_1();
+        let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+            .build_from_reader(r.as_bytes())
+            .unwrap();
+        let header = vcf_reader.read_header().unwrap();
+        for record in vcf_reader.records() {
+            assert!(record.is_ok(), "{record:?}");
+            let record = record.unwrap();
+            println!("{record:?}");
+            let res = crate::record_to_genotypes_adapter(&header, &record, 1);
+            assert!(res.is_ok(), "{res:?} {record:?} {r}");
+        }
+    }
+
+    #[test]
+    fn test_missing_middle_sample_2() {
+        let r = make_vcf_missing_middle_sample_2();
+        let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+            .build_from_reader(r.as_bytes())
+            .unwrap();
+        let header = vcf_reader.read_header().unwrap();
+        for record in vcf_reader.records() {
+            assert!(record.is_ok(), "{record:?}");
+            let record = record.unwrap();
+            println!("{record:?}");
+            let res = crate::record_to_genotypes_adapter(&header, &record, 1);
+            assert!(res.is_ok(), "{res:?} {record:?} {r}");
         }
     }
 }
