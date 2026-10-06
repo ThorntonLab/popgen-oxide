@@ -70,7 +70,6 @@ pub fn record_to_genotypes_adapter(
         match fetched_field {
             Value::Genotype(genotype) => {
                 for entry in genotype.iter() {
-                    println!("entry = {entry:?}");
                     genotypes.push(entry.map_err(Error::NoodlesVCF)?.0.map(AlleleID::from))
                 }
             }
