@@ -5,7 +5,7 @@ use noodles::vcf::variant::record::samples::series::Value;
 use noodles::vcf::variant::record::samples::Sample;
 use noodles::vcf::variant::record::AlternateBases;
 use noodles::vcf::{Header, Record};
-use popgen::{AlleleID, Count, PopgenResult, SampleAlleleCounts};
+use popgen::{AlleleID, Count, SampleAlleleCounts};
 use std::num::NonZeroI64;
 use std::ops::ControlFlow;
 
@@ -17,6 +17,20 @@ pub enum Error {
     NoodlesVCF(std::io::Error),
     /// An input noodles [`Record`](Record) is badly formatted
     MalformedRecord,
+    /// Contains [`popgen::PopgenError`]
+    Popgen(popgen::PopgenError),
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::NoodlesVCF(e)
+    }
+}
+
+impl From<popgen::PopgenError> for Error {
+    fn from(e: popgen::PopgenError) -> Self {
+        Error::Popgen(e)
+    }
 }
 
 impl std::fmt::Display for Error {
@@ -24,6 +38,7 @@ impl std::fmt::Display for Error {
         match self {
             Error::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
             Error::MalformedRecord => write!(f, "malformed VCF record"),
+            Error::Popgen(e) => write!(f, "{e:?}"),
         }
     }
 }
@@ -205,8 +220,7 @@ impl<'h> VCFToSampleSetAdapter<'h> {
             };
         }
         if samples_processed != self.header.sample_names().len() {
-            panic!()
-            //return Err(Error::MalformedRecord);
+            return Err(Error::MalformedRecord);
         }
 
         self.sample_sets
