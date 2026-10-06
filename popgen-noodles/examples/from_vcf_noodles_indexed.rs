@@ -36,7 +36,6 @@ fn main() {
         .build_from_path("simple_vcf.bgzf")
         .unwrap();
     let header = reader.read_header().unwrap();
-    let ploidy = 1;
 
     let region = Region::new(
         "chr0",
@@ -47,7 +46,7 @@ fn main() {
     let alleles = query
         .records()
         .map(Result::unwrap)
-        .map(|rec| record_to_genotypes_adapter(&header, &rec, ploidy).unwrap());
+        .map(|rec| record_to_genotypes_adapter(&header, &rec).unwrap());
     let counts = SampleAlleleCounts::try_from_tabular(alleles).unwrap();
     counts
         .iter_sample_set(0)

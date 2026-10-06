@@ -28,7 +28,7 @@ fn main() {
 
     let out = iter
         .par_bridge()
-        .map(|rec| record_to_genotypes_adapter(&header, &rec, 1).unwrap())
+        .map(|rec| record_to_genotypes_adapter(&header, &rec).unwrap())
         .try_fold(Diversity::default, |mut diversity, alleles| {
             let mut multi = SampleAlleleCounts::default();
             multi.add_site(alleles).unwrap();
