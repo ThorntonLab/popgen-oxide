@@ -328,12 +328,17 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             .build_from_reader(r.as_bytes())
             .unwrap();
         let header = vcf_reader.read_header().unwrap();
+        let mut v = vec![];
         for record in vcf_reader.records() {
             assert!(record.is_ok(), "{record:?}");
             let record = record.unwrap();
             let res = crate::record_to_genotypes_adapter(&header, &record, 1);
-            assert!(res.is_err(), "{res:?} {record:?} {r}");
+            v.push(res);
         }
+        assert_eq!(v.iter().filter(|i| i.is_ok()).count(), 1);
+        assert_eq!(v.iter().filter(|i| i.is_err()).count(), 1);
+        assert!(v[0].is_err());
+        assert!(v[1].is_ok());
     }
 
     #[test]
@@ -343,12 +348,17 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             .build_from_reader(r.as_bytes())
             .unwrap();
         let header = vcf_reader.read_header().unwrap();
+        let mut v = vec![];
         for record in vcf_reader.records() {
             assert!(record.is_ok(), "{record:?}");
             let record = record.unwrap();
             let res = crate::record_to_genotypes_adapter(&header, &record, 1);
-            assert!(res.is_err(), "{res:?} {record:?} {r}");
+            v.push(res);
         }
+        assert_eq!(v.iter().filter(|i| i.is_ok()).count(), 1);
+        assert_eq!(v.iter().filter(|i| i.is_err()).count(), 1);
+        assert!(v[0].is_ok());
+        assert!(v[1].is_err());
     }
     #[test]
     fn test_missing_middle_sample_1() {
