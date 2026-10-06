@@ -44,6 +44,8 @@ pub fn record_to_genotypes_adapter(
 ) -> Result<Vec<Option<AlleleID>>, Error> {
     let num_samples = header.sample_names().len();
     let mut num_genotypes_parsed = 0_usize;
+    // TODO: we should drop the ploidy arg and simply allocate
+    // to 2 * num_samples because that is a great guess in practice.
     let mut genotypes = Vec::with_capacity(ploidy * num_samples);
 
     for sample in record.samples().iter() {
