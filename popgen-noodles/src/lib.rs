@@ -174,7 +174,9 @@ impl<'h> VCFToSampleSetAdapter<'h> {
 
         self.buf_num_samples.fill(0);
 
+        let mut samples_processed = 0_usize;
         for (sample_i, sample) in record.samples().iter().enumerate() {
+            samples_processed += 1;
             let sample_set_id = self.sample_to_sample_set[sample_i];
             match sample
                 // get the GT field
@@ -201,6 +203,10 @@ impl<'h> VCFToSampleSetAdapter<'h> {
                 }
                 Some(_) => todo!("not a gt?"),
             };
+        }
+        if samples_processed != self.header.sample_names().len() {
+            panic!()
+            //return Err(Error::MalformedRecord);
         }
 
         self.sample_sets
