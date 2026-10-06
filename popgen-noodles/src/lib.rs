@@ -51,16 +51,13 @@ impl std::error::Error for Error {}
 /// * `header`: [`noodles::vcf::Header`]
 /// * `record`: [`noodles::vcf::Record`]
 /// * `ploidy`: the ploidy of the VCF records
-pub fn record_to_genotypes_adapter(
+pub fn record_to_alleles_adapter(
     header: &Header,
     record: &Record,
-    ploidy: usize,
 ) -> Result<Vec<Option<AlleleID>>, Error> {
     let num_samples = header.sample_names().len();
     let mut num_genotypes_parsed = 0_usize;
-    // TODO: we should drop the ploidy arg and simply allocate
-    // to 2 * num_samples because that is a great guess in practice.
-    let mut genotypes = Vec::with_capacity(ploidy * num_samples);
+    let mut genotypes = Vec::with_capacity(2 * num_samples);
 
     for sample in record.samples().iter() {
         let fetched_field = match sample
