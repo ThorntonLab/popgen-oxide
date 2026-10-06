@@ -15,12 +15,15 @@ use std::ops::ControlFlow;
 pub enum Error {
     /// Errors arising from the noodles crate when processing VCF records
     NoodlesVCF(std::io::Error),
+    /// An input noodles [`Record`](Record) is badly formatted
+    MalformedRecord,
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
+            Error::MalformedRecord => write!(f, "malformed VCF record"),
         }
     }
 }
@@ -51,10 +54,7 @@ pub fn record_to_genotypes_adapter(
         {
             // return nothing if field missing
             None => {
-                for _ in 0..ploidy {
-                    genotypes.push(None);
-                }
-                continue;
+                return Err(Error::MalformedRecord);
             }
             // return nothing if value missing
             Some(None) => {
