@@ -152,7 +152,7 @@ fn cannot_reduce_different_sample_set_count() {
     let b = SampleAlleleCounts::of_empty_sample_sets(2);
     assert!(matches!(
         a.try_reduce(b),
-        Err(PopgenError::MismatchedSampleSetCount(_, _))
+        Err(PopgenError::MismatchedLengths(_, _))
     ));
 }
 

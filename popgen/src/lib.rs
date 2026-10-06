@@ -32,13 +32,10 @@ pub enum PopgenError {
     /// When the sum of allele counts at a site is >
     /// than the sample size (in genomes) at the same site.
     TotalAllelesDeficient,
-    /// When two slices are expected to be the same length but are not.
-    MismatchedSliceLength,
     /// When non-empty site count data structure are required.
     EmptySiteCounts,
-    /// When site count objects must contain the same number
-    /// of sample sets but do not.
-    MismatchedSampleSetCount(usize, usize),
+    /// When two objects selected for combination with [`TryReduce`](crate::traits::TryReduce) do not have matching lengths along some dimension.
+    MismatchedLengths(usize, usize),
     /// Catch-all for numeric errors
     CalculationError,
     /// Invalid sample set identifier
@@ -58,14 +55,10 @@ impl std::fmt::Display for PopgenError {
                 "stated total alleles is less than sum of counts of present variants"
             ),
             PopgenError::Io(e) => write!(f, "io error: {}", e),
-            PopgenError::MismatchedSliceLength => {
-                write!(f, "slices were expected to be of the same length")
+            PopgenError::MismatchedLengths(a, b) => {
+                write!(f, "structures were expected to be of the same length; {a} != {b}")
             }
             PopgenError::EmptySiteCounts => write!(f, "empty site count data"),
-            PopgenError::MismatchedSampleSetCount(l, r) => write!(
-                f,
-                "cannot combine two collections with different sample set counts; {l} != {r}"
-            ),
             PopgenError::CalculationError => write!(f, "calculation produced an invalid value"),
             PopgenError::InvalidSampleSet => write!(f, "invalid sample set label or index"),
             PopgenError::LibraryError(msg) => write!(f, "{msg}"),
