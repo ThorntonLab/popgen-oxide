@@ -6,7 +6,6 @@ use noodles::vcf::variant::record::samples::Sample;
 use noodles::vcf::variant::record::AlternateBases;
 use noodles::vcf::{Header, Record};
 use popgen::{AlleleID, Count, SampleAlleleCounts};
-use std::num::NonZeroI64;
 use std::ops::ControlFlow;
 
 #[non_exhaustive]
@@ -110,7 +109,6 @@ pub fn record_to_genotypes_adapter(
 /// `ploidy`, if not passed, will be inferred from the first record seen.
 pub struct VCFToSampleSetAdapter<'h> {
     header: &'h Header,
-    ploidy: Option<NonZeroI64>,
     sample_to_sample_set: Vec<usize>,
     sample_sets: SampleAlleleCounts,
     // buffers for add_record
@@ -133,7 +131,6 @@ impl<'h> VCFToSampleSetAdapter<'h> {
     /// If `mapper` produces a sample set ID greater than or equal to `num_sample_sets` (which is out-of-bounds in a zero-based ID system).
     pub fn new<'sample, M, E>(
         header: &'h Header,
-        ploidy: Option<NonZeroI64>,
         num_sample_sets: usize,
         mapper: M,
     ) -> Result<Self, E>
@@ -162,7 +159,6 @@ impl<'h> VCFToSampleSetAdapter<'h> {
 
         Ok(Self {
             header,
-            ploidy,
             sample_to_sample_set,
             sample_sets: SampleAlleleCounts::of_empty_sample_sets(num_sample_sets),
             // we'll resize if we ever get a record with more variants

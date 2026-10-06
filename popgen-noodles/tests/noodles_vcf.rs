@@ -211,7 +211,7 @@ fn load_vcf_multi_sample_set() {
 
     let header = vcf_reader.read_header().unwrap();
 
-    let mut adapter = VCFToSampleSetAdapter::new(&header, None, 2, |sample_name| {
+    let mut adapter = VCFToSampleSetAdapter::new(&header, 2, |sample_name| {
         map.get(sample_name).copied().ok_or(())
     })
     .unwrap();
@@ -424,7 +424,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             .unwrap();
 
         let header = vcf_reader.read_header().unwrap();
-        let res = crate::VCFToSampleSetAdapter::new(&header, None, 2, |sample_name| {
+        let res = crate::VCFToSampleSetAdapter::new(&header, 2, |sample_name| {
             map.get(sample_name).copied().ok_or(())
         });
         assert!(res.is_ok());
@@ -451,7 +451,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             .unwrap();
 
         let header = vcf_reader.read_header().unwrap();
-        let res = crate::VCFToSampleSetAdapter::new(&header, None, 2, |sample_name| {
+        let res = crate::VCFToSampleSetAdapter::new(&header, 2, |sample_name| {
             map.get(sample_name).copied().ok_or(())
         });
         assert!(res.is_ok());
@@ -478,7 +478,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             .unwrap();
 
         let header = vcf_reader.read_header().unwrap();
-        let res = crate::VCFToSampleSetAdapter::new(&header, None, 2, |sample_name| {
+        let res = crate::VCFToSampleSetAdapter::new(&header, 2, |sample_name| {
             map.get(sample_name).copied().ok_or(())
         });
         assert!(res.is_ok());
@@ -505,7 +505,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
             .unwrap();
 
         let header = vcf_reader.read_header().unwrap();
-        let res = crate::VCFToSampleSetAdapter::new(&header, None, 2, |sample_name| {
+        let res = crate::VCFToSampleSetAdapter::new(&header, 2, |sample_name| {
             map.get(sample_name).copied().ok_or(())
         });
         assert!(res.is_ok());
