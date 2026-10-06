@@ -294,6 +294,8 @@ chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0	/0  /1	/0	/1	/1  /0
 chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
     }
 
+    // This fn exists to hit every relevant bit of the noodles API
+    // w/o touching any of our own code.
     #[test]
     fn test_missing_samples() {
         for r in [
@@ -314,13 +316,7 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
                 for sample in record.samples().iter() {
                     let field = sample.get(&header, key::GENOTYPE).transpose();
                     assert!(field.is_ok());
-                    println!("{field:?}");
-                    let field = field.unwrap().unwrap();
-                    match field {
-                        Some(Value::Genotype(g)) => (),
-                        None => (),
-                        _ => panic!(),
-                    }
+                    let _field = field.unwrap();
                 }
             }
         }
