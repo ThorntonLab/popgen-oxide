@@ -4,7 +4,7 @@ use noodles::vcf;
 use popgen::stats::{Diversity, UnpolarisedSiteStat};
 use popgen::traits::TryReduce;
 use popgen::{PopgenError, SampleAlleleCounts};
-use popgen_noodles::record_to_genotypes_adapter;
+use popgen_noodles::record_to_alleles_adapter;
 use rayon::iter::ParallelBridge;
 use rayon::iter::ParallelIterator;
 use std::io::Cursor;
@@ -28,7 +28,7 @@ fn main() {
 
     let out = iter
         .par_bridge()
-        .map(|rec| record_to_genotypes_adapter(&header, &rec).unwrap())
+        .map(|rec| record_to_alleles_adapter(&header, &rec).unwrap())
         .try_fold(Diversity::default, |mut diversity, alleles| {
             let mut multi = SampleAlleleCounts::default();
             multi.add_site(alleles).unwrap();

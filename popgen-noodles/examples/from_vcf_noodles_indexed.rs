@@ -2,7 +2,7 @@
 
 use noodles::core::{Position, Region};
 use popgen::SampleAlleleCounts;
-use popgen_noodles::record_to_genotypes_adapter;
+use popgen_noodles::record_to_alleles_adapter;
 use std::io::Write;
 
 /*
@@ -46,7 +46,7 @@ fn main() {
     let alleles = query
         .records()
         .map(Result::unwrap)
-        .map(|rec| record_to_genotypes_adapter(&header, &rec).unwrap());
+        .map(|rec| record_to_alleles_adapter(&header, &rec).unwrap());
     let counts = SampleAlleleCounts::try_from_tabular(alleles).unwrap();
     counts
         .iter_sample_set(0)
