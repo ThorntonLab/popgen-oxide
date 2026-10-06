@@ -43,6 +43,7 @@ pub fn record_to_genotypes_adapter(
     ploidy: usize,
 ) -> Result<Vec<Option<AlleleID>>, Error> {
     let num_samples = header.sample_names().len();
+    let mut num_genotypes_parsed = 0_usize;
     let mut genotypes = Vec::with_capacity(ploidy * num_samples);
 
     for sample in record.samples().iter() {
@@ -58,10 +59,10 @@ pub fn record_to_genotypes_adapter(
             }
             // return nothing if value missing
             Some(None) => {
-                for _ in 0..ploidy {
-                    genotypes.push(None);
-                }
-                continue;
+                // This variant is not reachable.
+                // Missing data gets handled below
+                // in the match block.
+                unreachable!();
             }
             // if everything checks out, proceed to the next match statement
             Some(Some(value)) => value,
@@ -69,7 +70,9 @@ pub fn record_to_genotypes_adapter(
 
         match fetched_field {
             Value::Genotype(genotype) => {
+                num_genotypes_parsed += 1;
                 for entry in genotype.iter() {
+                    // Here, the .0 is Option<usize>, and None implies missing data
                     genotypes.push(entry.map_err(Error::NoodlesVCF)?.0.map(AlleleID::from))
                 }
             }
@@ -80,7 +83,11 @@ pub fn record_to_genotypes_adapter(
             }
         };
     }
-    Ok(genotypes)
+    if num_genotypes_parsed == num_samples {
+        Ok(genotypes)
+    } else {
+        Err(Error::MalformedRecord)
+    }
 }
 
 /// `ploidy`, if not passed, will be inferred from the first record seen.
