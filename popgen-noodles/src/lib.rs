@@ -5,8 +5,7 @@ use noodles::vcf::variant::record::samples::series::Value;
 use noodles::vcf::variant::record::samples::Sample;
 use noodles::vcf::variant::record::AlternateBases;
 use noodles::vcf::{Header, Record};
-use popgen::{AlleleID, Count, PopgenResult, SampleAlleleCounts};
-use std::num::NonZeroI64;
+use popgen::{AlleleID, Count, SampleAlleleCounts};
 use std::ops::ControlFlow;
 
 #[non_exhaustive]
@@ -17,6 +16,20 @@ pub enum Error {
     NoodlesVCF(std::io::Error),
     /// An input noodles [`Record`](Record) is badly formatted
     MalformedRecord,
+    /// Contains [`popgen::PopgenError`]
+    Popgen(popgen::PopgenError),
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::NoodlesVCF(e)
+    }
+}
+
+impl From<popgen::PopgenError> for Error {
+    fn from(e: popgen::PopgenError) -> Self {
+        Error::Popgen(e)
+    }
 }
 
 impl std::fmt::Display for Error {
@@ -24,6 +37,7 @@ impl std::fmt::Display for Error {
         match self {
             Error::NoodlesVCF(e) => write!(f, "couldn't handle VCF: {}", e),
             Error::MalformedRecord => write!(f, "malformed VCF record"),
+            Error::Popgen(e) => write!(f, "{e:?}"),
         }
     }
 }
@@ -92,10 +106,10 @@ pub fn record_to_genotypes_adapter(
     }
 }
 
-/// `ploidy`, if not passed, will be inferred from the first record seen.
+/// Builds [`popgen::SampleAlleleCounts`] from VCF
+/// records for one or more sample sets.
 pub struct VCFToSampleSetAdapter<'h> {
     header: &'h Header,
-    ploidy: Option<NonZeroI64>,
     sample_to_sample_set: Vec<usize>,
     sample_sets: SampleAlleleCounts,
     // buffers for add_record
@@ -107,7 +121,6 @@ impl<'h> VCFToSampleSetAdapter<'h> {
     /// Build a new adapter.
     /// Requires:
     /// - `header`: A VCF header.
-    /// - `ploidy`: The ploidy in the data, or `None` to attempt to infer it from the first sample seen.
     /// - `num_sample_sets`: The number of sample sets.
     /// - `mapper`: An [`Fn`] from sample name (as `&str`) to a zero-based sample set ID.
     ///
@@ -118,7 +131,6 @@ impl<'h> VCFToSampleSetAdapter<'h> {
     /// If `mapper` produces a sample set ID greater than or equal to `num_sample_sets` (which is out-of-bounds in a zero-based ID system).
     pub fn new<'sample, M, E>(
         header: &'h Header,
-        ploidy: Option<NonZeroI64>,
         num_sample_sets: usize,
         mapper: M,
     ) -> Result<Self, E>
@@ -147,7 +159,6 @@ impl<'h> VCFToSampleSetAdapter<'h> {
 
         Ok(Self {
             header,
-            ploidy,
             sample_to_sample_set,
             sample_sets: SampleAlleleCounts::of_empty_sample_sets(num_sample_sets),
             // we'll resize if we ever get a record with more variants
@@ -157,7 +168,7 @@ impl<'h> VCFToSampleSetAdapter<'h> {
     }
 
     /// Process a [`noodles::vcf::Record`] into allele count data.
-    pub fn add_record(&mut self, record: &Record) -> PopgenResult<()> {
+    pub fn add_record(&mut self, record: &Record) -> Result<(), Error> {
         let num_sample_sets = self.sample_sets.num_sample_sets();
 
         // let's assume that every stated allele is used
@@ -174,7 +185,9 @@ impl<'h> VCFToSampleSetAdapter<'h> {
 
         self.buf_num_samples.fill(0);
 
+        let mut samples_processed = 0_usize;
         for (sample_i, sample) in record.samples().iter().enumerate() {
+            samples_processed += 1;
             let sample_set_id = self.sample_to_sample_set[sample_i];
             match sample
                 // get the GT field
@@ -184,11 +197,7 @@ impl<'h> VCFToSampleSetAdapter<'h> {
             {
                 // return nothing if field or value missing
                 None => {
-                    let Some(ref ploidy) = self.ploidy else {
-                        todo!("can't infer ploidy")
-                    };
-
-                    self.buf_num_samples[sample_set_id] += ploidy.get();
+                    return Err(Error::MalformedRecord);
                 }
                 Some(Value::Genotype(genotype)) => {
                     for entry in genotype.iter() {
@@ -201,6 +210,9 @@ impl<'h> VCFToSampleSetAdapter<'h> {
                 }
                 Some(_) => todo!("not a gt?"),
             };
+        }
+        if samples_processed != self.header.sample_names().len() {
+            return Err(Error::MalformedRecord);
         }
 
         self.sample_sets
