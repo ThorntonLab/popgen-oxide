@@ -411,4 +411,22 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         assert!(v[0].is_ok());
         assert!(v[1].is_err());
     }
+
+    #[test]
+    fn test_sample_set_adapter_missing_last_sample_1() {
+        // use this overly verbose and inefficient map to verify lifetime correctness
+        let map = (0..18)
+            .map(|n| (format!("s{}", n), (n % 2) as usize))
+            .collect::<std::collections::HashMap<_, _>>();
+        let r = make_vcf_missing_last_sample_1();
+        let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+            .build_from_reader(r.as_bytes())
+            .unwrap();
+
+        let header = vcf_reader.read_header().unwrap();
+        let res = crate::VCFToSampleSetAdapter::new(&header, None, 2, |sample_name| {
+            map.get(sample_name).copied().ok_or(())
+        });
+        assert!(res.is_err());
+    }
 }
