@@ -244,3 +244,69 @@ fn load_vcf_multi_sample_set() {
         assert_eq!(second_site.total_alleles(), 9);
     }
 }
+
+#[cfg(test)]
+mod noodles_spec_conformity {
+    // The noodles crate currently accepts malformed sample input.
+    // These tests are in place to catch if this behavior changes
+    // in future releases of that crate.
+    //
+    // What we do here is generate various bad inputs where one
+    // sample is missing.
+
+    fn make_vcf_missing_last_record_1() -> &'static str {
+        r#"##fileformat=VCFv4.5
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
+chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0	/0	/1	/0	/1	/1
+chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
+    }
+
+    fn make_vcf_missing_last_record_2() -> &'static str {
+        r#"##fileformat=VCFv4.5
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
+chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0	/0	/1	/0	/1	/1  /0
+chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0"#
+    }
+
+    fn make_vcf_missing_middle_record_1() -> &'static str {
+        r#"##fileformat=VCFv4.5
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
+chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0		/1	/0	/1	/1  /0
+chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
+    }
+
+    fn make_vcf_missing_middle_record_2() -> &'static str {
+        r#"##fileformat=VCFv4.5
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2	s3	s4	s5	s6	s7	s8	s9	s10	s11	s12	s13	s14	s15	s16	s17
+chr0	1	.	A	C	.	.	.	GT	/0	/1	/1	/0	/1	/0	/1	/0	/0	/0	/0	/0	/0  /1	/0	/1	/1  /0
+chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0	/1	/1	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
+    }
+
+    #[test]
+    fn test_missing_samples() {
+        for r in [
+            super::make_vcf(),
+            make_vcf_missing_last_record_1(),
+            make_vcf_missing_last_record_2(),
+            make_vcf_missing_middle_record_1(),
+            make_vcf_missing_middle_record_2(),
+        ] {
+            let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+                .build_from_reader(r.as_bytes())
+                .unwrap();
+            let _header = vcf_reader.read_header().unwrap();
+
+            for record in vcf_reader.records() {
+                assert!(record.is_ok(), "{record:?}")
+            }
+        }
+    }
+}
