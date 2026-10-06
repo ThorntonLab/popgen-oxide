@@ -201,11 +201,7 @@ impl<'h> VCFToSampleSetAdapter<'h> {
             {
                 // return nothing if field or value missing
                 None => {
-                    let Some(ref ploidy) = self.ploidy else {
-                        todo!("can't infer ploidy")
-                    };
-
-                    self.buf_num_samples[sample_set_id] += ploidy.get();
+                    return Err(Error::MalformedRecord);
                 }
                 Some(Value::Genotype(genotype)) => {
                     for entry in genotype.iter() {

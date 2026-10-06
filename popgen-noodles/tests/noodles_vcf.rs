@@ -467,6 +467,33 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
     }
 
     #[test]
+    fn test_sample_set_adapter_missing_middle_sample_1() {
+        // use this overly verbose and inefficient map to verify lifetime correctness
+        let map = (0..18)
+            .map(|n| (format!("s{}", n), (n % 2) as usize))
+            .collect::<std::collections::HashMap<_, _>>();
+        let r = make_vcf_missing_middle_sample_1();
+        let mut vcf_reader = noodles::vcf::io::reader::Builder::default()
+            .build_from_reader(r.as_bytes())
+            .unwrap();
+
+        let header = vcf_reader.read_header().unwrap();
+        let res = crate::VCFToSampleSetAdapter::new(&header, None, 2, |sample_name| {
+            map.get(sample_name).copied().ok_or(())
+        });
+        assert!(res.is_ok());
+        let mut builder = res.unwrap();
+        let mut v = vec![];
+        for record in vcf_reader.records() {
+            let record = record.unwrap();
+            let res = builder.add_record(&record);
+            v.push(res);
+        }
+        assert_eq!(v.iter().filter(|i| i.is_ok()).count(), 1);
+        assert_eq!(v.iter().filter(|i| i.is_err()).count(), 1);
+    }
+
+    #[test]
     fn test_sample_set_adapter_missing_middle_sample_2() {
         // use this overly verbose and inefficient map to verify lifetime correctness
         let map = (0..18)
