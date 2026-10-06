@@ -157,7 +157,7 @@ impl<'h> VCFToSampleSetAdapter<'h> {
     }
 
     /// Process a [`noodles::vcf::Record`] into allele count data.
-    pub fn add_record(&mut self, record: &Record) -> PopgenResult<()> {
+    pub fn add_record(&mut self, record: &Record) -> Result<(), Error> {
         let num_sample_sets = self.sample_sets.num_sample_sets();
 
         // let's assume that every stated allele is used
