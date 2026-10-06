@@ -427,6 +427,15 @@ chr0	1	.	G	A	.	.	.	GT	/0	/1	/1	/0		/1	/0	/0	/.	/.	/0	/0	/1	/1	/1	/1	/0	/."#
         let res = crate::VCFToSampleSetAdapter::new(&header, None, 2, |sample_name| {
             map.get(sample_name).copied().ok_or(())
         });
-        assert!(res.is_err());
+        assert!(res.is_ok());
+        let mut builder = res.unwrap();
+        let mut v = vec![];
+        for record in vcf_reader.records() {
+            let record = record.unwrap();
+            let res = builder.add_record(&record);
+            v.push(res);
+        }
+        assert_eq!(v.iter().filter(|i| i.is_ok()).count(), 1);
+        assert_eq!(v.iter().filter(|i| i.is_err()).count(), 1);
     }
 }
