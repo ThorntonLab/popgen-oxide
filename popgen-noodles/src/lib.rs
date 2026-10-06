@@ -106,7 +106,8 @@ pub fn record_to_genotypes_adapter(
     }
 }
 
-/// `ploidy`, if not passed, will be inferred from the first record seen.
+/// Builds [`popgen::SampleAlleleCounts`] from VCF
+/// records for one or more sample sets.
 pub struct VCFToSampleSetAdapter<'h> {
     header: &'h Header,
     sample_to_sample_set: Vec<usize>,
@@ -120,7 +121,6 @@ impl<'h> VCFToSampleSetAdapter<'h> {
     /// Build a new adapter.
     /// Requires:
     /// - `header`: A VCF header.
-    /// - `ploidy`: The ploidy in the data, or `None` to attempt to infer it from the first sample seen.
     /// - `num_sample_sets`: The number of sample sets.
     /// - `mapper`: An [`Fn`] from sample name (as `&str`) to a zero-based sample set ID.
     ///
