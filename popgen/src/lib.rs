@@ -94,6 +94,19 @@ impl From<usize> for AlleleID {
     }
 }
 
+impl From<AlleleID> for usize {
+    fn from(value: AlleleID) -> Self {
+        value.0
+    }
+}
+
+impl AlleleID {
+    /// Get the inner value of this ID.
+    pub fn inner(&self) -> usize {
+        self.0
+    }
+}
+
 /// Get the crate version
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
