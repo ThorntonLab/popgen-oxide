@@ -440,9 +440,9 @@ impl FStatistics {
         weight: f64,
     ) -> Result<(), PopgenError> {
         let diversity_new_site = Diversity::try_from_iter_sites(
-            sample_sets.iter_sample_set(sample_set_num).ok_or_else(|| {
-                PopgenError::LibraryError(String::from("attempting to add OOB sample set"))
-            })?,
+            sample_sets
+                .iter_sample_set(sample_set_num)
+                .ok_or(PopgenError::InvalidSampleSet)?,
         )?
         .as_raw();
         self.diversity_within.push(diversity_new_site);

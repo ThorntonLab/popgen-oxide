@@ -119,7 +119,7 @@ impl SampleAlleleCounts {
     /// Padding with zeroes may be needed to achieve this.
     ///
     /// # Errors
-    /// This function will fail **without rollback guarantees** if the provided counts slices do not match in length.
+    /// This function will fail **without rollback guarantees** if the provided counts slices do not match in length, returning [`PopgenError::MismatchedLengths`].
     /// The sites must also be individually valid; see [`AlleleCounts::try_new`].
     /// Failure does not provide rollback guarantees.
     pub fn extend_sample_sets_from_site<Counts>(
@@ -142,7 +142,7 @@ impl SampleAlleleCounts {
                         .reserve(self.num_sample_sets * inferred_slice_length.unwrap_or_default());
                 }
                 Some(stored) if stored != counts.len() => {
-                    return Err(PopgenError::MismatchedSliceLength);
+                    return Err(PopgenError::MismatchedLengths(stored, counts.len()));
                 }
                 Some(_) => {}
             }
@@ -240,7 +240,7 @@ impl TryReduce for SampleAlleleCounts {
         Self: Sized,
     {
         if self.num_sample_sets != other.num_sample_sets {
-            return Err(PopgenError::MismatchedSampleSetCount(
+            return Err(PopgenError::MismatchedLengths(
                 self.num_sample_sets(),
                 other.num_sample_sets(),
             ));
