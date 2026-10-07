@@ -88,7 +88,7 @@ mod python_integration_tests {
 
     #[pyfunction]
     fn counts_from_ts_holder(holder: &TreeSequenceHolder) -> PyResult<SingleSampleCounts> {
-        let counts = popgen_tskit::try_get_single_sample_allele_counts(
+        let counts = popgen_tskit::single_sample_allele_counts(
             &holder.ts,
             holder
                 .ts
@@ -106,7 +106,7 @@ mod python_integration_tests {
         holder: &TreeSequenceHolder,
         samples: Vec<i32>,
     ) -> PyResult<SingleSampleCounts> {
-        let counts = popgen_tskit::try_get_single_sample_allele_counts(
+        let counts = popgen_tskit::single_sample_allele_counts(
             &holder.ts,
             samples.into_iter().map(|i| i.into()),
             None,
@@ -120,7 +120,7 @@ mod python_integration_tests {
         holder: &TreeSequenceHolder,
         sample_sets: Vec<Vec<i32>>,
     ) -> PyResult<SingleSampleCounts> {
-        let counts = popgen_tskit::try_get_multi_sample_allele_counts(
+        let counts = popgen_tskit::multi_sample_allele_counts(
             &holder.ts,
             sample_sets
                 .into_iter()
@@ -143,7 +143,7 @@ mod python_integration_tests {
         assert!(!windows.is_empty());
         assert!(windows[0] == 0.0);
         assert!(windows[windows.len() - 1] == holder.ts.tables().sequence_length());
-        let counts = popgen_tskit::try_get_single_sample_allele_counts_from_windows(
+        let counts = popgen_tskit::single_sample_allele_counts_from_windows(
             &holder.ts,
             samples.iter().map(|i| i.into()),
             windows.windows(2).map(|w| (w[0], w[1])),
@@ -165,7 +165,7 @@ mod python_integration_tests {
         windows: Vec<(f64, f64)>,
     ) -> PyResult<SingleSampleCountCollection> {
         assert!(!windows.is_empty());
-        let counts = popgen_tskit::try_get_single_sample_allele_counts_from_windows(
+        let counts = popgen_tskit::single_sample_allele_counts_from_windows(
             &holder.ts,
             samples.iter().map(|i| i.into()),
             windows.into_iter(),
@@ -198,7 +198,7 @@ mod python_integration_tests {
     #[pyfunction]
     fn fstats(counts: &SingleSampleCounts) -> PyResult<Fstatistics> {
         let fstats =
-            popgen::stats::FStatistics::try_from_sample_sets(&counts.counts, |_| Some(1.)).unwrap();
+            popgen::stats::FStatistics::from_sample_sets(&counts.counts, |_| Some(1.)).unwrap();
         Ok(Fstatistics { fstats })
     }
 }

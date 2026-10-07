@@ -33,7 +33,7 @@ impl<T> StrictlyLowerTriangular<T> {
     /// A rollback to the state before this function was called is not guaranteed.
     ///
     /// If the iterator does not contain precisely `N` elements, the function panics.
-    pub fn try_extend<I, E>(&mut self, elems: I) -> Result<(), E>
+    pub fn extend<I, E>(&mut self, elems: I) -> Result<(), E>
     where
         I: IntoIterator<Item = Result<T, E>>,
     {
@@ -55,13 +55,13 @@ impl<T> StrictlyLowerTriangular<T> {
 #[test]
 fn tri_sanity() {
     let mut tri = StrictlyLowerTriangular::<usize>::new();
-    tri.try_extend(std::iter::empty::<Result<_, ()>>()).unwrap();
-    tri.try_extend(std::iter::once(Ok::<_, ()>(1))).unwrap();
+    tri.extend(std::iter::empty::<Result<_, ()>>()).unwrap();
+    tri.extend(std::iter::once(Ok::<_, ()>(1))).unwrap();
 
     assert_eq!(tri.get(0, 1), &1);
     assert_eq!(tri.get(1, 0), &1);
 
-    tri.try_extend([2, 3].into_iter().map(Ok::<_, ()>)).unwrap();
+    tri.extend([2, 3].into_iter().map(Ok::<_, ()>)).unwrap();
     assert_eq!(tri.get(0, 2), &2);
     assert_eq!(tri.get(2, 0), &2);
     assert_eq!(tri.get(1, 2), &3);
@@ -73,25 +73,24 @@ fn tri_sanity() {
 fn tri_panic_1() {
     let mut tri = StrictlyLowerTriangular::<()>::new();
     // should be empty
-    tri.try_extend([Ok::<_, ()>(())]).unwrap();
+    tri.extend([Ok::<_, ()>(())]).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn tri_panic_2() {
     let mut tri = StrictlyLowerTriangular::<()>::new();
-    tri.try_extend(std::iter::empty::<Result<_, ()>>()).unwrap();
+    tri.extend(std::iter::empty::<Result<_, ()>>()).unwrap();
 
     // should have length 1
-    tri.try_extend([(), ()].into_iter().map(Ok::<_, ()>))
-        .unwrap();
+    tri.extend([(), ()].into_iter().map(Ok::<_, ()>)).unwrap();
 }
 
 #[test]
 fn tri_err_propagate() {
     let mut tri = StrictlyLowerTriangular::new();
-    tri.try_extend(std::iter::empty::<Result<_, ()>>()).unwrap();
-    tri.try_extend(std::iter::once(Ok::<_, ()>(()))).unwrap();
+    tri.extend(std::iter::empty::<Result<_, ()>>()).unwrap();
+    tri.extend(std::iter::once(Ok::<_, ()>(()))).unwrap();
 
-    tri.try_extend([Ok(()), Err(())]).unwrap_err();
+    tri.extend([Ok(()), Err(())]).unwrap_err();
 }

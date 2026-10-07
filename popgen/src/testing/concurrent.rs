@@ -35,7 +35,7 @@ fn diversity_equivalent_concurrent(
             .iter_sample_set(0)
             .unwrap()
             .try_fold(Diversity::default(), |mut diversity, s| {
-                diversity.try_add_site(s)?;
+                diversity.add_site(s)?;
                 Ok::<_, PopgenError>(diversity)
             });
 
@@ -44,7 +44,7 @@ fn diversity_equivalent_concurrent(
         .unwrap()
         .map(|s| {
             let mut diversity = Diversity::default();
-            diversity.try_add_site(s)?;
+            diversity.add_site(s)?;
             Ok::<_, PopgenError>(diversity)
         })
         .collect::<Vec<_>>();
@@ -60,8 +60,8 @@ fn diversity_equivalent_concurrent(
                 components.push(Err(one));
             }
             (Ok(one), Ok(two)) => {
-                one.try_reduce(two).unwrap();
-                components.push(one.try_reduce(two));
+                one.reduce(two).unwrap();
+                components.push(one.reduce(two));
             }
         }
     }
@@ -117,7 +117,7 @@ fn watterson_theta_equivalent_concurrent(
         .iter_sample_set(0)
         .unwrap()
         .try_fold(WattersonsTheta::default(), |mut theta, s| {
-            theta.try_add_site(s)?;
+            theta.add_site(s)?;
             Ok::<_, PopgenError>(theta)
         });
 
@@ -126,7 +126,7 @@ fn watterson_theta_equivalent_concurrent(
         .unwrap()
         .map(|s| {
             let mut theta = WattersonsTheta::default();
-            theta.try_add_site(s)?;
+            theta.add_site(s)?;
             Ok::<_, PopgenError>(theta)
         })
         .collect::<Vec<_>>();
@@ -142,7 +142,7 @@ fn watterson_theta_equivalent_concurrent(
                 components.push(Err(one));
             }
             (Ok(one), Ok(two)) => {
-                components.push(one.try_reduce(two));
+                components.push(one.reduce(two));
             }
         }
     }

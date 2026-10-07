@@ -120,7 +120,7 @@ impl SampleAlleleCounts {
     ///
     /// # Errors
     /// This function will fail **without rollback guarantees** if the provided counts slices do not match in length, returning [`PopgenError::MismatchedLengths`].
-    /// The sites must also be individually valid; see [`AlleleCounts::try_new`].
+    /// The sites must also be individually valid; see [`AlleleCounts::new`].
     /// Failure does not provide rollback guarantees.
     pub fn extend_sample_sets_from_site<Counts>(
         &mut self,
@@ -147,7 +147,7 @@ impl SampleAlleleCounts {
                 Some(_) => {}
             }
 
-            let _ = AlleleCounts::try_new(counts, total_alleles)?;
+            let _ = AlleleCounts::new(counts, total_alleles)?;
 
             self.counts.extend(counts);
             self.total_alleles.push(total_alleles);
@@ -235,7 +235,7 @@ impl TryReduce for SampleAlleleCounts {
     /// Attempt to concatenate `self` and `other`, assuming that the sample sets correspond, with the semantics that the sites from `self` will be followed by the sites from `other`.
     ///
     /// Error if the number of sample sets differs.
-    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
+    fn reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
@@ -312,7 +312,7 @@ impl<'i> SingleSampleAlleleCounts<'i> {
 /// A borrowed collection of allele counts and the total number of alleles (to describe, by implication, number of missing alleles).
 ///
 /// This type is returned when requesting views into [`SampleAlleleCounts`].
-/// It can also be built from user-provided data via [`Self::try_new`].
+/// It can also be built from user-provided data via [`Self::new`].
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct AlleleCounts<'inner> {
     counts: &'inner [Count],
@@ -327,7 +327,7 @@ impl<'inner> AlleleCounts<'inner> {
     /// - If `total_alleles` is less than the sum of elements of `counts`.
     /// - If `counts` is empty.
     /// - If `total_alleles == 0`.
-    pub fn try_new(counts: &'inner [Count], total_alleles: i64) -> Result<Self, PopgenError> {
+    pub fn new(counts: &'inner [Count], total_alleles: i64) -> Result<Self, PopgenError> {
         if counts.is_empty() || total_alleles == 0 {
             return Err(PopgenError::EmptySiteCounts);
         }

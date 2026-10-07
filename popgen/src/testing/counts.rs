@@ -74,19 +74,19 @@ fn empty_counts() {
 #[test]
 #[should_panic]
 fn bad_site_negative_count() {
-    AlleleCounts::try_new(&[-1, -2, -3], 100).unwrap();
+    AlleleCounts::new(&[-1, -2, -3], 100).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn bad_site_empty_count() {
-    AlleleCounts::try_new(&[], 100).unwrap();
+    AlleleCounts::new(&[], 100).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn bad_site_deficient_total() {
-    AlleleCounts::try_new(&[1, 2, 3], 1).unwrap();
+    AlleleCounts::new(&[1, 2, 3], 1).unwrap();
 }
 
 fn test_try_reduce_details(
@@ -132,7 +132,7 @@ fn test_try_reduce_details(
         .into_iter()
         .try_fold(
             crate::counts::SampleAlleleCounts::of_empty_sample_sets(1),
-            |a, b| a.try_reduce(b),
+            |a, b| a.reduce(b),
         )
         .unwrap();
     assert_eq!(reduced_counts.num_sites(), mergedcounts.num_sites());
@@ -151,7 +151,7 @@ fn cannot_reduce_different_sample_set_count() {
     let a = SampleAlleleCounts::of_empty_sample_sets(1);
     let b = SampleAlleleCounts::of_empty_sample_sets(2);
     assert!(matches!(
-        a.try_reduce(b),
+        a.reduce(b),
         Err(PopgenError::MismatchedLengths(_, _))
     ));
 }

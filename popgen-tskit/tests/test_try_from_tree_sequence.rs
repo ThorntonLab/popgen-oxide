@@ -617,8 +617,7 @@ where
 {
     let samples = options.collect::<Vec<_>>();
     let counts =
-        popgen_tskit::try_get_single_sample_allele_counts(ts, samples.iter().cloned(), None)
-            .unwrap();
+        popgen_tskit::single_sample_allele_counts(ts, samples.iter().cloned(), None).unwrap();
     assert_eq!(counts.num_sample_sets(), 1);
     // Instead of relying on the internal node sample-ness status,
     // we define our set of "sample/focal" nodes externally from
@@ -753,7 +752,7 @@ fn test_3() {
 
     // Multi-sample-set test
     {
-        let mcounts = popgen_tskit::try_get_multi_sample_allele_counts(
+        let mcounts = popgen_tskit::multi_sample_allele_counts(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -761,7 +760,7 @@ fn test_3() {
             None,
         )
         .unwrap();
-        let counts0 = popgen_tskit::try_get_single_sample_allele_counts(
+        let counts0 = popgen_tskit::single_sample_allele_counts(
             &ts,
             [0, 3].into_iter().map(|i| i.into()),
             None,
@@ -771,7 +770,7 @@ fn test_3() {
         let a = mcounts.iter_sample_set(0).unwrap().collect::<Vec<_>>();
         let b = counts0.iter_sample_set(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
-        let counts1 = popgen_tskit::try_get_single_sample_allele_counts(
+        let counts1 = popgen_tskit::single_sample_allele_counts(
             &ts,
             [1, 2].into_iter().map(|i| i.into()),
             None,
@@ -808,7 +807,7 @@ fn test_4() {
     test_non_sample_nodes_and_subsets(&ts);
     // Multi-sample-set test
     {
-        let mcounts = popgen_tskit::try_get_multi_sample_allele_counts(
+        let mcounts = popgen_tskit::multi_sample_allele_counts(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -816,7 +815,7 @@ fn test_4() {
             None,
         )
         .unwrap();
-        let counts0 = popgen_tskit::try_get_single_sample_allele_counts(
+        let counts0 = popgen_tskit::single_sample_allele_counts(
             &ts,
             [0, 3].into_iter().map(|i| i.into()),
             None,
@@ -826,7 +825,7 @@ fn test_4() {
         let a = extract_subsample(&mcounts, 0);
         let b = counts0.iter_sample_set(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
-        let counts1 = popgen_tskit::try_get_single_sample_allele_counts(
+        let counts1 = popgen_tskit::single_sample_allele_counts(
             &ts,
             [1, 2].into_iter().map(|i| i.into()),
             None,
@@ -870,7 +869,7 @@ fn test_5() {
     test_non_sample_nodes_and_subsets(&ts);
     // Multi-sample-set test
     {
-        let mcounts = popgen_tskit::try_get_multi_sample_allele_counts(
+        let mcounts = popgen_tskit::multi_sample_allele_counts(
             &ts,
             [[0_i32, 3], [1, 2]]
                 .into_iter()
@@ -879,7 +878,7 @@ fn test_5() {
         )
         .unwrap();
         assert_eq!(mcounts.num_sample_sets(), 2);
-        let counts0 = popgen_tskit::try_get_single_sample_allele_counts(
+        let counts0 = popgen_tskit::single_sample_allele_counts(
             &ts,
             [0, 3].into_iter().map(|i| i.into()),
             None,
@@ -888,7 +887,7 @@ fn test_5() {
         let a = extract_subsample(&mcounts, 0);
         let b = counts0.iter_sample_set(0).unwrap().collect::<Vec<_>>();
         assert_eq!(a, b);
-        let counts1 = popgen_tskit::try_get_single_sample_allele_counts(
+        let counts1 = popgen_tskit::single_sample_allele_counts(
             &ts,
             [1, 2].into_iter().map(|i| i.into()),
             None,
@@ -983,7 +982,7 @@ fn test_7_site_iter() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    let counts = popgen_tskit::try_get_single_sample_allele_counts_with_site_iter(
+    let counts = popgen_tskit::single_sample_allele_counts_with_site_iter(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -998,7 +997,7 @@ fn test_7_site_iter() {
         .unwrap()
         .tree_sequence(tskit::TreeSequenceFlags::default().build_indexes())
         .unwrap();
-    let reduced_counts = popgen_tskit::try_get_single_sample_allele_counts(
+    let reduced_counts = popgen_tskit::single_sample_allele_counts(
         &reduced,
         reduced
             .node_iter()
@@ -1038,7 +1037,7 @@ fn test_7_windows() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    let counts = popgen_tskit::try_get_single_sample_allele_counts_from_windows(
+    let counts = popgen_tskit::single_sample_allele_counts_from_windows(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -1049,7 +1048,7 @@ fn test_7_windows() {
     .unwrap();
     assert_eq!(counts.len(), 1);
 
-    let counts_two_windows = popgen_tskit::try_get_single_sample_allele_counts_from_windows(
+    let counts_two_windows = popgen_tskit::single_sample_allele_counts_from_windows(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -1066,7 +1065,7 @@ fn test_7_windows() {
         .unwrap()
         .tree_sequence(tskit::TreeSequenceFlags::default().build_indexes())
         .unwrap();
-    let reduced_counts = popgen_tskit::try_get_single_sample_allele_counts(
+    let reduced_counts = popgen_tskit::single_sample_allele_counts(
         &reduced,
         reduced
             .node_iter()
@@ -1113,7 +1112,7 @@ fn test_7_empty_windows() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    let counts = popgen_tskit::try_get_single_sample_allele_counts_from_windows(
+    let counts = popgen_tskit::single_sample_allele_counts_from_windows(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -1146,17 +1145,15 @@ fn test_7_site_iter_reversed() {
         ],
     );
     let ts = make_test_data(make_two_different_four_sample_trees, vec![site0, site1]);
-    assert!(
-        popgen_tskit::try_get_single_sample_allele_counts_with_site_iter(
-            &ts,
-            ts.node_iter()
-                .filter(|n| n.flags().is_sample())
-                .map(|n| n.id()),
-            ts.site_iter().rev(),
-            None,
-        )
-        .is_err()
+    assert!(popgen_tskit::single_sample_allele_counts_with_site_iter(
+        &ts,
+        ts.node_iter()
+            .filter(|n| n.flags().is_sample())
+            .map(|n| n.id()),
+        ts.site_iter().rev(),
+        None,
     )
+    .is_err())
 }
 
 #[test]
@@ -1472,7 +1469,7 @@ mod with_ancient_samples {
             ],
         );
 
-        let counts = popgen_tskit::try_get_single_sample_allele_counts_with_site_iter(
+        let counts = popgen_tskit::single_sample_allele_counts_with_site_iter(
             &ts,
             ts.node_iter()
                 .filter(|n| n.flags().is_sample())
@@ -1490,7 +1487,7 @@ mod with_ancient_samples {
             .unwrap()
             .tree_sequence(tskit::TreeSequenceFlags::default().build_indexes())
             .unwrap();
-        let reduced_counts = popgen_tskit::try_get_single_sample_allele_counts(
+        let reduced_counts = popgen_tskit::single_sample_allele_counts(
             &reduced,
             reduced
                 .node_iter()
@@ -1529,21 +1526,16 @@ fn test_null_node_ids() {
         )],
     );
     let samples = [ts.sample_nodes()[0], tskit::NodeId::NULL];
-    assert!(
-        popgen_tskit::try_get_single_sample_allele_counts(&ts, samples.into_iter(), None).is_err()
-    );
+    assert!(popgen_tskit::single_sample_allele_counts(&ts, samples.into_iter(), None).is_err());
 }
 
 #[test]
 fn test_issue_112() {
     let ts = tskit::TreeSequence::load("tskit_testing_data/issue_112.trees").unwrap();
-    let counts = popgen_tskit::try_get_single_sample_allele_counts(
-        &ts,
-        ts.sample_nodes().iter().cloned(),
-        None,
-    )
-    .unwrap();
-    let counts2 = popgen_tskit::try_get_single_sample_allele_counts(
+    let counts =
+        popgen_tskit::single_sample_allele_counts(&ts, ts.sample_nodes().iter().cloned(), None)
+            .unwrap();
+    let counts2 = popgen_tskit::single_sample_allele_counts(
         &ts,
         ts.node_iter()
             .filter(|n| n.flags().is_sample())
@@ -1597,7 +1589,7 @@ fn test_reciprocal_fixation() {
     tables.full_sort(0).unwrap();
     tables.build_index().unwrap();
     let ts = tables.tree_sequence(0).unwrap();
-    let counts = popgen_tskit::try_get_multi_sample_allele_counts_with_site_iter(
+    let counts = popgen_tskit::multi_sample_allele_counts_with_site_iter(
         &ts,
         [[0_i32, 1], [2, 3]]
             .into_iter()
@@ -1607,6 +1599,6 @@ fn test_reciprocal_fixation() {
     )
     .unwrap();
     assert_eq!(counts.num_sites(), 1);
-    let fstats = popgen::stats::FStatistics::try_from_sample_sets(&counts, |_| Some(1.)).unwrap();
+    let fstats = popgen::stats::FStatistics::from_sample_sets(&counts, |_| Some(1.)).unwrap();
     assert_eq!(fstats.pi_between(0, 1).unwrap(), 1.);
 }

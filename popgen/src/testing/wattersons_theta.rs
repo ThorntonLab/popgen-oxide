@@ -122,7 +122,7 @@ proptest!(
                 let div = WattersonsTheta::try_from_iter_sites(counts.iter_sample_set(0).unwrap().skip(nsplits * splitlen).take(takelen)).unwrap_or_default();
                 div_split.push(div);
             }
-            let reduced = div_split.iter().fold(WattersonsTheta::default(), |acc, &i| acc.try_reduce(i).unwrap());
+            let reduced = div_split.iter().fold(WattersonsTheta::default(), |acc, &i| acc.reduce(i).unwrap());
             assert!((value.as_raw() - reduced.as_raw()).abs() <= 1e-9, "{value:?} != {reduced:?} ({div_split:?}) {splitlen} {counts:?}")
         }
     }

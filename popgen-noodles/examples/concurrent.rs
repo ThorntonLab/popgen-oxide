@@ -32,10 +32,10 @@ fn main() {
         .try_fold(Diversity::default, |mut diversity, alleles| {
             let mut multi = SampleAlleleCounts::default();
             multi.add_site(alleles).unwrap();
-            diversity.try_add_site(multi.get_site(0, 0).unwrap())?;
+            diversity.add_site(multi.get_site(0, 0).unwrap())?;
             Ok::<_, PopgenError>(diversity)
         })
-        .try_reduce(Diversity::default, |a, b| a.try_reduce(b))
+        .try_reduce(Diversity::default, |a, b| a.reduce(b))
         .unwrap();
 
     dbg!(out);
