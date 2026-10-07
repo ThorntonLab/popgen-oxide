@@ -3,6 +3,10 @@ name = "popgen-htslib"
 version = "0.10.0-alpha.0"
 edition.workspace = true
 rust-version.workspace = true
+license = "MIT"
+description = "htslib helper utilities for the popgen ecosystem."
+homepage = "https://github.com/ThorntonLab/popgen-oxide"
+repository = "https://github.com/ThorntonLab/popgen-oxide"
 
 [lints]
 workspace = true
