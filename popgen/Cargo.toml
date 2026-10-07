@@ -5,8 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 license = "MIT"
 description = "Efficient types for population genetic analysis."
-homepage = "https://github.com/ThorntonLab/popgen-oxide"
-repository = "https://github.com/ThorntonLab/popgen-oxide"
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
 

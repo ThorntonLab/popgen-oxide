@@ -5,8 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 license = "MIT"
 description = "tskit helper utilities for the popgen ecosystem."
-homepage = "https://github.com/ThorntonLab/popgen-oxide"
-repository = "https://github.com/ThorntonLab/popgen-oxide"
+homepage.workspace = true
+repository.workspace = true
 
 [lints]
 workspace = true
