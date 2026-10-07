@@ -77,6 +77,13 @@ impl From<std::io::Error> for PopgenError {
 /// The index/identifier of an allele at a given site.
 /// This type is primarily used when reading input data,
 /// such as allele records from a VCF file, etc..
+/*
+This could be u32, but it isn't for these reasons:
+- The upside would be an increase in memory bandwidth and the ability to fit more counts data (double the amount on a 64-bit system) in a cache line.
+- The downside is that ergonomics become rougher.
+  Indexing an array by AlleleID would require .into() to extract the number, then casting to usize, which is fallible, because it may narrow to 16 bits.
+- The upside is not useful until data is quite large, so we lean to use usize, for now.
+*/
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AlleleID(usize);
 
