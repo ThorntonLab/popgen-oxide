@@ -81,7 +81,10 @@ impl<T> Drop for GenotypesAdapter<T> {
 /// alleles called in the record.
 pub fn bcf_record_to_genotypes_iter_adapter(
     record: &rust_htslib::bcf::Record,
-) -> Result<impl Iterator<Item = impl Iterator<Item = Option<AlleleID>>> + '_, Error> {
+) -> Result<
+    impl Iterator<Item = impl DoubleEndedIterator<Item = Option<AlleleID>> + ExactSizeIterator> + '_,
+    Error,
+> {
     // NOTE: this implementation does not rely on the rust_htslib safe API
     // because the iterator types defined there cannot be properly flattened/aggregated.
     // Basically, the borrow checker prevents this API from being written.
