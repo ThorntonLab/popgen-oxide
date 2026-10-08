@@ -1,12 +1,12 @@
 [package]
 name = "popgen"
-version = "0.10.0-alpha.0"
+version = "0.10.0-alpha.1"
+description = "Efficient types for population genetic analysis."
 edition.workspace = true
 rust-version.workspace = true
-license = "MIT"
-description = "Efficient types for population genetic analysis."
-homepage = "https://github.com/ThorntonLab/popgen-oxide"
-repository = "https://github.com/ThorntonLab/popgen-oxide"
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
 
