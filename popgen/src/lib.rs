@@ -56,7 +56,10 @@ impl std::fmt::Display for PopgenError {
             ),
             PopgenError::Io(e) => write!(f, "io error: {}", e),
             PopgenError::MismatchedLengths(a, b) => {
-                write!(f, "structures were expected to be of the same length; {a} != {b}")
+                write!(
+                    f,
+                    "structures were expected to be of the same length; {a} != {b}"
+                )
             }
             PopgenError::EmptySiteCounts => write!(f, "empty site count data"),
             PopgenError::CalculationError => write!(f, "calculation produced an invalid value"),

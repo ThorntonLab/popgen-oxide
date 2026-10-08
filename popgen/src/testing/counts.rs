@@ -74,19 +74,19 @@ fn empty_counts() {
 #[test]
 #[should_panic]
 fn bad_site_negative_count() {
-    AlleleCounts::try_new(&[-1, -2, -3], 100).unwrap();
+    AlleleCounts::new(&[-1, -2, -3], 100).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn bad_site_empty_count() {
-    AlleleCounts::try_new(&[], 100).unwrap();
+    AlleleCounts::new(&[], 100).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn bad_site_deficient_total() {
-    AlleleCounts::try_new(&[1, 2, 3], 1).unwrap();
+    AlleleCounts::new(&[1, 2, 3], 1).unwrap();
 }
 
 fn test_try_reduce_details(

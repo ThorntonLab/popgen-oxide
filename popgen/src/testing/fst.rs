@@ -12,7 +12,7 @@ fn f_st_no_pops() {
     // but this is simpler
     let counts = SampleAlleleCounts::default();
     assert!(matches!(
-        FStatistics::try_from_sample_sets(&counts, |_| Some(1.0)),
+        FStatistics::from_sample_sets(&counts, |_| Some(1.0)),
         Err(PopgenError::CalculationError)
     ));
 }
@@ -21,7 +21,7 @@ fn f_st_no_pops() {
 fn f_st_empty_pops() {
     for n_pops in [1, 2, 5] {
         assert!(matches!(
-            FStatistics::try_from_sample_sets(
+            FStatistics::from_sample_sets(
                 &SampleAlleleCounts::of_empty_sample_sets(n_pops),
                 |_| { Some(1.0) }
             ),
@@ -41,7 +41,7 @@ fn f_st() {
         .extend_sample_sets_from_site(|i| (&data[i].0, data[i].1))
         .unwrap();
 
-    let f_st = FStatistics::try_from_sample_sets(&sample_sets, |i| Some(weights[i])).unwrap();
+    let f_st = FStatistics::from_sample_sets(&sample_sets, |i| Some(weights[i])).unwrap();
 
     for p in 0..sample_sets.num_sample_sets() {
         assert!(
@@ -120,7 +120,7 @@ fn f_st_skip_indices() {
         .extend_sample_sets_from_site(|i| (&data[i].0, data[i].1))
         .unwrap();
 
-    let f_st = FStatistics::try_from_sample_sets(&sample_sets, |i| weights[i]).unwrap();
+    let f_st = FStatistics::from_sample_sets(&sample_sets, |i| weights[i]).unwrap();
     assert!(f_st.pi_within(0).is_ok());
     assert!(matches!(
         f_st.pi_within(1),
@@ -187,7 +187,7 @@ fn f_st_from_random_data() {
             }
 
             let f_st_from_counts =
-                FStatistics::try_from_sample_sets(&counts, |i| Some(pop_weights[i])).unwrap();
+                FStatistics::from_sample_sets(&counts, |i| Some(pop_weights[i])).unwrap();
             let (pi_total_naive, pi_self_naive, pi_between_naive) =
                 crate::testing::naivecalculations::f_st(
                     &mut pops
@@ -252,6 +252,6 @@ fn f_st_reciprocal_fixation_two_sample_sets() {
         .extend_sample_sets_from_site(|i| (&data[i].0, data[i].1))
         .unwrap();
     let f_st_from_counts =
-        FStatistics::try_from_sample_sets(&sample_sets, |i| Some(weights[i])).unwrap();
+        FStatistics::from_sample_sets(&sample_sets, |i| Some(weights[i])).unwrap();
     assert_eq!(f_st_from_counts.pi_between(0, 1).unwrap(), 1.0)
 }

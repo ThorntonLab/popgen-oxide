@@ -256,7 +256,7 @@ fn test_sample_sets_iter() {
     assert_eq!(pop0.sample_set_number(), 0);
     assert_eq!(
         pop0.site(0).unwrap(),
-        AlleleCounts::try_new(&[1, 1, 1], 100).unwrap()
+        AlleleCounts::new(&[1, 1, 1], 100).unwrap()
     );
     assert!(pop0.site(1).is_none());
     assert!(pop0.site(100).is_none());
@@ -264,7 +264,7 @@ fn test_sample_sets_iter() {
     let pop4 = it.next_back().unwrap();
     assert_eq!(pop4.sample_set_number(), 4);
 
-    let pop4_site = AlleleCounts::try_new(&[5, 5, 5], 500).unwrap();
+    let pop4_site = AlleleCounts::new(&[5, 5, 5], 500).unwrap();
     assert_eq!(pop4.site(0).unwrap(), pop4_site);
     assert_eq!(pop4.clone().into_iter().next().unwrap(), pop4_site);
     assert_eq!(pop4.clone().into_iter().next_back().unwrap(), pop4_site);

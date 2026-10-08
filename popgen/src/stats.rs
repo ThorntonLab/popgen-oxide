@@ -66,7 +66,7 @@ macro_rules! f64_stat_newtype_trait_impls {
 pub trait UnpolarisedSiteStat {
     /// Instantiate a `Self` from an iterator over [`AlleleCounts`].
     ///
-    /// The default implementation depends on [`UnpolarisedSiteStat::try_add_site`].
+    /// The default implementation depends on [`UnpolarisedSiteStat::add_site`].
     /// It also errors on an empty iterator, because the semantics of an empty iterator are unclear:
     /// * Were all sites monomorphic?
     /// * Were there no samples in this region?
@@ -79,7 +79,7 @@ pub trait UnpolarisedSiteStat {
     /// # Errors
     ///
     /// * If the iterator is empty, implementors may return [`PopgenError::EmptySiteCounts`] (see above for potential reasons).
-    /// * Any error resulting from adding a single site ([`Self::try_add_site`]) may also be raised.
+    /// * Any error resulting from adding a single site ([`Self::add_site`]) may also be raised.
     fn try_from_iter_sites<'counts, I>(mut iter: I) -> Result<Self, PopgenError>
     where
         I: Iterator<Item = AlleleCounts<'counts>>,
@@ -88,9 +88,9 @@ pub trait UnpolarisedSiteStat {
         let first = iter.next();
         if let Some(f) = first {
             let mut ret = Self::default();
-            ret.try_add_site(f)?;
+            ret.add_site(f)?;
             for site in iter {
-                ret.try_add_site(site)?
+                ret.add_site(site)?
             }
 
             Ok(ret)
@@ -117,7 +117,7 @@ pub trait UnpolarisedSiteStat {
     /// ```no_compile
     /// debug_assert!(!site.counts().is_empty());
     /// ```
-    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError>;
+    fn add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError>;
 }
 
 /// Obtain a low-level ("raw") representation of a statistic.
@@ -156,7 +156,7 @@ pub struct Diversity(f64);
 f64_stat_newtype_trait_impls!(Diversity);
 
 impl UnpolarisedSiteStat for Diversity {
-    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
+    fn add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
 
         let mut sum = 0_i64;
@@ -222,7 +222,7 @@ pub struct WattersonsTheta(f64);
 f64_stat_newtype_trait_impls!(WattersonsTheta);
 
 impl UnpolarisedSiteStat for WattersonsTheta {
-    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
+    fn add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
 
         // requires rust 1.88
@@ -293,10 +293,10 @@ pub struct TajimasDBuilder {
 }
 
 impl UnpolarisedSiteStat for TajimasDBuilder {
-    fn try_add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
+    fn add_site(&mut self, site: AlleleCounts) -> Result<(), PopgenError> {
         debug_assert!(!site.counts().is_empty());
-        self.k_hat.try_add_site(site.clone())?;
-        self.theta.try_add_site(site.clone())?;
+        self.k_hat.add_site(site.clone())?;
+        self.theta.add_site(site.clone())?;
 
         self.num_sites += 1;
         // this is not perfect but that's fine
@@ -433,7 +433,7 @@ impl FStatistics {
     ///
     /// # Panics
     /// If `sample_set_num` is out of bounds.
-    fn try_add_sample_set(
+    fn add_sample_set(
         &mut self,
         sample_sets: &SampleAlleleCounts,
         sample_set_num: usize,
@@ -451,47 +451,44 @@ impl FStatistics {
         self.pi_s.1 += weight * weight;
 
         // there are more possible pairs of sample sets now
-        self.divergence_between
-            .try_extend(
-                self.sample_sets
-                    .iter()
-                    .map(|(existing_pop, existing_pop_weight)| {
-                        let divergence_ij = sample_sets
-                            .iter_sample_set(*existing_pop)
-                            .unwrap()
-                            .zip(sample_sets.iter_sample_set(sample_set_num).unwrap())
-                            .map(|(s1, s2)| {
-                                if s1.total_alleles() == 0 || s2.total_alleles() == 0 {
-                                    return Err(PopgenError::EmptySiteCounts);
-                                }
+        self.divergence_between.extend(self.sample_sets.iter().map(
+            |(existing_pop, existing_pop_weight)| {
+                let divergence_ij = sample_sets
+                    .iter_sample_set(*existing_pop)
+                    .unwrap()
+                    .zip(sample_sets.iter_sample_set(sample_set_num).unwrap())
+                    .map(|(s1, s2)| {
+                        if s1.total_alleles() == 0 || s2.total_alleles() == 0 {
+                            return Err(PopgenError::EmptySiteCounts);
+                        }
 
-                                // do complement of diversity, i.e. expected homozygosity
+                        // do complement of diversity, i.e. expected homozygosity
 
-                                let total_comparisons = (s1.counts().iter().sum::<Count>()
-                                    * s2.counts().iter().sum::<Count>())
-                                    as i32;
-                                if total_comparisons == 0 {
-                                    return Err(PopgenError::EmptySiteCounts);
-                                }
+                        let total_comparisons = (s1.counts().iter().sum::<Count>()
+                            * s2.counts().iter().sum::<Count>())
+                            as i32;
+                        if total_comparisons == 0 {
+                            return Err(PopgenError::EmptySiteCounts);
+                        }
 
-                                let num_homozygous = (0..max(s1.counts().len(), s2.counts().len()))
-                                    .map(|variant_num| {
-                                        // how many homozygous pairs?
-                                        s1.counts().get(variant_num).unwrap_or(&0)
-                                            * s2.counts().get(variant_num).unwrap_or(&0)
-                                    })
-                                    .sum::<i64>();
-
-                                Ok(1. - num_homozygous as f64 / (total_comparisons as f64))
+                        let num_homozygous = (0..max(s1.counts().len(), s2.counts().len()))
+                            .map(|variant_num| {
+                                // how many homozygous pairs?
+                                s1.counts().get(variant_num).unwrap_or(&0)
+                                    * s2.counts().get(variant_num).unwrap_or(&0)
                             })
-                            .sum::<Result<f64, PopgenError>>()?;
+                            .sum::<i64>();
 
-                        self.pi_b.0 += weight * existing_pop_weight * divergence_ij;
-                        self.pi_b.1 += weight * existing_pop_weight;
+                        Ok(1. - num_homozygous as f64 / (total_comparisons as f64))
+                    })
+                    .sum::<Result<f64, PopgenError>>()?;
 
-                        PopgenResult::Ok(divergence_ij)
-                    }),
-            )?;
+                self.pi_b.0 += weight * existing_pop_weight * divergence_ij;
+                self.pi_b.1 += weight * existing_pop_weight;
+
+                PopgenResult::Ok(divergence_ij)
+            },
+        ))?;
 
         self.sample_sets.push((sample_set_num, weight));
         Ok(())
@@ -504,7 +501,7 @@ impl FStatistics {
     /// # Errors
     /// - If no sample sets are selected for inclusion.
     /// - If any sample set selected for inclusion has no sites or if any site on that sample set has zero present or total alleles.
-    pub fn try_from_sample_sets(
+    pub fn from_sample_sets(
         sample_sets: &SampleAlleleCounts,
         mut pred: impl FnMut(usize) -> Option<f64>,
     ) -> Result<Self, PopgenError> {
@@ -513,7 +510,7 @@ impl FStatistics {
         let mut any = false;
         for pop_i in 0..sample_sets.num_sample_sets() {
             if let Some(weight) = pred(pop_i) {
-                ret.try_add_sample_set(sample_sets, pop_i, weight)?;
+                ret.add_sample_set(sample_sets, pop_i, weight)?;
                 any = true;
             }
         }

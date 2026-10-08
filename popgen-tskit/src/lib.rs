@@ -39,7 +39,7 @@ pub enum FromTreeSequenceError {
 
 /// Obtain site counts from a [`tskit::TreeSequence`].
 /// All sites will be placed in one sample set.
-/// If that is not desired, use [`try_get_multi_sample_allele_counts`] and related functions.
+/// If that is not desired, use [`multi_sample_allele_counts`] and related functions.
 ///
 /// # Parameters
 ///
@@ -51,7 +51,7 @@ pub enum FromTreeSequenceError {
 ///
 /// Any errors from [`tskit`] will be propagated.
 /// Missing ancestral/derived states will result in errors.
-pub fn try_get_single_sample_allele_counts<N>(
+pub fn single_sample_allele_counts<N>(
     ts: &tskit::TreeSequence,
     samples: N,
     options: Option<FromTreeSequenceOptions>,
@@ -65,14 +65,14 @@ where
 /// Obtain site counts from a [`tskit::TreeSequence`] using an iterator
 /// over sites to include/exclude sites as needed.
 ///
-/// See [`try_get_single_sample_allele_counts`] for details.
+/// See [`single_sample_allele_counts`] for details.
 ///
 /// # Parameters
 ///
 /// The additional parameter is:
 ///
 /// `sites`: Iterator over [`tskit::SiteRef`]
-pub fn try_get_single_sample_allele_counts_with_site_iter<'ts, N, S>(
+pub fn single_sample_allele_counts_with_site_iter<'ts, N, S>(
     ts: &'ts tskit::TreeSequence,
     samples: N,
     sites: S,
@@ -88,7 +88,7 @@ where
 /// Obtain site counts from a [`tskit::TreeSequence`] using an iterator
 /// over windows.
 ///
-/// See [`try_get_single_sample_allele_counts`] for details.
+/// See [`single_sample_allele_counts`] for details.
 /// API differences from that function are detailed below.
 ///
 /// # Parameters
@@ -100,14 +100,14 @@ where
 ///
 /// # Returns
 ///
-/// Unlike [`try_get_single_sample_allele_counts`], this function
+/// Unlike [`single_sample_allele_counts`], this function
 /// returns a vector of [`popgen::SampleAlleleCounts`] with one element
 /// per window.
 ///
 /// # Notes
 ///
 /// The tuples in `windows` represent half-open intervals, `[left, right)`.
-pub fn try_get_single_sample_allele_counts_from_windows<N, W, P>(
+pub fn single_sample_allele_counts_from_windows<N, W, P>(
     ts: &tskit::TreeSequence,
     samples: N,
     windows: W,
@@ -134,7 +134,7 @@ where
 ///
 /// Any errors from [`tskit`] will be propagated.
 /// Missing ancestral/derived states will result in errors.
-pub fn try_get_multi_sample_allele_counts<Outer, Inner>(
+pub fn multi_sample_allele_counts<Outer, Inner>(
     ts: &tskit::TreeSequence,
     samples: Outer,
     options: Option<FromTreeSequenceOptions>,
@@ -165,7 +165,7 @@ where
 ///
 /// Any errors from [`tskit`] will be propagated.
 /// Missing ancestral/derived states will result in errors.
-pub fn try_get_multi_sample_allele_counts_with_site_iter<'ts, Outer, Inner, S>(
+pub fn multi_sample_allele_counts_with_site_iter<'ts, Outer, Inner, S>(
     ts: &'ts tskit::TreeSequence,
     samples: Outer,
     sites: S,
