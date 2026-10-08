@@ -213,7 +213,7 @@ impl<'h> VCFToSampleSetAdapter<'h> {
         }
 
         self.sample_sets
-            .extend_sample_sets_from_site(|sample_set_i| {
+            .extend_sample_sets_from_site_pred(|sample_set_i| {
                 (
                     &self.buf_counts
                         [sample_set_i * num_sample_sets..(sample_set_i + 1) * num_sample_sets],

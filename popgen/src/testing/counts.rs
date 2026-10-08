@@ -125,7 +125,7 @@ fn test_try_reduce_details(
         .flat_map(|c| c.iter_sample_set(0).unwrap())
     {
         mergedcounts
-            .extend_sample_sets_from_site(|_| (i.counts(), i.total_alleles()))
+            .extend_sample_sets_from_site_pred(|_| (i.counts(), i.total_alleles()))
             .unwrap();
     }
     let reduced_counts = splitcounts

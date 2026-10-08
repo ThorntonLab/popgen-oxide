@@ -53,7 +53,7 @@ fn main() {
             }
         }
         counts
-            .extend_sample_sets_from_site(|_| (site_counts_from_record.as_slice(), total_alleles))
+            .extend_sample_sets_from_site_pred(|_| (site_counts_from_record.as_slice(), total_alleles))
             .unwrap();
     }
     println!("{counts:?}");

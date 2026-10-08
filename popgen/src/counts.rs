@@ -97,7 +97,7 @@ impl SampleAlleleCounts {
 
         // we should not get NegativeCount or TotalAllelesDeficient here (could check that),
         // but we certainly could get other error variants
-        self.extend_sample_sets_from_site(|_| (&counts_this_site, total_alleles))?;
+        self.extend_sample_sets_from_site_pred(|_| (&counts_this_site, total_alleles))?;
         Ok(())
     }
 
@@ -111,29 +111,50 @@ impl SampleAlleleCounts {
         }
     }
 
-    /// Extend the sample sets contained in [`Self`], using the successive (allele counts, number of samples) pairs provided.
-    /// The first pair will be used to form the counts at this new site in the first sample set.
-    /// The second pair will form the counts at the same site in the second sample set, etc.
+    /// Extend the sample sets contained in [`Self`], using the (allele counts, number of samples) pairs provided by the predicate `get_counts`.
+    /// The pair returned by `get_counts(0)` will be used to form the counts at this new site in the first sample set.
+    /// The pair returned by `get_counts(1)` will form the counts at the same site in the second sample set, etc.
     ///
     /// Because of the invariant of this type, the same position in each counts slice must correspond to the same allele.
     /// Padding with zeroes may be needed to achieve this.
+    ///
+    /// Users holding an iterator, such as from an ordered collection, may find [`extend_sample_sets_from_site_iter`](Self::extend_sample_sets_from_site_iter) more convenient.
     ///
     /// # Errors
     /// This function will fail **without rollback guarantees** if the provided counts slices do not match in length, returning [`PopgenError::MismatchedLengths`].
     /// The sites must also be individually valid; see [`AlleleCounts::new`].
     /// Failure does not provide rollback guarantees.
-    pub fn extend_sample_sets_from_site<Counts>(
+    pub fn extend_sample_sets_from_site_pred<Counts>(
         &mut self,
-        mut get_counts: impl FnMut(usize) -> (Counts, Count),
+        get_counts: impl FnMut(usize) -> (Counts, Count),
     ) -> PopgenResult<()>
     where
+        Counts: AsRef<[Count]>,
+    {
+        self.extend_sample_sets_from_site_iter((0..self.num_sample_sets).map(get_counts))
+    }
+
+    /// [`Self::extend_sample_sets_from_site_pred`], but taking an iterator instead.
+    /// The iterator should return counts for the first sample set, then the second, and so on, in order.
+    ///
+    /// Returns [`PopgenError::InvalidSampleSet`] if the iterator is exhausted too early.
+    pub fn extend_sample_sets_from_site_iter<It, Counts>(
+        &mut self,
+        counts_iter: It,
+    ) -> PopgenResult<()>
+    where
+        It: IntoIterator<Item = (Counts, Count)>,
         Counts: AsRef<[Count]>,
     {
         let mut inferred_slice_length = None;
         self.count_starts.push(self.counts.len());
 
-        for sample_set_i in 0..self.num_sample_sets {
-            let (allele_counts, total_alleles) = get_counts(sample_set_i);
+        let mut counts_iter = counts_iter.into_iter();
+
+        for _ in 0..self.num_sample_sets {
+            let (allele_counts, total_alleles) =
+                counts_iter.next().ok_or(PopgenError::InvalidSampleSet)?;
+
             let counts = allele_counts.as_ref();
             match inferred_slice_length {
                 None => {
