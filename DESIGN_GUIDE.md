@@ -13,7 +13,7 @@ Statistics should:
 * implement Debug, Copy and/or Clone as appropriate, and Default if appropriate.
   The derive macro implementations should be used if acceptable.
 * implement Display, Eq/Ord or PartialEq/PartialOrd as appropriate for their underlying representation.
-* implement From<Self> for their underlying representation
+* implement From<Self> for conversion into their underlying representation
 
 Some statistics require composititions of multiple values to calculate a final statistic.
 An examaple is Tajima's D, which relies of diversity and Watterson's estimator of theta.
