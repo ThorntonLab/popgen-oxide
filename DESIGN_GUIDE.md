@@ -16,7 +16,7 @@ Statistics should:
 * implement From<Self> for conversion into their underlying representation
 
 Some statistics require composititions of multiple values to calculate a final statistic.
-An examaple is Tajima's D, which relies of diversity and Watterson's estimator of theta.
+An example is Tajima's D, which relies of diversity and Watterson's estimator of theta.
 Another example are F statistics like Fst, F2, etc..
 
 For these statistics, we want:
