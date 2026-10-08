@@ -112,8 +112,8 @@ impl SampleAlleleCounts {
     }
 
     /// Extend the sample sets contained in [`Self`], using the (allele counts, number of samples) pairs provided by the predicate `get_counts`.
-    /// The first pair will be used to form the counts at this new site in the first sample set.
-    /// The second pair will form the counts at the same site in the second sample set, etc.
+    /// The pair returned by `get_counts(0)` will be used to form the counts at this new site in the first sample set.
+    /// The pair returned by `get_counts(1)` will form the counts at the same site in the second sample set, etc.
     ///
     /// Because of the invariant of this type, the same position in each counts slice must correspond to the same allele.
     /// Padding with zeroes may be needed to achieve this.
