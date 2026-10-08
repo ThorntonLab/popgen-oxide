@@ -1,5 +1,18 @@
 # Design guide
 
+## General considerations
+
+### Avoid "syntax sugar"
+
+We want to avoid public API elements that are simple wrappers around existing functionality.
+For example, if we have a function whose return type is `impl Iterator<Item=usize>`, then we do **not** want a second function that returns the same output as a `Vec<usize>`.
+The reason is that the second function would simply be a dispatch to `Iterator::collect`, and is thus a kind of "convenience" function.
+Such convenience functions are not without cost!
+They have to be compiled, etc., during CI.
+They are continuously compiled by LSPs during development of the code base.
+They require documentation and maintenance.
+Etc..
+
 ## Summary statistics
 
 ### Single locus/site statistics
