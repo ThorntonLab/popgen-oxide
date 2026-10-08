@@ -38,7 +38,7 @@ fn f_st() {
     let weights = [1.0, 2.0, 3.0];
 
     sample_sets
-        .extend_sample_sets_from_site(|i| (&data[i].0, data[i].1))
+        .extend_sample_sets_from_site_pred(|i| (&data[i].0, data[i].1))
         .unwrap();
 
     let f_st = FStatistics::try_from_sample_sets(&sample_sets, |i| Some(weights[i])).unwrap();
@@ -117,7 +117,7 @@ fn f_st_skip_indices() {
     let weights = [Some(1.0), None, Some(3.0)];
 
     sample_sets
-        .extend_sample_sets_from_site(|i| (&data[i].0, data[i].1))
+        .extend_sample_sets_from_site_pred(|i| (&data[i].0, data[i].1))
         .unwrap();
 
     let f_st = FStatistics::try_from_sample_sets(&sample_sets, |i| weights[i]).unwrap();
@@ -168,7 +168,7 @@ fn f_st_from_random_data() {
             )]
             for s in 0..n_sites {
                 counts
-                    .extend_sample_sets_from_site(|pop_i| {
+                    .extend_sample_sets_from_site_pred(|pop_i| {
                         let alleles = pops[pop_i][s]
                             .iter()
                             .flat_map(|gts| gts.iter())
@@ -249,7 +249,7 @@ fn f_st_reciprocal_fixation_two_sample_sets() {
     let weights = [1.0, 1.0];
 
     sample_sets
-        .extend_sample_sets_from_site(|i| (&data[i].0, data[i].1))
+        .extend_sample_sets_from_site_pred(|i| (&data[i].0, data[i].1))
         .unwrap();
     let f_st_from_counts =
         FStatistics::try_from_sample_sets(&sample_sets, |i| Some(weights[i])).unwrap();

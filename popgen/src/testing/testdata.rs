@@ -157,7 +157,7 @@ pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> Sa
             let num_samples = Count::try_from(num_samples).unwrap();
             let total_alleles = ploidy.checked_mul(num_samples).unwrap();
             mcounts
-                .extend_sample_sets_from_site(|_| (&counts, total_alleles))
+                .extend_sample_sets_from_site_pred(|_| (&counts, total_alleles))
                 .unwrap();
         }
     }

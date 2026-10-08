@@ -293,7 +293,7 @@ impl<'s> SampleSets<'s> for SingleSampleSet<'s> {
             .count()
             > 1
         {
-            self.counts.extend_sample_sets_from_site(|_| {
+            self.counts.extend_sample_sets_from_site_pred(|_| {
                 (&self.allele_counts, self.num_sampled_genomes)
             })?;
         }
@@ -416,7 +416,7 @@ impl<'s> SampleSets<'s> for MultitpleSampleSets<'s> {
         // If more than one allele is seen across all sample sets,
         // record data for them.
         if number_of_alleles_seen_across_sample_sets > 1 {
-            self.counts.extend_sample_sets_from_site(|index| {
+            self.counts.extend_sample_sets_from_site_pred(|index| {
                 (&self.allele_counts[index], self.num_sampled_genomes[index])
             })?;
         }
@@ -717,7 +717,7 @@ where
                         > 1
                     {
                         let i = counts.len() - 1;
-                        counts[i].extend_sample_sets_from_site(|_| {
+                        counts[i].extend_sample_sets_from_site_pred(|_| {
                             (&allele_counts, num_sampled_genomes)
                         })?;
                     }

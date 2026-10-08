@@ -146,7 +146,7 @@ fn test_sample_set_count() {
     for c in 0..5 {
         let mut counts = SampleAlleleCounts::of_empty_sample_sets(c);
         counts
-            .extend_sample_sets_from_site(|_| (&[1, 2, 3], 6))
+            .extend_sample_sets_from_site_pred(|_| (&[1, 2, 3], 6))
             .unwrap();
 
         assert_eq!(counts.iter_sample_sets().count(), c);
@@ -157,16 +157,16 @@ fn test_sample_set_count() {
 fn make_nonempty_counts() -> SampleAlleleCounts {
     let mut counts = SampleAlleleCounts::of_empty_sample_sets(1);
     counts
-        .extend_sample_sets_from_site(|_| (&[1, 2, 3], 6))
+        .extend_sample_sets_from_site_pred(|_| (&[1, 2, 3], 6))
         .unwrap();
     counts
-        .extend_sample_sets_from_site(|_| (&[1, 1, 1], 3))
+        .extend_sample_sets_from_site_pred(|_| (&[1, 1, 1], 3))
         .unwrap();
     counts
-        .extend_sample_sets_from_site(|_| (&[1, 5, 1], 7))
+        .extend_sample_sets_from_site_pred(|_| (&[1, 5, 1], 7))
         .unwrap();
     counts
-        .extend_sample_sets_from_site(|_| (&[1, 6, 2], 9))
+        .extend_sample_sets_from_site_pred(|_| (&[1, 6, 2], 9))
         .unwrap();
 
     counts
@@ -227,7 +227,7 @@ fn test_site_exhaust_back() {
 fn test_single_site_getters() {
     let mut counts = SampleAlleleCounts::of_empty_sample_sets(1);
     counts
-        .extend_sample_sets_from_site(|_| (&[9, 8, 7], 35))
+        .extend_sample_sets_from_site_pred(|_| (&[9, 8, 7], 35))
         .unwrap();
     let site = counts.get_site(0, 0).unwrap();
     assert_eq!(site.counts(), &[9, 8, 7]);
@@ -238,7 +238,7 @@ fn test_single_site_getters() {
 fn make_multi_pop() -> SampleAlleleCounts {
     let mut counts = SampleAlleleCounts::of_empty_sample_sets(5);
     counts
-        .extend_sample_sets_from_site(|i| (vec![(i + 1) as Count; 3], ((i + 1) * 100) as Count))
+        .extend_sample_sets_from_site_pred(|i| (vec![(i + 1) as Count; 3], ((i + 1) * 100) as Count))
         .unwrap();
 
     counts
