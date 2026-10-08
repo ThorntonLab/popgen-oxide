@@ -60,8 +60,8 @@ fn diversity_equivalent_concurrent(
                 components.push(Err(one));
             }
             (Ok(one), Ok(two)) => {
-                one.reduce(two).unwrap();
-                components.push(one.reduce(two));
+                one.try_reduce(two).unwrap();
+                components.push(one.try_reduce(two));
             }
         }
     }
@@ -142,7 +142,7 @@ fn watterson_theta_equivalent_concurrent(
                 components.push(Err(one));
             }
             (Ok(one), Ok(two)) => {
-                components.push(one.reduce(two));
+                components.push(one.try_reduce(two));
             }
         }
     }

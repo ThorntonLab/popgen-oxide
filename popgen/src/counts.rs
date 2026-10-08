@@ -235,7 +235,7 @@ impl TryReduce for SampleAlleleCounts {
     /// Attempt to concatenate `self` and `other`, assuming that the sample sets correspond, with the semantics that the sites from `self` will be followed by the sites from `other`.
     ///
     /// Error if the number of sample sets differs.
-    fn reduce(self, other: Self) -> Result<Self, Self::Error>
+    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {

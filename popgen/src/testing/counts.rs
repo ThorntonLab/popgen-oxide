@@ -132,7 +132,7 @@ fn test_try_reduce_details(
         .into_iter()
         .try_fold(
             crate::counts::SampleAlleleCounts::of_empty_sample_sets(1),
-            |a, b| a.reduce(b),
+            |a, b| a.try_reduce(b),
         )
         .unwrap();
     assert_eq!(reduced_counts.num_sites(), mergedcounts.num_sites());
@@ -151,7 +151,7 @@ fn cannot_reduce_different_sample_set_count() {
     let a = SampleAlleleCounts::of_empty_sample_sets(1);
     let b = SampleAlleleCounts::of_empty_sample_sets(2);
     assert!(matches!(
-        a.reduce(b),
+        a.try_reduce(b),
         Err(PopgenError::MismatchedLengths(_, _))
     ));
 }

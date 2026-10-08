@@ -104,7 +104,7 @@ proptest!(
                 let reduced = div_split
                     .iter()
                     .fold(TajimasDBuilder::default(), |acc, &i| {
-                        acc.reduce(i).unwrap()
+                        acc.try_reduce(i).unwrap()
                     });
 
                 let value = value.build();

@@ -35,7 +35,7 @@ fn main() {
             diversity.add_site(multi.get_site(0, 0).unwrap())?;
             Ok::<_, PopgenError>(diversity)
         })
-        .try_reduce(Diversity::default, |a, b| a.reduce(b))
+        .try_reduce(Diversity::default, |a, b| a.try_reduce(b))
         .unwrap();
 
     dbg!(out);

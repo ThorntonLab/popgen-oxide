@@ -9,7 +9,7 @@ pub trait TryReduce {
     /// This function is the main logic.
     /// Implementations must attempt to combine values
     /// and return an error if it is not possible to do so.
-    fn reduce(self, other: Self) -> Result<Self, Self::Error>
+    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized;
 }
@@ -34,7 +34,7 @@ fn sample_allele_counts_reduce() {
     )
     .unwrap();
 
-    let combined = counts1.reduce(counts2).unwrap();
+    let combined = counts1.try_reduce(counts2).unwrap();
     assert_eq!(combined.num_sites(), 6);
     let expect: Vec<(&[Count], Count)> = vec![
         (&[3], 3),

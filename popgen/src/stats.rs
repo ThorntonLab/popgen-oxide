@@ -182,7 +182,7 @@ impl UnpolarisedSiteStat for Diversity {
 
 impl TryReduce for Diversity {
     type Error = crate::PopgenError;
-    fn reduce(self, other: Self) -> Result<Self, Self::Error>
+    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
@@ -260,7 +260,7 @@ impl<'statistic> StatRepresentation<'statistic> for WattersonsTheta {
 
 impl TryReduce for WattersonsTheta {
     type Error = crate::PopgenError;
-    fn reduce(self, other: Self) -> Result<Self, Self::Error>
+    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
@@ -377,12 +377,12 @@ where
     WattersonsTheta: TryReduce,
 {
     type Error = PopgenError;
-    fn reduce(self, other: Self) -> Result<Self, Self::Error>
+    fn try_reduce(self, other: Self) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
-        let k_hat = self.k_hat.reduce(other.k_hat)?;
-        let theta = self.theta.reduce(other.theta)?;
+        let k_hat = self.k_hat.try_reduce(other.k_hat)?;
+        let theta = self.theta.try_reduce(other.theta)?;
         let num_sites = self.num_sites + other.num_sites;
         let num_samples = max(self.num_samples, other.num_samples);
         Ok(Self {
