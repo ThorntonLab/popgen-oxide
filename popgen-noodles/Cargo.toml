@@ -1,10 +1,10 @@
 [package]
 name = "popgen-noodles"
 version = "0.10.0-alpha.0"
+description = "noodles helper utilities for the popgen ecosystem."
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "noodles helper utilities for the popgen ecosystem."
 homepage.workspace = true
 repository.workspace = true
 

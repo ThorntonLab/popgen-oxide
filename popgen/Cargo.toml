@@ -1,10 +1,10 @@
 [package]
 name = "popgen"
 version = "0.10.0-alpha.1"
+description = "Efficient types for population genetic analysis."
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Efficient types for population genetic analysis."
 homepage.workspace = true
 repository.workspace = true
 
