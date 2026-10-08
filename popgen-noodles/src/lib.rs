@@ -75,7 +75,7 @@ pub fn record_to_alleles_adapter(
                 // This variant is not reachable.
                 // Missing data gets handled below
                 // in the match block.
-                unreachable!();
+                unreachable!("while parsing genotypes with noodles, the genotype field is present but the value is missing; this is a violation of the VCF spec");
             }
             // if everything checks out, proceed to the next match statement
             Some(Some(value)) => value,
