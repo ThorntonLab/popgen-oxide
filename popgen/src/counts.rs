@@ -249,7 +249,7 @@ impl SampleAlleleCounts {
         Some(self.sample_set(sample_set_number)?.into_iter())
     }
 
-    /// Remove all count in `self`.
+    /// Remove all counts in `self`.
     /// All allocations are preserved.
     /// The number of sample sets is preserved.
     pub fn clear(&mut self) {
