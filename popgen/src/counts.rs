@@ -248,6 +248,15 @@ impl SampleAlleleCounts {
     ) -> Option<impl DoubleEndedIterator<Item = AlleleCounts<'_>> + ExactSizeIterator> {
         Some(self.sample_set(sample_set_number)?.into_iter())
     }
+
+    /// Remove all counts in `self`.
+    /// All allocations are preserved.
+    /// The number of sample sets is preserved.
+    pub fn clear(&mut self) {
+        self.total_alleles.clear();
+        self.counts.clear();
+        self.count_starts.clear();
+    }
 }
 
 impl TryReduce for SampleAlleleCounts {
