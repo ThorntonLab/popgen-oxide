@@ -92,7 +92,7 @@ chr0	1	.	G	A	.	.	.	GT	0/0	./.	0/1	0/0	0/1	0/1	0/0	0/0	0/0	0/0	0/0	0/0	0/1	./.	0/
         }
         assert!(num_alleles.iter().all(|&i| i == 18));
         counts
-            .extend_sample_sets_from_site(|u| (&allele_counts[u], num_alleles[u]))
+            .extend_sample_sets_from_site_pred(|u| (&allele_counts[u], num_alleles[u]))
             .unwrap();
         assert!(counts
             .iter_sample_set(0)
