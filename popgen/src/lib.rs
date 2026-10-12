@@ -1,14 +1,44 @@
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
-
 //! Efficient types and interfaces for population genetics
 //!
-//! # Example
+//! # Examples
+//!
+//! ## Collecting allele count data into [SampleAlleleCounts] for a single sample set.
+//!
+//! ```rust
+//! let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(1);
+//! let c = vec![10_i64, 2];
+//! // NOTE: the number 14 is larger than the sum of elements in c,
+//! // which means that there are 2 missing allele calls in the data.
+//! counts.extend_sample_sets_from_site_iter(std::iter::once((&c, 14))).unwrap();
+//! assert_eq!(counts.num_sites(), 1);
+//! ```
+//! ## Calculating diversity from [SampleAlleleCounts]
+//!
+//! ```rust
+//! # let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(1);
+//! # let c = vec![10_i64, 2];
+//! # // NOTE: the number 14 is larger than the sum of elements in c,
+//! # // which means that there are 2 missing allele calls in the data.
+//! # counts.extend_sample_sets_from_site_iter(std::iter::once((&c, 14))).unwrap();
+//! use popgen::stats::UnpolarisedSiteStat;
+//! let d = popgen::stats::Diversity::try_from_iter_sites(counts.iter_sample_set(0).unwrap()).unwrap();
+//! let manual = 1.0 - c.iter().map(|&i| (i as f64)*((i-1) as f64)).sum::<f64>()/(12.*11.);
+//! assert_eq!(d, manual);
+//! let d_f64 = f64::from(d);
+//! assert_eq!(d_f64, manual);
+//! // more rigorous method:
+//! assert!((d_f64 - manual).abs() <= 1e-10);
+//! ```
+//!
+//! ## Calculating diversity from an iterator over slices of count data.
 //!
 //! ```rust
 //! use popgen::stats::UnpolarisedSiteStat;
-//! let c = vec![10_i64, 2];
-//! let counts = popgen::AlleleCounts::new(&c, 13).unwrap();
-//! let d = popgen::stats::Diversity::try_from_iter_sites(std::iter::once(counts)).unwrap();
+//! use popgen::AlleleCounts;
+//! let c = vec![vec![10_i64, 2], vec![8, 6], vec![1, 6, 3]];
+//! let iter = c.iter().map(|v| AlleleCounts::new(v.as_slice(), 14).unwrap());
+//! let d = popgen::stats::Diversity::try_from_iter_sites(iter).unwrap();
 //! ```
 
 use std::fmt::Debug;
