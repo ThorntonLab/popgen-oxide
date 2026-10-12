@@ -1,6 +1,15 @@
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 
 //! Efficient types and interfaces for population genetics
+//!
+//! # Example
+//!
+//! ```rust
+//! use popgen::stats::UnpolarisedSiteStat;
+//! let c = vec![10_i64, 2];
+//! let counts = popgen::AlleleCounts::new(&c, 13).unwrap();
+//! let d = popgen::stats::Diversity::try_from_iter_sites(std::iter::once(counts)).unwrap();
+//! ```
 
 use std::fmt::Debug;
 use std::str::FromStr;
