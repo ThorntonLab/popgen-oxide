@@ -1,6 +1,7 @@
 //! this works for htslib (rust bindings), too
 
 use std::io::Write;
+use std::num::NonZeroUsize;
 
 use rust_htslib::bcf;
 use rust_htslib::bcf::Read;
@@ -19,7 +20,8 @@ fn main() {
     let mut bcf = bcf::Reader::from_path("htslib_example.vcf").expect("Error opening file.");
     std::fs::remove_file("htslib_example.vcf").unwrap();
 
-    let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(1);
+    let mut counts =
+        popgen::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap());
     let mut site_counts_from_record = Vec::<popgen::Count>::default();
 
     // concept follows closely on the noodles version; iterate records, count alleles
@@ -53,7 +55,9 @@ fn main() {
             }
         }
         counts
-            .extend_sample_sets_from_site_pred(|_| (site_counts_from_record.as_slice(), total_alleles))
+            .extend_sample_sets_from_site_pred(|_| {
+                (site_counts_from_record.as_slice(), total_alleles)
+            })
             .unwrap();
     }
     println!("{counts:?}");

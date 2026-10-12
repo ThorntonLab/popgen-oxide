@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use crate::stats::StatRepresentation;
 use crate::stats::UnpolarisedSiteStat;
 use crate::stats::WattersonsTheta;
@@ -78,7 +80,7 @@ fn watterson_theta_from_random_data_with_missing_data() {
 
 #[test]
 fn wattherson_theta_try_from_iter_empty_is_err() {
-    let c = crate::SampleAlleleCounts::of_empty_sample_sets(1);
+    let c = crate::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap());
     assert!(WattersonsTheta::try_from_iter_sites(c.iter_sample_set(0).unwrap()).is_err());
 }
 

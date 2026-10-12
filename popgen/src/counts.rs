@@ -2,6 +2,7 @@ use crate::iter::{SampleAlleleCountsSampleSetIter, SampleAlleleCountsSiteIter};
 use crate::traits::TryReduce;
 use crate::{AlleleID, PopgenError, PopgenResult};
 use std::cmp::max;
+use std::num::NonZeroUsize;
 
 /// A number of alleles.
 /// Expected to be non-negative.
@@ -102,12 +103,12 @@ impl SampleAlleleCounts {
     }
 
     /// Create a new [`Self`] containing `how_many` sample sets, but containing no data.
-    pub fn of_empty_sample_sets(how_many: usize) -> Self {
+    pub fn of_empty_sample_sets(how_many: NonZeroUsize) -> Self {
         Self {
             counts: vec![],
             count_starts: vec![],
             total_alleles: vec![],
-            num_sample_sets: how_many,
+            num_sample_sets: how_many.into(),
         }
     }
 

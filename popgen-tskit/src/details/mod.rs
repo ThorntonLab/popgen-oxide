@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use popgen::{Count, SampleAlleleCounts};
 
 use super::FromTreeSequenceError;
@@ -551,7 +553,7 @@ where
         num_sampled_genomes: num_sampled_genomes as i64,
         alleles_at_site: vec![],
         allele_counts: vec![],
-        counts: SampleAlleleCounts::of_empty_sample_sets(1),
+        counts: SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap()),
     };
     try_from_tree_sequence_details(ts, options, sites, sample_sets)
 }
@@ -619,7 +621,9 @@ where
     let mut windows = windows.into_iter();
     let mut current_window = windows.next();
     // The last element will be the counts for the current window.
-    counts.push(SampleAlleleCounts::of_empty_sample_sets(1));
+    counts.push(SampleAlleleCounts::of_empty_sample_sets(
+        NonZeroUsize::new(1).unwrap(),
+    ));
     while i < num_edges && left < ts.tables().sequence_length() {
         while j < num_edges && edges_right[edges_out[j]] == left {
             let edge_parent = edges_parent[edges_out[j]].as_usize();
@@ -656,7 +660,9 @@ where
                 } else if site_ref.position() >= *right {
                     current_window = windows.next();
                     if let Some((left, right)) = current_window.as_ref() {
-                        counts.push(SampleAlleleCounts::of_empty_sample_sets(1));
+                        counts.push(SampleAlleleCounts::of_empty_sample_sets(
+                            NonZeroUsize::new(1).unwrap(),
+                        ));
                         if site_ref.position() >= *left && site_ref.position() < *right {
                             process_site = true;
                         }
@@ -735,7 +741,9 @@ where
             // If we are out of sites and there are remaining windows,
             // push empty counts to the return value.
             for _ in windows {
-                counts.push(SampleAlleleCounts::of_empty_sample_sets(1))
+                counts.push(SampleAlleleCounts::of_empty_sample_sets(
+                    NonZeroUsize::new(1).unwrap(),
+                ))
             }
             break;
         };
@@ -768,7 +776,8 @@ where
     S: Iterator<Item = tskit::SiteRef<'ts>>,
 {
     let sample_data = setup_multi_sample_sets(ts, samples)?;
-    let counts = SampleAlleleCounts::of_empty_sample_sets(sample_data.len());
+    let counts =
+        SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(sample_data.len()).unwrap());
     let (tree_data, num_sampled_genomes): (Vec<TreeData>, Vec<i32>) =
         sample_data.into_iter().unzip();
     let num_sampled_genomes: Vec<i64> = num_sampled_genomes.into_iter().map(|i| i as i64).collect();
