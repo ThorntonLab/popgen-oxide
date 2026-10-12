@@ -6,7 +6,8 @@
 //! ## Collecting allele count data into [SampleAlleleCounts] for a single sample set.
 //!
 //! ```rust
-//! let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(1);
+//! let mut counts =
+//! popgen::SampleAlleleCounts::of_empty_sample_sets(std::num::NonZeroUsize::new(1).unwrap());
 //! let c = vec![10_i64, 2];
 //! // NOTE: the number 14 is larger than the sum of elements in c,
 //! // which means that there are 2 missing allele calls in the data.
@@ -16,7 +17,8 @@
 //! ## Calculating diversity from [SampleAlleleCounts]
 //!
 //! ```rust
-//! # let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(1);
+//! # let mut counts =
+//! popgen::SampleAlleleCounts::of_empty_sample_sets(std::num::NonZeroUsize::new(1).unwrap());
 //! # let c = vec![10_i64, 2];
 //! # // NOTE: the number 14 is larger than the sum of elements in c,
 //! # // which means that there are 2 missing allele calls in the data.

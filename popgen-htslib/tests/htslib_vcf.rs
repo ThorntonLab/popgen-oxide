@@ -1,5 +1,7 @@
 //! Basic integration tests
 
+use std::num::NonZeroUsize;
+
 use rust_htslib::bcf;
 use rust_htslib::bcf::Read;
 
@@ -17,7 +19,8 @@ chr0	1	.	G	A	.	.	.	GT	0/0	./.	0/1	0/0	0/1	0/1	0/0	0/0	0/0	0/0	0/0	0/0	0/1	./.	0/
     tfile.write_all(VCF_FILE.as_bytes()).unwrap();
     let (_, tfile_path) = tfile.into_parts();
     let mut bcf = bcf::Reader::from_path(tfile_path.as_os_str()).expect("Error opening file.");
-    let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(1);
+    let mut counts =
+        popgen::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap());
     for record_result in bcf.records() {
         let record = record_result.unwrap();
         let allele_id_iter = popgen_htslib::bcf_record_to_genotypes_iter_adapter(&record)
@@ -69,7 +72,8 @@ chr0	1	.	G	A	.	.	.	GT	0/0	./.	0/1	0/0	0/1	0/1	0/0	0/0	0/0	0/0	0/0	0/0	0/1	./.	0/
     tfile.write_all(VCF_FILE.as_bytes()).unwrap();
     let (_, tfile_path) = tfile.into_parts();
     let mut bcf = bcf::Reader::from_path(tfile_path.as_os_str()).expect("Error opening file.");
-    let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(2);
+    let mut counts =
+        popgen::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
     for record_result in bcf.records() {
         let record = record_result.unwrap();
         let mut allele_counts = vec![vec![]; 2];

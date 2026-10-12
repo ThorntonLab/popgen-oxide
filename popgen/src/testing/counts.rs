@@ -8,6 +8,7 @@ use rand::rng;
 use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
 use std::iter::repeat_n;
+use std::num::NonZeroUsize;
 
 #[test]
 fn load_raw() {
@@ -119,7 +120,8 @@ fn test_try_reduce_details(
         splitcounts.push(counts);
     }
 
-    let mut mergedcounts = crate::counts::SampleAlleleCounts::of_empty_sample_sets(1);
+    let mut mergedcounts =
+        crate::counts::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap());
     for i in splitcounts
         .iter()
         .flat_map(|c| c.iter_sample_set(0).unwrap())
@@ -131,7 +133,7 @@ fn test_try_reduce_details(
     let reduced_counts = splitcounts
         .into_iter()
         .try_fold(
-            crate::counts::SampleAlleleCounts::of_empty_sample_sets(1),
+            crate::counts::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap()),
             |a, b| a.try_reduce(b),
         )
         .unwrap();
@@ -148,8 +150,8 @@ fn test_try_reduce_details(
 
 #[test]
 fn cannot_reduce_different_sample_set_count() {
-    let a = SampleAlleleCounts::of_empty_sample_sets(1);
-    let b = SampleAlleleCounts::of_empty_sample_sets(2);
+    let a = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap());
+    let b = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
     assert!(matches!(
         a.try_reduce(b),
         Err(PopgenError::MismatchedLengths(_, _))

@@ -4,6 +4,8 @@
 use crate::Count;
 use crate::SingleSampleAlleleCounts;
 use crate::{AlleleCounts, SampleAlleleCounts};
+#[cfg(test)]
+use std::num::NonZeroUsize;
 
 pub(crate) struct SampleAlleleCountsSampleSetIter<'inner> {
     pub(crate) inner: &'inner SampleAlleleCounts,
@@ -143,8 +145,8 @@ fn test_reverse_iteration_over_empty() {
 
 #[test]
 fn test_sample_set_count() {
-    for c in 0..5 {
-        let mut counts = SampleAlleleCounts::of_empty_sample_sets(c);
+    for c in 1..5 {
+        let mut counts = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(c).unwrap());
         counts
             .extend_sample_sets_from_site_pred(|_| (&[1, 2, 3], 6))
             .unwrap();
@@ -155,7 +157,7 @@ fn test_sample_set_count() {
 
 #[cfg(test)]
 fn make_nonempty_counts() -> SampleAlleleCounts {
-    let mut counts = SampleAlleleCounts::of_empty_sample_sets(1);
+    let mut counts = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap());
     counts
         .extend_sample_sets_from_site_pred(|_| (&[1, 2, 3], 6))
         .unwrap();
@@ -225,7 +227,7 @@ fn test_site_exhaust_back() {
 
 #[test]
 fn test_single_site_getters() {
-    let mut counts = SampleAlleleCounts::of_empty_sample_sets(1);
+    let mut counts = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap());
     counts
         .extend_sample_sets_from_site_pred(|_| (&[9, 8, 7], 35))
         .unwrap();
@@ -236,9 +238,11 @@ fn test_single_site_getters() {
 
 #[cfg(test)]
 fn make_multi_pop() -> SampleAlleleCounts {
-    let mut counts = SampleAlleleCounts::of_empty_sample_sets(5);
+    let mut counts = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(5).unwrap());
     counts
-        .extend_sample_sets_from_site_pred(|i| (vec![(i + 1) as Count; 3], ((i + 1) * 100) as Count))
+        .extend_sample_sets_from_site_pred(|i| {
+            (vec![(i + 1) as Count; 3], ((i + 1) * 100) as Count)
+        })
         .unwrap();
 
     counts

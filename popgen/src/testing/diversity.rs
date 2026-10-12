@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use crate::stats::Diversity;
 use crate::stats::StatRepresentation;
 use crate::stats::UnpolarisedSiteStat;
@@ -76,7 +78,7 @@ fn pi_allele_frequency_of_one() {
 
 #[test]
 fn pi_try_from_iter_empty_is_err() {
-    let c = crate::SampleAlleleCounts::of_empty_sample_sets(1);
+    let c = crate::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap());
     assert!(Diversity::try_from_iter_sites(c.iter_sample_set(0).unwrap()).is_err());
 }
 

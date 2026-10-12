@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::num::NonZeroUsize;
+
 use crate::{Count, SampleAlleleCounts};
 use rand::prelude::*;
 
@@ -134,7 +136,7 @@ pub fn random_site_rng(
 }
 
 pub fn single_pop_counts<'s>(sites: &'s mut dyn Iterator<Item = &'s Site>) -> SampleAlleleCounts {
-    let mut mcounts = SampleAlleleCounts::of_empty_sample_sets(1);
+    let mut mcounts = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(1).unwrap());
     for s in sites {
         // The number of INDIVIDUAL genotypes at this site
         let num_samples = s.iter().count();

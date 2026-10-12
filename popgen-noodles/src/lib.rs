@@ -6,6 +6,7 @@ use noodles::vcf::variant::record::samples::Sample;
 use noodles::vcf::variant::record::AlternateBases;
 use noodles::vcf::{Header, Record};
 use popgen::{AlleleID, Count, SampleAlleleCounts};
+use std::num::NonZeroUsize;
 use std::ops::ControlFlow;
 
 #[non_exhaustive]
@@ -157,7 +158,9 @@ impl<'h> VCFToSampleSetAdapter<'h> {
         Ok(Self {
             header,
             sample_to_sample_set,
-            sample_sets: SampleAlleleCounts::of_empty_sample_sets(num_sample_sets),
+            sample_sets: SampleAlleleCounts::of_empty_sample_sets(
+                NonZeroUsize::new(num_sample_sets).unwrap(),
+            ),
             // we'll resize if we ever get a record with more variants
             buf_counts: vec![0; num_sample_sets * 2],
             buf_num_samples: vec![0; num_sample_sets].into_boxed_slice(),

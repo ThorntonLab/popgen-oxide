@@ -5,6 +5,7 @@ use crate::testing::testdata::RandomSiteOptions;
 use crate::{Count, PopgenError, SampleAlleleCounts};
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::num::NonZeroUsize;
 
 #[test]
 fn f_st_no_pops() {
@@ -22,7 +23,7 @@ fn f_st_empty_pops() {
     for n_pops in [1, 2, 5] {
         assert!(matches!(
             FStatistics::from_sample_sets(
-                &SampleAlleleCounts::of_empty_sample_sets(n_pops),
+                &SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(n_pops).unwrap()),
                 |_| { Some(1.0) }
             ),
             Err(PopgenError::EmptySiteCounts)
@@ -32,7 +33,7 @@ fn f_st_empty_pops() {
 
 #[test]
 fn f_st() {
-    let mut sample_sets = SampleAlleleCounts::of_empty_sample_sets(3);
+    let mut sample_sets = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(3).unwrap());
 
     let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
     let weights = [1.0, 2.0, 3.0];
@@ -111,7 +112,7 @@ fn f_st() {
 
 #[test]
 fn f_st_skip_indices() {
-    let mut sample_sets = SampleAlleleCounts::of_empty_sample_sets(3);
+    let mut sample_sets = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(3).unwrap());
 
     let data = [([1, 2, 0], 3), ([3, 0, 0], 3), ([0, 1, 2], 3)];
     let weights = [Some(1.0), None, Some(3.0)];
@@ -161,7 +162,8 @@ fn f_st_from_random_data() {
                 })
                 .collect::<Vec<_>>();
 
-            let mut counts = SampleAlleleCounts::of_empty_sample_sets(n_pops);
+            let mut counts =
+                SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(n_pops).unwrap());
             #[expect(
                 clippy::needless_range_loop,
                 reason = "https://github.com/rust-lang/rust-clippy/issues/16344"
@@ -243,7 +245,7 @@ fn f_st_from_random_data() {
 
 #[test]
 fn f_st_reciprocal_fixation_two_sample_sets() {
-    let mut sample_sets = SampleAlleleCounts::of_empty_sample_sets(2);
+    let mut sample_sets = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
 
     let data = [([3, 0, 0], 3), ([0, 3, 0], 3)];
     let weights = [1.0, 1.0];
