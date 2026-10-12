@@ -258,6 +258,16 @@ impl SampleAlleleCounts {
         self.counts.clear();
         self.count_starts.clear();
     }
+
+    /// Change the number of sample sets in `self`.
+    ///
+    /// **The only correct way to make this change is to clear all stored data**, similar to
+    /// [`Self::clear`].
+    /// Data will be cleared even if `self.num_sample_sets() == sample_sets`.
+    pub fn reset_sample_sets(&mut self, sample_sets: NonZeroUsize) {
+        self.clear();
+        self.num_sample_sets = sample_sets.get();
+    }
 }
 
 impl TryReduce for SampleAlleleCounts {
