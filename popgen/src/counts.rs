@@ -253,6 +253,7 @@ impl SampleAlleleCounts {
     /// Remove all counts in `self`.
     /// All allocations are preserved.
     /// The number of sample sets is preserved.
+    /// To change the number of sample sets, see [`Self::reset_sample_sets`].
     pub fn clear(&mut self) {
         self.total_alleles.clear();
         self.counts.clear();
