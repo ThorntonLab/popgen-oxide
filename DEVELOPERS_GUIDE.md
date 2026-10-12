@@ -11,6 +11,18 @@ Similarly, we don't want a PR to use a brand new language feature and break the 
 (Although it remains possible that a PR breaks MSRV by using features provided by the pinned toolchain version but not supported by the MSRV.
 We will catch that in code review.)
 
+## Calculating test coverage
+
+We recommend [cargo-tarpaulin](https://crates.io/crates/cargo-tarpaulin).
+We only want to calculate coverage for crates that are part of the public API.
+We therefore exclude non-published crates such as `python-integration-tests/`.
+
+For example:
+
+```sh
+cargo tarpaulin --test --workspace --exclude python-integration-tests -o html
+```
+
 ## Commit message syntax
 
 We use [conventional commits](https://www.conventionalcommits.org) for commits that should go into the change log.
