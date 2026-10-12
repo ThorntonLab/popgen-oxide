@@ -249,6 +249,26 @@ impl SampleAlleleCounts {
     ) -> Option<impl DoubleEndedIterator<Item = AlleleCounts<'_>> + ExactSizeIterator> {
         Some(self.sample_set(sample_set_number)?.into_iter())
     }
+
+    /// Remove all counts in `self`.
+    /// All allocations are preserved.
+    /// The number of sample sets is preserved.
+    /// To change the number of sample sets, see [`Self::reset_sample_sets`].
+    pub fn clear(&mut self) {
+        self.total_alleles.clear();
+        self.counts.clear();
+        self.count_starts.clear();
+    }
+
+    /// Change the number of sample sets in `self`.
+    ///
+    /// **The only correct way to make this change is to clear all stored data**, similar to
+    /// [`Self::clear`].
+    /// Data will be cleared even if `self.num_sample_sets() == sample_sets`.
+    pub fn reset_sample_sets(&mut self, sample_sets: NonZeroUsize) {
+        self.clear();
+        self.num_sample_sets = sample_sets.get();
+    }
 }
 
 impl TryReduce for SampleAlleleCounts {
