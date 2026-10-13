@@ -45,7 +45,7 @@ impl ExactSizeIterator for SampleAlleleCountsSampleSetIter<'_> {
         if self.inner.num_sample_sets() == 0 {
             0
         } else {
-            self.next_sample_set_ind.1 - self.next_sample_set_ind.0 + 1
+            self.next_sample_set_ind.1 + 1 - self.next_sample_set_ind.0
         }
     }
 }
@@ -107,7 +107,7 @@ impl ExactSizeIterator for SampleAlleleCountsSiteIter<'_> {
         if self.inner.is_empty() {
             0
         } else {
-            self.next_site_ind.1 - self.next_site_ind.0 + 1
+            self.next_site_ind.1 + 1 - self.next_site_ind.0
         }
     }
 }
@@ -274,4 +274,173 @@ fn test_sample_sets_iter() {
     assert_eq!(pop4.clone().into_iter().next_back().unwrap(), pop4_site);
     assert_eq!(pop4.clone().into_iter().len(), counts.num_sites());
     assert!(std::ptr::eq(pop4.inner(), &counts));
+}
+
+#[cfg(test)]
+fn setup() -> ([[[i64; 2]; 2]; 2], crate::SampleAlleleCounts) {
+    use std::num::NonZeroUsize;
+    // two sites, two sample sets, in order of sites per sample set
+    let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+    let mut counts = crate::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+    counts
+        .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+        .unwrap();
+    counts
+        .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+        .unwrap();
+    (data, counts)
+}
+
+#[cfg(test)]
+mod sample_allele_count_sample_set_iter_tests {
+    use super::setup;
+
+    #[test]
+    fn test_last() {
+        let (data, counts) = setup();
+        let iter = super::SampleAlleleCountsSampleSetIter {
+            inner: &counts,
+            next_sample_set_ind: (0, counts.num_sample_sets() - 1),
+        };
+        let l = iter.last();
+        assert!(l.is_some());
+        let l = l.unwrap();
+        let l = l.into_iter().collect::<Vec<_>>();
+        assert_eq!(l.len(), 2);
+        for (i, j) in l.iter().zip([data[0][1], data[1][1]].iter()) {
+            assert_eq!(i.counts(), j)
+        }
+    }
+
+    #[test]
+    fn test_nth_via_skip() {
+        let (data, counts) = setup();
+        let iter = super::SampleAlleleCountsSampleSetIter {
+            inner: &counts,
+            next_sample_set_ind: (0, counts.num_sample_sets() - 1),
+        };
+        let mut l = iter.skip(1);
+        let l = l.next();
+        assert!(l.is_some());
+        let l = l.unwrap();
+        let l = l.into_iter().collect::<Vec<_>>();
+        assert_eq!(l.len(), 2);
+        for (i, j) in l.iter().zip([data[0][1], data[1][1]].iter()) {
+            assert_eq!(i.counts(), j)
+        }
+    }
+
+    #[test]
+    fn test_next_back() {
+        let (data, counts) = setup();
+        let iter = super::SampleAlleleCountsSampleSetIter {
+            inner: &counts,
+            next_sample_set_ind: (0, counts.num_sample_sets() - 1),
+        };
+        for (i, j) in iter.rev().enumerate() {
+            let site_index = counts.num_sites() - i - 1;
+            let l = j.into_iter().collect::<Vec<_>>();
+            assert_eq!(l.len(), 2);
+            for (i, j) in l
+                .iter()
+                .zip([data[0][site_index], data[1][site_index]].iter())
+            {
+                assert_eq!(i.counts(), j)
+            }
+        }
+    }
+
+    #[test]
+    fn test_nth_back() {
+        let (data, counts) = setup();
+        let mut iter = super::SampleAlleleCountsSampleSetIter {
+            inner: &counts,
+            next_sample_set_ind: (0, counts.num_sample_sets() - 1),
+        };
+        let l = iter.nth_back(0);
+        assert!(l.is_some());
+        let l = l.unwrap();
+        let l = l.into_iter().collect::<Vec<_>>();
+        assert_eq!(l.len(), 2);
+        for (i, j) in l.iter().zip([data[0][1], data[1][1]].iter()) {
+            assert_eq!(i.counts(), j)
+        }
+
+        let l = iter.nth_back(0);
+        assert!(l.is_some());
+        let l = l.unwrap();
+        let l = l.into_iter().collect::<Vec<_>>();
+        assert_eq!(l.len(), 2);
+        for (i, j) in l.iter().zip([data[0][0], data[1][0]].iter()) {
+            assert_eq!(i.counts(), j)
+        }
+
+        assert!(iter.nth_back(0).is_none())
+    }
+
+    #[test]
+    fn test_len() {
+        let (_, counts) = setup();
+        let mut iter = super::SampleAlleleCountsSampleSetIter {
+            inner: &counts,
+            next_sample_set_ind: (0, counts.num_sample_sets() - 1),
+        };
+
+        assert_eq!(iter.len(), 2);
+        let _ = iter.next().unwrap();
+        assert_eq!(iter.len(), 1);
+        let _ = iter.next().unwrap();
+        assert_eq!(iter.len(), 0);
+        assert!(iter.next().is_none());
+    }
+}
+
+#[cfg(test)]
+mod test_sample_allele_counts_site_iter {
+    use super::setup;
+
+    #[test]
+    fn test_last() {
+        let (data, counts) = setup();
+        for sample_set_number in [0, 1] {
+            let iter = super::SampleAlleleCountsSiteIter {
+                inner: &counts,
+                sample_set_number,
+                next_site_ind: (0, counts.num_sites() - 1),
+            };
+            let allele_counts = iter.last().unwrap();
+            assert_eq!(allele_counts.counts(), data[1][sample_set_number]);
+        }
+    }
+
+    #[test]
+    fn test_len() {
+        let (_, counts) = setup();
+        for sample_set_number in [0, 1] {
+            let mut iter = super::SampleAlleleCountsSiteIter {
+                inner: &counts,
+                sample_set_number,
+                next_site_ind: (0, counts.num_sites() - 1),
+            };
+            assert_eq!(iter.len(), 2);
+            let _ = iter.next().unwrap();
+            assert_eq!(iter.len(), 1);
+            let _ = iter.next().unwrap();
+            assert_eq!(iter.len(), 0);
+            assert!(iter.next().is_none());
+        }
+    }
+
+    #[test]
+    fn test_len_empty() {
+        let counts = crate::SampleAlleleCounts::of_empty_sample_sets(
+            std::num::NonZeroUsize::new(2).unwrap(),
+        );
+        let iter = super::SampleAlleleCountsSiteIter {
+            inner: &counts,
+            sample_set_number: 2,
+            next_site_ind: (0, counts.num_sites().saturating_sub(1)),
+        };
+        assert_eq!(iter.len(), 0);
+    }
 }
