@@ -411,6 +411,7 @@ mod test_sample_allele_counts_site_iter {
             assert_eq!(iter.len(), 1);
             let _ = iter.next().unwrap();
             assert_eq!(iter.len(), 0);
+            assert!(iter.next().is_none());
         }
     }
 
