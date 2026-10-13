@@ -45,7 +45,7 @@ impl ExactSizeIterator for SampleAlleleCountsSampleSetIter<'_> {
         if self.inner.num_sample_sets() == 0 {
             0
         } else {
-            self.next_sample_set_ind.1 - self.next_sample_set_ind.0 + 1
+            self.next_sample_set_ind.1 + 1 - self.next_sample_set_ind.0
         }
     }
 }
