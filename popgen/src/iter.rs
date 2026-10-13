@@ -377,6 +377,22 @@ mod sample_allele_count_sample_set_iter_tests {
 
         assert!(iter.nth_back(0).is_none())
     }
+
+    #[test]
+    fn test_len() {
+        let (_, counts) = setup();
+        let mut iter = super::SampleAlleleCountsSampleSetIter {
+            inner: &counts,
+            next_sample_set_ind: (0, counts.num_sample_sets() - 1),
+        };
+
+        assert_eq!(iter.len(), 2);
+        let _ = iter.next().unwrap();
+        assert_eq!(iter.len(), 1);
+        let _ = iter.next().unwrap();
+        assert_eq!(iter.len(), 0);
+        assert!(iter.next().is_none());
+    }
 }
 
 #[cfg(test)]
