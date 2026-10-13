@@ -778,3 +778,60 @@ f64_stat_newtype_trait_impls!(WeirCockerhamFst);
 #[repr(transparent)]
 pub struct HudsonBoosKaplanFst(f64);
 f64_stat_newtype_trait_impls!(HudsonBoosKaplanFst);
+
+#[test]
+fn test_large_internal_index_sorted_sample_set_ids() {
+    let mut sample_sets = vec![];
+    for i in 0..200 {
+        sample_sets.push((i, 1.));
+    }
+    let fstats = FStatistics {
+        sample_sets,
+        // None of the rest matter
+        diversity_within: vec![],
+        pi_s: (f64::NAN, f64::NAN),
+        divergence_between: StrictlyLowerTriangular::<f64>::new(),
+        pi_b: (f64::NAN, f64::NAN),
+    };
+
+    for i in 0..200 {
+        assert_eq!(fstats.internal_index_for(i).unwrap(), i);
+    }
+}
+
+// This test violates an invariant.
+// In our public API, only from_sample_sets (currently) calls
+// add_sample_set.
+// The pub fn iterates over the sample sets in order stored
+// in SampleAlleleCounts instances.
+// By forcing construction of FStatistics with unordered sample set
+// indexes, the internal binary search will fail, returning None
+// and this test will panic.
+// This test serves as a guard in case internal details change
+// in the future.
+#[test]
+#[should_panic]
+fn test_large_internal_index_unsorted_sample_set_ids() {
+    let mut sample_sets = vec![];
+    for i in 100..200 {
+        sample_sets.push((i, 1.));
+    }
+    assert_eq!(sample_sets.iter().filter(|(i, _)| *i == 100).count(), 1);
+    for i in 0..100 {
+        sample_sets.push((i, 1.));
+    }
+    assert_eq!(sample_sets.len(), 200);
+    let fstats = FStatistics {
+        sample_sets: sample_sets.clone(),
+        // None of the rest matter
+        diversity_within: vec![],
+        pi_s: (f64::NAN, f64::NAN),
+        divergence_between: StrictlyLowerTriangular::<f64>::new(),
+        pi_b: (f64::NAN, f64::NAN),
+    };
+
+    for i in 0..200 {
+        let expected = sample_sets.iter().position(|(j, _)| *j == i).unwrap();
+        assert_eq!(fstats.internal_index_for(i).unwrap(), expected);
+    }
+}
