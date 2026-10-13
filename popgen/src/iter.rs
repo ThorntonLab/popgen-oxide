@@ -430,4 +430,17 @@ mod test_sample_allele_counts_site_iter {
             assert!(iter.next().is_none());
         }
     }
+
+    #[test]
+    fn test_len_empty() {
+        let counts = crate::SampleAlleleCounts::of_empty_sample_sets(
+            std::num::NonZeroUsize::new(2).unwrap(),
+        );
+        let iter = super::SampleAlleleCountsSiteIter {
+            inner: &counts,
+            sample_set_number: 2,
+            next_site_ind: (0, counts.num_sites().saturating_sub(1)),
+        };
+        assert_eq!(iter.len(), 0);
+    }
 }
