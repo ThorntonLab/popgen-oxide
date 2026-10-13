@@ -413,4 +413,16 @@ mod test_sample_allele_counts_site_iter {
             assert_eq!(iter.len(), 0);
         }
     }
+
+    #[test]
+    fn test_what_std_does() {
+        let v = [1, 2];
+        let mut i = v.iter();
+        assert_eq!(i.len(), 2);
+        let _ = i.next();
+        assert_eq!(i.len(), 1);
+        let _ = i.next();
+        assert_eq!(i.len(), 0);
+        assert!(i.next().is_none());
+    }
 }
