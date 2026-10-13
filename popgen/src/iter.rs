@@ -107,7 +107,7 @@ impl ExactSizeIterator for SampleAlleleCountsSiteIter<'_> {
         if self.inner.is_empty() {
             0
         } else {
-            self.next_site_ind.1 - self.next_site_ind.0 + 1
+            self.next_site_ind.1 + 1 - self.next_site_ind.0
         }
     }
 }
