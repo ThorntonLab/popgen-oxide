@@ -137,6 +137,8 @@ pub trait StatRepresentation<'stat> {
 }
 
 // TODO: name may not be great
+#[allow(missing_docs)]
+#[doc(hidden)]
 pub fn combined_unpolarised_stat<
     T: UnpolarisedSiteStat + Default,
     I: IntoIterator<Item = usize>,
