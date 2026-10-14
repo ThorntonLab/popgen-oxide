@@ -187,7 +187,7 @@ pub trait StatRepresentation<'stat> {
 ///
 /// * The compiler can deduce the iterator type, allowing us to to say `::<Diversity, _>`,
 ///   where `_` is the inferered type.
-/// * The compile is (of course) able to fully deduce the return type.
+/// * The compiler is (of course) able to fully deduce the return type.
 ///   It is only written in the example for documentation purposes.
 ///
 /// Some statistics, such as [`TajimasD`] are composed of other statistics and are generated
