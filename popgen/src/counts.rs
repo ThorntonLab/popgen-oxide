@@ -404,3 +404,32 @@ impl<'inner> AlleleCounts<'inner> {
         self.total_alleles
     }
 }
+
+#[test]
+fn sample_allele_counts_clear() {
+    for sample_set_count in 1..5usize {
+        let mut sac = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(sample_set_count).unwrap());
+        sac.extend_sample_sets_from_site_pred(|ss| ([(ss + 1) as Count], ((ss + 1) * 2) as Count)).unwrap();
+        assert!(!sac.is_empty());
+        assert_eq!(sac.num_sites(), 1);
+
+        sac.clear();
+
+        assert!(sac.is_empty());
+        assert_eq!(sac.num_sites(), 0);
+        assert_eq!(sac.num_sample_sets(), sample_set_count);
+
+        // these are internal details, so this test must remain internal
+        assert!(sac.counts.is_empty());
+        assert!(sac.count_starts.is_empty());
+        assert!(sac.total_alleles.is_empty());
+
+        sac.extend_sample_sets_from_site_pred(|ss| ([(ss + 1) as Count], ((ss + 1) * 3) as Count)).unwrap();
+        assert_eq!(sac.num_sites(), 1);
+
+        sac.reset_sample_sets(NonZeroUsize::new(sample_set_count * 2).unwrap());
+        assert!(sac.is_empty());
+        assert_eq!(sac.num_sample_sets(), sample_set_count * 2);
+
+    }
+}
