@@ -178,7 +178,7 @@ where
 }
 
 // TODO: note that there is another way of writing the estimator from, e.g. early Reich papers.
-// The details are in Peters.
+// The details are in Peter.
 // The implementation below is essentially re-testing that we are correctly calculating bits of Fst.
 // It may be useful to have and "f2_alt" approach based more explicitly on other way to write it
 // down?
@@ -198,4 +198,38 @@ where
         &mut freq_data[sample_set2].iter().cloned(),
     );
     divergence_ij - (diversity_sample_set1 + diversity_sample_set2) / 2.
+}
+
+pub fn f3<Sites>(
+    sample_set1: usize,
+    sample_set2: usize,
+    sample_set3: usize,
+    sample_sets: &mut dyn Iterator<Item = Sites>,
+) -> f64
+where
+    Sites: IntoIterator<Item = Site>,
+{
+    let freq_data: Vec<Vec<Site>> = sample_sets.map(|pop| pop.into_iter().collect()).collect();
+    let f2_12 = f2(sample_set1, sample_set2, &mut freq_data.clone().into_iter());
+    let f2_13 = f2(sample_set1, sample_set3, &mut freq_data.clone().into_iter());
+    let f2_23 = f2(sample_set2, sample_set3, &mut freq_data.clone().into_iter());
+    (f2_12 + f2_13 - f2_23) / 2.
+}
+
+pub fn f4<Sites>(
+    sample_set1: usize,
+    sample_set2: usize,
+    sample_set3: usize,
+    sample_set4: usize,
+    sample_sets: &mut dyn Iterator<Item = Sites>,
+) -> f64
+where
+    Sites: IntoIterator<Item = Site>,
+{
+    let freq_data: Vec<Vec<Site>> = sample_sets.map(|pop| pop.into_iter().collect()).collect();
+    let f2_14 = f2(sample_set1, sample_set4, &mut freq_data.clone().into_iter());
+    let f2_23 = f2(sample_set2, sample_set3, &mut freq_data.clone().into_iter());
+    let f2_13 = f2(sample_set1, sample_set3, &mut freq_data.clone().into_iter());
+    let f2_24 = f2(sample_set2, sample_set4, &mut freq_data.clone().into_iter());
+    (f2_14 + f2_23 - f2_13 - f2_24) / 2.
 }

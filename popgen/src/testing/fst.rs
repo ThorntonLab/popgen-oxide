@@ -244,6 +244,119 @@ fn f_st_from_random_data() {
 }
 
 #[test]
+fn test_f3() {
+    use rand::prelude::*;
+    let n_sites = 5;
+    let pop_weights = [1., 1., 1., 1.];
+    let n_alleles = 3;
+    let mut rng = StdRng::seed_from_u64(18925339);
+    let pops = (0..3)
+        .map(|_| {
+            let mut sites = vec![];
+            for _ in 0..n_sites {
+                let site = crate::testing::testdata::random_site_rng(
+                    5,
+                    2,
+                    &[0.25, 0.5, 0.25],
+                    Some(RandomSiteOptions {
+                        missing_data_rate: Some(0.1),
+                    }),
+                    &mut rng,
+                );
+                sites.push(site);
+            }
+            sites
+        })
+        .collect::<Vec<_>>();
+    let mut counts = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(3).unwrap());
+    #[expect(
+        clippy::needless_range_loop,
+        reason = "https://github.com/rust-lang/rust-clippy/issues/16344"
+    )]
+    for s in 0..n_sites {
+        counts
+            .extend_sample_sets_from_site_pred(|pop_i| {
+                let alleles = pops[pop_i][s]
+                    .iter()
+                    .flat_map(|gts| gts.iter())
+                    .collect::<Vec<_>>();
+                let mut counts = HashMap::new();
+                for non_missing_allele_id in alleles.iter().flatten() {
+                    *counts.entry(non_missing_allele_id).or_default() += 1;
+                }
+
+                let counts_vec = (0..n_alleles)
+                    .map(|allele_id| counts.get(&allele_id).cloned().unwrap_or_default())
+                    .collect::<Vec<_>>();
+                (Cow::Owned(counts_vec), alleles.len() as Count)
+            })
+            .unwrap();
+    }
+    let f_st_from_counts =
+        FStatistics::from_sample_sets(&counts, |i| Some(pop_weights[i])).unwrap();
+    let f3 = crate::testing::naivecalculations::f3(0, 2, 1, &mut pops.clone().into_iter());
+    let f3_from_api: f64 = f_st_from_counts.f3(0, 2, 1).unwrap().into();
+    assert!((f3 - f3_from_api).abs() <= 1e-9);
+}
+
+#[test]
+fn test_f4() {
+    use rand::prelude::*;
+    let n_sites = 5;
+    let pop_weights = [1., 1., 1., 1.];
+    let n_alleles = 3;
+    let mut rng = StdRng::seed_from_u64(18925339);
+    let pops = (0..4)
+        .map(|_| {
+            let mut sites = vec![];
+            for _ in 0..n_sites {
+                let site = crate::testing::testdata::random_site_rng(
+                    5,
+                    2,
+                    &[0.25, 0.5, 0.25],
+                    Some(RandomSiteOptions {
+                        missing_data_rate: Some(0.1),
+                    }),
+                    &mut rng,
+                );
+                sites.push(site);
+            }
+            sites
+        })
+        .collect::<Vec<_>>();
+    let mut counts = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(4).unwrap());
+    #[expect(
+        clippy::needless_range_loop,
+        reason = "https://github.com/rust-lang/rust-clippy/issues/16344"
+    )]
+    for s in 0..n_sites {
+        counts
+            .extend_sample_sets_from_site_pred(|pop_i| {
+                let alleles = pops[pop_i][s]
+                    .iter()
+                    .flat_map(|gts| gts.iter())
+                    .collect::<Vec<_>>();
+                let mut counts = HashMap::new();
+                for non_missing_allele_id in alleles.iter().flatten() {
+                    *counts.entry(non_missing_allele_id).or_default() += 1;
+                }
+
+                let counts_vec = (0..n_alleles)
+                    .map(|allele_id| counts.get(&allele_id).cloned().unwrap_or_default())
+                    .collect::<Vec<_>>();
+                (Cow::Owned(counts_vec), alleles.len() as Count)
+            })
+            .unwrap();
+    }
+    assert_eq!(counts.num_sample_sets(), 4);
+    let f_st_from_counts =
+        FStatistics::from_sample_sets(&counts, |i| Some(pop_weights[i])).unwrap();
+    let f4 = crate::testing::naivecalculations::f4(0, 3, 2, 1, &mut pops.clone().into_iter());
+    let f4_from_api: f64 = f_st_from_counts.f4(0, 3, 2, 1).unwrap().into();
+    assert!((f4 - f4_from_api).abs() <= 1e-9);
+}
+
+#[test]
 fn f_st_reciprocal_fixation_two_sample_sets() {
     let mut sample_sets = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
 
