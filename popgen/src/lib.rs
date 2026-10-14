@@ -44,7 +44,6 @@
 //! ```
 
 use std::fmt::Debug;
-use std::str::FromStr;
 
 mod counts;
 pub mod iter;
