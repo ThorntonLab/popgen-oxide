@@ -131,14 +131,6 @@ This could be u32, but it isn't for these reasons:
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AlleleID(usize);
 
-impl FromStr for AlleleID {
-    type Err = <usize as FromStr>::Err;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(usize::from_str(s)?))
-    }
-}
-
 impl From<usize> for AlleleID {
     fn from(value: usize) -> Self {
         Self(value)
