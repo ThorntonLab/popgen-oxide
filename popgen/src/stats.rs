@@ -136,6 +136,147 @@ pub trait StatRepresentation<'stat> {
     fn as_raw(&'stat self) -> Self::Output;
 }
 
+/// Obtain an iterator over a statistic implementing [`UnpolarisedSiteStat`].
+/// The statistic is calculated for each sample set in the input.
+///
+/// # Parameters
+///
+/// * `counts`: [`SampleAlleleCounts`]
+/// * `sample_set_indexes`: iterator over [`usize`], which is an index of a sample set in `counts`
+///
+/// # Return
+///
+/// An iterator over [`Result`].
+/// The error variant is [`PopgenError`].
+///
+/// # Errors
+///
+/// * [`PopgenError::InvalidSampleSet`] if a sample set index is invalid.
+/// * Errors are propagated from [`UnpolarisedSiteStat::try_from_iter_sites`].
+///
+/// # Example
+///
+/// Calculate [`Diversity`] for all sample sets:
+///
+/// ```rust
+/// # use std::num::NonZeroUsize;
+/// # use popgen::PopgenError;
+/// # use popgen::stats::{Diversity, unpolarised_stat_iter};
+/// # let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+/// # let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+/// # counts
+/// #     .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+/// #     .unwrap();
+/// # counts
+/// #     .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+/// #     .unwrap();
+/// let div: Vec<Result<Diversity, PopgenError>> =
+///     unpolarised_stat_iter::<Diversity, _>(&counts,
+///                                           (0..counts.num_sample_sets())).collect::<Vec<_>>();
+/// assert!(div.iter().all(|i| i.is_ok()));
+/// # // Verify that the compiler can fully deduce all the things
+/// # let div: Vec<Result<_, _>> =
+/// #     unpolarised_stat_iter::<Diversity, _>(&counts,
+/// #                                           (0..counts.num_sample_sets())).collect::<Vec<_>>();
+/// # let div =
+/// #     unpolarised_stat_iter::<Diversity, _>(&counts,
+/// #                                           (0..counts.num_sample_sets())).collect::<Vec<_>>();
+/// ```
+///
+/// In this example:
+///
+/// * The compiler can deduce the iterator type, allowing us to to say `::<Diversity, _>`,
+///   where `_` is the inferered type.
+/// * The compile is (of course) able to fully deduce the return type.
+///   It is only written in the example for documentation purposes.
+///
+/// Some statistics, such as [`TajimasD`] are composed of other statistics and are generated
+/// through intermediate "builder" types.
+/// For such statistics, we can use standard operations such as [`Result::map`] to convert to our
+/// desired value:
+///
+/// ```rust
+/// # use std::num::NonZeroUsize;
+/// # use popgen::PopgenError;
+/// # use popgen::stats::{TajimasD, TajimasDBuilder, unpolarised_stat_iter};
+/// # let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+/// # let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+/// # counts
+/// #     .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+/// #     .unwrap();
+/// # counts
+/// #     .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+/// #     .unwrap();
+/// let tajd: Vec<Result<TajimasD, PopgenError>> =
+///     unpolarised_stat_iter::<TajimasDBuilder, _>(&counts, (0..counts.num_sample_sets())).map(|res: Result<TajimasDBuilder, PopgenError>| res.map(|b|b.build())).collect::<Vec<_>>();
+/// # assert!(tajd.iter().all(|i| i.is_ok()));
+/// ```
+///
+/// We can unpack the above example with the equivalent procedural code:
+/// ```rust
+/// # use std::num::NonZeroUsize;
+/// # use popgen::PopgenError;
+/// # use popgen::stats::{TajimasD, TajimasDBuilder, unpolarised_stat_iter};
+/// # let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+/// # let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+/// # counts
+/// #     .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+/// #     .unwrap();
+/// # counts
+/// #     .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+/// #     .unwrap();
+/// let mut tajd: Vec<Result<TajimasD, PopgenError>> = vec![];
+/// for result in unpolarised_stat_iter::<TajimasDBuilder, _>(&counts, (0..counts.num_sample_sets())) {
+///     match result {
+///         Ok(tajdbuilder) => {
+///             let d: TajimasD = tajdbuilder.build();
+///             tajd.push(Ok(d))
+///         },
+///         Err(e) => tajd.push(Err(e))
+///     }
+/// }
+/// # assert!(tajd.iter().all(|i| i.is_ok()));
+/// ```
+///
+/// The next example passes in an iterator containing invalid sample set indexes.
+/// For those indexes, the output contains [`PopgenError::InvalidSampleSet`].
+///
+/// ```rust
+/// # use std::num::NonZeroUsize;
+/// # use popgen::PopgenError;
+/// # use popgen::stats::{Diversity, unpolarised_stat_iter};
+/// # let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+/// # let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+/// # counts
+/// #     .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+/// #     .unwrap();
+/// # counts
+/// #     .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+/// #     .unwrap();
+/// let div: Vec<Result<Diversity, PopgenError>> =
+///     unpolarised_stat_iter::<Diversity, _>(&counts,
+///                                           (0..counts.num_sample_sets() + 2)).collect::<Vec<_>>();
+/// assert_eq!(div.iter().filter(|i| i.is_ok()).count(), counts.num_sample_sets());
+/// assert_eq!(div.iter().filter(|i| i.is_err()).count(), 2);
+/// assert!(div.iter().filter(|i| i.is_err()).all(|e| matches!(e, Err(PopgenError::InvalidSampleSet))));
+/// ```
+pub fn unpolarised_stat_iter<
+    'a,
+    T: UnpolarisedSiteStat + Default,
+    I: IntoIterator<Item = usize> + 'a,
+>(
+    counts: &'a SampleAlleleCounts,
+    sample_set_indexes: I,
+) -> impl Iterator<Item = Result<T, PopgenError>> + 'a {
+    sample_set_indexes.into_iter().map(|u: usize| {
+        if let Some(iter) = counts.iter_sample_set(u) {
+            T::try_from_iter_sites(iter)
+        } else {
+            Err(PopgenError::InvalidSampleSet)
+        }
+    })
+}
+
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 ///
 /// Note that this statistic is **not defined** over an empty dataset; the denominator is the number of valid pairwise comparisons, which is 0 in this case.
