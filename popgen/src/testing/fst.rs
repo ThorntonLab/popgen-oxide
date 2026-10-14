@@ -133,6 +133,12 @@ fn f_st_skip_indices() {
     assert!(matches!(f_st.f2(1, 2), Err(PopgenError::InvalidSampleSet)));
 }
 
+// What do we need:
+// 1. allele freqs for various sites
+// 1a. It would be nice to let them vary by population
+// 1b. It would be nice to let them be random
+fn random_data_for_fst<R: rand::Rng>(rng: &mut R, num_sites: usize) {}
+
 #[test]
 fn f_st_from_random_data() {
     use rand::prelude::*;
