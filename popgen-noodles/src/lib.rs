@@ -15,7 +15,7 @@ use std::ops::ControlFlow;
 pub enum Error {
     /// Errors arising from the noodles crate when processing VCF records
     NoodlesVCF(std::io::Error),
-    /// An input noodles [`Record`](Record) is badly formatted
+    /// An input noodles [`Record`] is badly formatted
     MalformedRecord,
     /// Contains [`popgen::PopgenError`]
     Popgen(popgen::PopgenError),
