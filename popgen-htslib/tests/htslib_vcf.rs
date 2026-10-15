@@ -2,6 +2,8 @@
 
 use std::num::NonZeroUsize;
 
+use popgen::AlleleID;
+use popgen_htslib::bcf_record_to_genotypes_iter_adapter;
 use rust_htslib::bcf;
 use rust_htslib::bcf::Read;
 
@@ -108,4 +110,38 @@ chr0	1	.	G	A	.	.	.	GT	0/0	./.	0/1	0/0	0/1	0/1	0/0	0/0	0/0	0/0	0/0	0/0	0/1	./.	0/
             .unwrap()
             .all(|ac| ac.counts().len() == 2));
     }
+}
+
+#[test]
+fn allele_correctness() {
+    use std::io::Write;
+
+    static VCF_FILE: &str = r#"##fileformat=VCFv4.6
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr0>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2
+chr0	1	.	A	C	.	.	.	GT	./.	0/0	1/1"#;
+    let mut tfile = tempfile::NamedTempFile::new().unwrap();
+    tfile.write_all(VCF_FILE.as_bytes()).unwrap();
+    let (_, tfile_path) = tfile.into_parts();
+    let mut bcf = bcf::Reader::from_path(tfile_path.as_os_str()).expect("Error opening file.");
+
+    let records = bcf
+        .records()
+        .map(|r| {
+            bcf_record_to_genotypes_iter_adapter(&r.unwrap())
+                .unwrap()
+                .map(|gt| gt.collect::<Vec<_>>())
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        records[0],
+        vec![
+            vec![None, None],
+            vec![Some(AlleleID::from(0)), Some(AlleleID::from(0))],
+            vec![Some(AlleleID::from(1)), Some(AlleleID::from(1))],
+        ]
+    );
 }
