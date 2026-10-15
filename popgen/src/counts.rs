@@ -253,6 +253,10 @@ impl SampleAlleleCounts {
         Some(self.sample_set(sample_set_number)?.into_iter())
     }
 
+    /// For a given site index, return an iterator over the corresponding [`AlleleCounts`]
+    /// for each sample set.
+    ///
+    /// `None` is returned if `site` is out of range.
     pub fn iter_sample_sets_at_site(
         &'_ self,
         site: usize,
@@ -265,6 +269,16 @@ impl SampleAlleleCounts {
         }
     }
 
+    /// Iterate over all sites, returning an iterator over the [`AlleleCounts`]
+    /// corresponding to each sample set at every site.
+    ///
+    /// # Notes
+    ///
+    /// * This function allows the site data for all sample sets to be obtained
+    ///   and processed at once during iteration.
+    /// * This behavior differs from [`Self::iter_sample_sets`], which returns
+    ///   an outer iterator over sample sets, with each iterated item giving
+    ///   access to the site data **within** the given sample set.
     pub fn iter_sample_sets_at_all_sites(
         &'_ self,
     ) -> impl Iterator<Item = impl Iterator<Item = AlleleCounts<'_>>> {
