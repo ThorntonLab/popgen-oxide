@@ -23,6 +23,10 @@ impl<'inner> Iterator for SampleAlleleCountsSampleSetIter<'inner> {
         Some(ret)
     }
 
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len(), Some(self.len()))
+    }
+
     fn count(self) -> usize {
         self.len()
     }
@@ -42,6 +46,7 @@ impl<'inner> Iterator for SampleAlleleCountsSampleSetIter<'inner> {
 
 impl ExactSizeIterator for SampleAlleleCountsSampleSetIter<'_> {
     fn len(&self) -> usize {
+        // We have tests equivalent to the assertion in the default impl, so we'll forgo it here.
         if self.inner.num_sample_sets() == 0 {
             0
         } else {
@@ -85,6 +90,10 @@ impl<'inner> Iterator for SampleAlleleCountsSiteIter<'inner> {
         Some(ret)
     }
 
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len(), Some(self.len()))
+    }
+
     fn count(self) -> usize {
         self.len()
     }
@@ -104,6 +113,8 @@ impl<'inner> Iterator for SampleAlleleCountsSiteIter<'inner> {
 
 impl ExactSizeIterator for SampleAlleleCountsSiteIter<'_> {
     fn len(&self) -> usize {
+        // We have tests equivalent to the assertion in the default impl, so we'll forgo it here.
+
         if self.inner.is_empty() {
             0
         } else {
@@ -387,10 +398,13 @@ mod sample_allele_count_sample_set_iter_tests {
         };
 
         assert_eq!(iter.len(), 2);
+        assert_eq!(iter.size_hint(), (2, Some(2)));
         let _ = iter.next().unwrap();
         assert_eq!(iter.len(), 1);
+        assert_eq!(iter.size_hint(), (1, Some(1)));
         let _ = iter.next().unwrap();
         assert_eq!(iter.len(), 0);
+        assert_eq!(iter.size_hint(), (0, Some(0)));
         assert!(iter.next().is_none());
     }
 }
@@ -423,10 +437,13 @@ mod test_sample_allele_counts_site_iter {
                 next_site_ind: (0, counts.num_sites() - 1),
             };
             assert_eq!(iter.len(), 2);
+            assert_eq!(iter.size_hint(), (2, Some(2)));
             let _ = iter.next().unwrap();
             assert_eq!(iter.len(), 1);
+            assert_eq!(iter.size_hint(), (1, Some(1)));
             let _ = iter.next().unwrap();
             assert_eq!(iter.len(), 0);
+            assert_eq!(iter.size_hint(), (0, Some(0)));
             assert!(iter.next().is_none());
         }
     }
@@ -442,5 +459,6 @@ mod test_sample_allele_counts_site_iter {
             next_site_ind: (0, counts.num_sites().saturating_sub(1)),
         };
         assert_eq!(iter.len(), 0);
+        assert_eq!(iter.size_hint(), (0, Some(0)));
     }
 }
