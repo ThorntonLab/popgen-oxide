@@ -253,7 +253,10 @@ impl SampleAlleleCounts {
         Some(self.sample_set(sample_set_number)?.into_iter())
     }
 
-    pub fn iter_site(&'_ self, site: usize) -> Option<impl Iterator<Item = AlleleCounts<'_>>> {
+    pub fn iter_sample_sets_at_site(
+        &'_ self,
+        site: usize,
+    ) -> Option<impl Iterator<Item = AlleleCounts<'_>>> {
         if site < self.num_sites() {
             // panic from the unwrap indicates a serious internal bug
             Some((0..self.num_sample_sets()).map(move |s| self.get_site(site, s).unwrap()))
@@ -262,10 +265,10 @@ impl SampleAlleleCounts {
         }
     }
 
-    pub fn iter_sample_set_sites(
+    pub fn iter_sample_sets_at_all_sites(
         &'_ self,
     ) -> impl Iterator<Item = impl Iterator<Item = AlleleCounts<'_>>> {
-        (0..self.num_sites()).map(|site| self.iter_site(site).unwrap())
+        (0..self.num_sites()).map(|site| self.iter_sample_sets_at_site(site).unwrap())
     }
 
     /// Remove all counts in `self`.
@@ -484,7 +487,7 @@ fn test_iter_site() {
         .unwrap();
     let mut rebuilt_data = vec![];
     for site in 0..counts.num_sites() {
-        let iter = counts.iter_site(site).unwrap();
+        let iter = counts.iter_sample_sets_at_site(site).unwrap();
         let site_data = iter.map(|i| i.counts().to_owned()).collect::<Vec<_>>();
         rebuilt_data.push(site_data)
     }
@@ -510,7 +513,7 @@ fn test_iter_sample_set_sites() {
         .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
         .unwrap();
     let rebuilt_data = counts
-        .iter_sample_set_sites()
+        .iter_sample_sets_at_all_sites()
         .map(|iter| iter.map(|ac| ac.counts().to_owned()).collect::<Vec<_>>())
         .collect::<Vec<_>>();
     assert_eq!(data.len(), rebuilt_data.len());
@@ -521,7 +524,7 @@ fn test_iter_sample_set_sites() {
         }
     }
     let rebuilt_data2 = (0..counts.num_sample_sets())
-        .map(|site| counts.iter_site(site).unwrap())
+        .map(|site| counts.iter_sample_sets_at_site(site).unwrap())
         .map(|iter| iter.map(|ac| ac.counts().to_owned()).collect::<Vec<_>>())
         .collect::<Vec<_>>();
     assert_eq!(rebuilt_data, rebuilt_data2)
