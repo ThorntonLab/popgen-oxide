@@ -1,4 +1,128 @@
-//! Interfaces and types for calculating summaries of variation data.
+//! # Interfaces and types for calculating summaries of variation data.
+//!
+//! ## Normalisation of statistic values
+//!
+//! The API in this module does not enable the calculation of statistics
+//! normalised by the number of sites assayed for variation.
+//! It is common (and preferable) to report many statistics as a value
+//! "per site".
+//! (For example, the value of [`Diversity`] divided by the length of a genomic interval.)
+//! However, we are not able to know those denoninator values here!
+//! For example, it is impossible for us to know the nature of the input leading to
+//! an instance of [`SampleAlleleCounts`].
+//! Upstream of the input types, we cannot make any general statements about the origins
+//! of the contents of VCF/BCF or VCF Zarr files.
+//! For example, we must remain agnostic as to whether the variation data was the result
+//! of something like a "SNP chip" or was the output of some kind of sequencing/resequencing
+//! effort.
+//! Related concerns apply to tree sequence input.
+//!
+//! These concerns boil down to what we know about missing data at sites that are
+//! considered invariant in the sample.
+//! For a SNP chip, such sites were not assayed to begin with.
+//! For sequencing studies, we would need to know how much missing data, etc.,
+//! was present in sites **not** included when building a [`SampleAlleleCounts`].
+//!
+//! Much has been written on this topic and reviewing it is beyond the scope of API
+//! documentation.
+//! Other tools exist to assist with calculating the denominators.
+//! To the extent that we directly support such tools in future releases, such support
+//! will be located in another module of this crate (or perhaps in a different crate).
+//!
+//! What we will leave you with is that, given some other tool, the following pseudocode
+//! makes sense:
+//!
+//! ```{no_run}
+//! // "coverage_info" is some hypothetical type that allows the denominator to be obtained
+//! let values: (Diversity, f64) = calculate_diversity_and_denominator(&counts,
+//! &coverage_info)
+//! // Get the per site value of the statistic
+//! let div_per_site = f64::from(values.0) / values.1;
+//! ```
+//!
+//! ## Examples
+//!
+//! ### Calculating site statistics for all samples sets
+//!
+//! ```rust
+//! # use std::num::NonZeroUsize;
+//! # use popgen::PopgenError;
+//! # use popgen::stats::{Diversity, UnpolarisedSiteStat};
+//! # let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+//! # let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+//! # counts
+//! #     .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+//! #     .unwrap();
+//! # counts
+//! #     .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+//! #     .unwrap();
+//! let div: Vec<Result<Diversity, PopgenError>> = counts
+//!     .iter_sample_sets()
+//!     .map(|s| Diversity::try_from_iter_sites(s.into_iter()))
+//!     .collect::<Vec<_>>();
+//! # assert!(div.iter().all(|i| i.is_ok()));
+//! # assert_eq!(div.len(), counts.num_sample_sets());
+//! ```
+//!
+//! Combining with [`Iterator::enumerate`] allows filtering of sample sets:
+//!
+//! ```rust
+//! # use std::num::NonZeroUsize;
+//! # use popgen::PopgenError;
+//! # use popgen::stats::{Diversity, UnpolarisedSiteStat};
+//! # let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+//! # let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+//! # counts
+//! #     .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+//! #     .unwrap();
+//! # counts
+//! #     .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+//! #     .unwrap();
+//! let div: Vec<Result<Diversity, PopgenError>> = counts
+//!     .iter_sample_sets()
+//!     .enumerate()
+//!     .filter_map(|(index, s)| {
+//!         if index > 0 {
+//!             Some(Diversity::try_from_iter_sites(s.into_iter()))
+//!         } else {
+//!             None
+//!         }
+//!     })
+//!     .collect::<Vec<_>>();
+//! # assert!(div.iter().all(|i| i.is_ok()));
+//! # assert_eq!(div.len(), counts.num_sample_sets() - 1);
+//! ```
+//!
+//! For statistics like [`TajimasD`] that are compositions of others and are calculated
+//! via "builder" types like [`TajimasDBuilder`], one can simply map to the final type
+//! during iteration using standard approaches like [`Result::and_then`]:
+//!
+//! ```rust
+//! # use std::num::NonZeroUsize;
+//! # use popgen::PopgenError;
+//! # use popgen::stats::{TajimasD, TajimasDBuilder, UnpolarisedSiteStat};
+//! # let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+//! # let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+//! # counts
+//! #     .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+//! #     .unwrap();
+//! # counts
+//! #     .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+//! #     .unwrap();
+//! let tajd: Vec<Result<TajimasD, PopgenError>> = counts
+//!     .iter_sample_sets()
+//!     .map(|s| {
+//!         let res = TajimasDBuilder::try_from_iter_sites(s.into_iter());
+//!         res.and_then(|builder| Ok(builder.build()))
+//!     })
+//!     .collect::<Vec<_>>();
+//! # assert!(tajd.iter().all(|i| i.is_ok()));
+//! # assert_eq!(tajd.len(), counts.num_sample_sets());
+//! ```
+//!
+//! The previous examples delay error handling until the collected vector is processed.
+//! In cases where it is desirable to short-circuit when an error happens, use a
+//! standard `for` loop and/or unwrap results during iteration.
 
 use crate::traits::TryReduce;
 use crate::util::StrictlyLowerTriangular;
