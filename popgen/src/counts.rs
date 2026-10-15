@@ -201,6 +201,9 @@ impl SampleAlleleCounts {
     /// # Errors
     /// If any index is out of bounds.
     pub fn get_site(&self, site_num: usize, sample_set_num: usize) -> Option<AlleleCounts<'_>> {
+        if sample_set_num >= self.num_sample_sets() {
+            return None;
+        }
         let counts_start = *self.count_starts.get(site_num)?;
         let counts_all_pops = match self.count_starts.get(site_num + 1) {
             None => &self.counts[counts_start..],
@@ -408,8 +411,10 @@ impl<'inner> AlleleCounts<'inner> {
 #[test]
 fn sample_allele_counts_clear() {
     for sample_set_count in 1..5usize {
-        let mut sac = SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(sample_set_count).unwrap());
-        sac.extend_sample_sets_from_site_pred(|ss| ([(ss + 1) as Count], ((ss + 1) * 2) as Count)).unwrap();
+        let mut sac =
+            SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(sample_set_count).unwrap());
+        sac.extend_sample_sets_from_site_pred(|ss| ([(ss + 1) as Count], ((ss + 1) * 2) as Count))
+            .unwrap();
         assert!(!sac.is_empty());
         assert_eq!(sac.num_sites(), 1);
 
@@ -424,12 +429,28 @@ fn sample_allele_counts_clear() {
         assert!(sac.count_starts.is_empty());
         assert!(sac.total_alleles.is_empty());
 
-        sac.extend_sample_sets_from_site_pred(|ss| ([(ss + 1) as Count], ((ss + 1) * 3) as Count)).unwrap();
+        sac.extend_sample_sets_from_site_pred(|ss| ([(ss + 1) as Count], ((ss + 1) * 3) as Count))
+            .unwrap();
         assert_eq!(sac.num_sites(), 1);
 
         sac.reset_sample_sets(NonZeroUsize::new(sample_set_count * 2).unwrap());
         assert!(sac.is_empty());
         assert_eq!(sac.num_sample_sets(), sample_set_count * 2);
-
     }
+}
+
+#[test]
+fn test_get_site() {
+    use std::num::NonZeroUsize;
+    // two sites, two sample sets, in order of sites per sample set
+    let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+    let mut counts = crate::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+    counts
+        .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+        .unwrap();
+    counts
+        .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+        .unwrap();
+    assert!(counts.get_site(0, 1).is_some());
+    assert!(counts.get_site(0, 2).is_none());
 }
