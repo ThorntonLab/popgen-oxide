@@ -179,7 +179,7 @@ pub fn bcf_record_to_genotypes_iter_adapter(
             .iter()
             .map(|a| {
                 // This replicates code in rust_htslib::bcf::record::GenotypeAllele.
-                if a > &0 {
+                if a > &1 {
                     Some(AlleleID::from(((*a >> 1) - 1) as usize))
                 } else {
                     None

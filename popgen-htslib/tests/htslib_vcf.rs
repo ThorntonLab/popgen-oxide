@@ -120,7 +120,8 @@ fn allele_correctness() {
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##contig=<ID=chr0>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0	s1	s2
-chr0	1	.	A	C	.	.	.	GT	./.	0/0	1/1"#;
+chr0	1	.	A	C	.	.	.	GT	./.	0/0	1/1
+chr0	2	.	A	C	.	.	.	GT	.|.	0|0	1|1"#;
     let mut tfile = tempfile::NamedTempFile::new().unwrap();
     tfile.write_all(VCF_FILE.as_bytes()).unwrap();
     let (_, tfile_path) = tfile.into_parts();
@@ -138,6 +139,15 @@ chr0	1	.	A	C	.	.	.	GT	./.	0/0	1/1"#;
 
     assert_eq!(
         records[0],
+        vec![
+            vec![None, None],
+            vec![Some(AlleleID::from(0)), Some(AlleleID::from(0))],
+            vec![Some(AlleleID::from(1)), Some(AlleleID::from(1))],
+        ]
+    );
+
+    assert_eq!(
+        records[1],
         vec![
             vec![None, None],
             vec![Some(AlleleID::from(0)), Some(AlleleID::from(0))],
