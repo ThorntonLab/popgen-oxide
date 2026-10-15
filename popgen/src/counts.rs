@@ -253,6 +253,21 @@ impl SampleAlleleCounts {
         Some(self.sample_set(sample_set_number)?.into_iter())
     }
 
+    pub fn iter_site(&'_ self, site: usize) -> Option<impl Iterator<Item = AlleleCounts<'_>>> {
+        if site < self.num_sites() {
+            // panic from the unwrap indicates a serious internal bug
+            Some((0..self.num_sample_sets()).map(move |s| self.get_site(site, s).unwrap()))
+        } else {
+            None
+        }
+    }
+
+    pub fn iter_sample_set_sites(
+        &'_ self,
+    ) -> impl Iterator<Item = impl Iterator<Item = AlleleCounts<'_>>> {
+        (0..self.num_sites()).map(|site| self.iter_site(site).unwrap())
+    }
+
     /// Remove all counts in `self`.
     /// All allocations are preserved.
     /// The number of sample sets is preserved.
@@ -453,4 +468,61 @@ fn test_get_site() {
         .unwrap();
     assert!(counts.get_site(0, 1).is_some());
     assert!(counts.get_site(0, 2).is_none());
+}
+
+#[test]
+fn test_iter_site() {
+    use std::num::NonZeroUsize;
+    // two sites, two sample sets, in order of sites per sample set
+    let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+    let mut counts = crate::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+    counts
+        .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+        .unwrap();
+    counts
+        .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+        .unwrap();
+    let mut rebuilt_data = vec![];
+    for site in 0..counts.num_sites() {
+        let iter = counts.iter_site(site).unwrap();
+        let site_data = iter.map(|i| i.counts().to_owned()).collect::<Vec<_>>();
+        rebuilt_data.push(site_data)
+    }
+    assert_eq!(data.len(), rebuilt_data.len());
+    for (d, rd) in data.iter().zip(rebuilt_data.iter()) {
+        for (i, j) in d.iter().zip(rd.iter()) {
+            assert_eq!(i.len(), j.len());
+            assert_eq!(i.as_slice(), j.as_slice())
+        }
+    }
+}
+
+#[test]
+fn test_iter_sample_set_sites() {
+    use std::num::NonZeroUsize;
+    // two sites, two sample sets, in order of sites per sample set
+    let data = [[[10, 5], [8, 7]], [[11, 3], [1, 14]]];
+    let mut counts = crate::SampleAlleleCounts::of_empty_sample_sets(NonZeroUsize::new(2).unwrap());
+    counts
+        .extend_sample_sets_from_site_iter(data[0].iter().map(|v| (v, 15)))
+        .unwrap();
+    counts
+        .extend_sample_sets_from_site_iter(data[1].iter().map(|v| (v, 15)))
+        .unwrap();
+    let rebuilt_data = counts
+        .iter_sample_set_sites()
+        .map(|iter| iter.map(|ac| ac.counts().to_owned()).collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+    assert_eq!(data.len(), rebuilt_data.len());
+    for (d, rd) in data.iter().zip(rebuilt_data.iter()) {
+        for (i, j) in d.iter().zip(rd.iter()) {
+            assert_eq!(i.len(), j.len());
+            assert_eq!(i.as_slice(), j.as_slice())
+        }
+    }
+    let rebuilt_data2 = (0..counts.num_sample_sets())
+        .map(|site| counts.iter_site(site).unwrap())
+        .map(|iter| iter.map(|ac| ac.counts().to_owned()).collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+    assert_eq!(rebuilt_data, rebuilt_data2)
 }
