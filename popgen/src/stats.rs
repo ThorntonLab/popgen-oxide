@@ -32,10 +32,9 @@
 //! What we will leave you with is that, given some other tool, the following pseudocode
 //! makes sense:
 //!
-//! ```{no_run}
+//! ```ignore
 //! // "coverage_info" is some hypothetical type that allows the denominator to be obtained
-//! let values: (Diversity, f64) = calculate_diversity_and_denominator(&counts,
-//! &coverage_info)
+//! let values: (Diversity, f64) = calculate_diversity_and_denominator(&counts, &coverage_info);
 //! // Get the per site value of the statistic
 //! let div_per_site = f64::from(values.0) / values.1;
 //! ```
