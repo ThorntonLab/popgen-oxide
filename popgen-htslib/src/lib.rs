@@ -1,4 +1,11 @@
 //! Adapter types for [`rust_htslib`]
+//!
+//! This create provides a simple API for processing VCF
+//! records as an iterator over sample genotypes.
+//!
+//! The functionality here will cover many use cases.
+//! When it is not sufficient, the implementation can
+//! serve as a guide for people to implement their own.
 
 use popgen::AlleleID;
 use std::ffi::c_void;
@@ -79,6 +86,10 @@ impl<T> Drop for GenotypesAdapter<T> {
 ///
 /// Use [`Iterator::flatten`] to convert the return value into an iterator over all the
 /// alleles called in the record.
+///
+/// # Notes
+///
+/// * The phased/unphased information is stripped from the input
 pub fn bcf_record_to_genotypes_iter_adapter(
     record: &rust_htslib::bcf::Record,
 ) -> Result<
