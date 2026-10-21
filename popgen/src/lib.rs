@@ -46,7 +46,7 @@
 use std::fmt::Debug;
 
 mod counts;
-pub mod iter;
+mod iter;
 pub mod stats;
 #[allow(missing_docs)]
 pub mod traits;
