@@ -259,6 +259,59 @@ pub trait StatRepresentation<'stat> {
     fn as_raw(&'stat self) -> Self::Output;
 }
 
+// TODO: name may not be great
+#[allow(missing_docs)]
+#[doc(hidden)]
+pub fn combined_unpolarised_stat<
+    T: UnpolarisedSiteStat + Default,
+    I: IntoIterator<Item = usize>,
+>(
+    counts: &SampleAlleleCounts,
+    sample_set_indexes: I,
+) -> Result<T, PopgenError> {
+    if counts.is_empty() {
+        // Is this REALLY an Error or a "None" situation?
+        return Err(PopgenError::EmptySiteCounts);
+    }
+    let mut stat = T::default();
+    let mut combined_counts = vec![];
+    let sample_set_indexes = sample_set_indexes.into_iter().collect::<Vec<_>>();
+    for site_index in 0..counts.num_sites() {
+        combined_counts.clear();
+        // site_index is valid unless we have data structure
+        // integrity issues. Therefore the only way to receive
+        // None here is via an invalid sample set index
+        let ac = counts
+            .get_site(
+                site_index,
+                *sample_set_indexes
+                    .first()
+                    // NOTE: not really the right variant?
+                    .ok_or(PopgenError::InvalidSampleSet)?,
+            )
+            .ok_or(PopgenError::InvalidSampleSet)?;
+        combined_counts.extend_from_slice(ac.counts());
+        let mut total_sample_size = ac.total_alleles();
+        for &sample_set_num in sample_set_indexes.iter().skip(1) {
+            let ac = counts
+                .get_site(site_index, sample_set_num)
+                .ok_or(PopgenError::InvalidSampleSet)?;
+            // This assert must pass, else we have serious data
+            // structure integrity issues.
+            // The hope is that the assertion makes the summation loop
+            // below easier to optimize
+            assert_eq!(combined_counts.len(), ac.counts().len());
+            for (a, b) in combined_counts.iter_mut().zip(ac.counts()) {
+                *a += *b;
+            }
+            total_sample_size += ac.total_alleles();
+        }
+        let ac = AlleleCounts::new(&combined_counts, total_sample_size)?;
+        stat.add_site(ac)?;
+    }
+    Ok(stat)
+}
+
 /// The expected number of differences between two samples over all sites, the "expected pairwise diversity".
 ///
 /// Note that this statistic is **not defined** over an empty dataset; the denominator is the number of valid pairwise comparisons, which is 0 in this case.
