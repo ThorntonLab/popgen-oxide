@@ -21,6 +21,11 @@ pub enum FromTreeSequenceError {
         /// The specific value that is out of range
         which: tskit::NodeId,
     },
+    /// A node does not have its flags set to "node is sample"
+    NodeIsNotSample {
+        /// The id of the non-sample node
+        which: tskit::NodeId,
+    },
     /// A site requires an ancestral state but none was present
     SiteMissingAncestralState,
     /// A mutation requires a derived state but none was present
@@ -185,6 +190,9 @@ impl std::fmt::Display for FromTreeSequenceError {
             FromTreeSequenceError::Tskit(e) => write!(f, "tskit error: {e}"),
             FromTreeSequenceError::NodeIdOutOfRange { which } => {
                 write!(f, "node id {which} out of range")
+            }
+            FromTreeSequenceError::NodeIsNotSample { which } => {
+                write!(f, "node id {which} is not a sample node")
             }
             FromTreeSequenceError::SiteMissingAncestralState => {
                 write!(f, "site is missing ancestral state")

@@ -650,25 +650,6 @@ fn test_subsets_of_sample_nodes(ts: &tskit::TreeSequence) {
     }
 }
 
-#[cfg(test)]
-fn test_non_sample_nodes_and_subsets(ts: &tskit::TreeSequence) {
-    let samples = ts
-        .node_iter()
-        .filter_map(|n| (!n.flags().is_sample()).then_some(n.id()))
-        .collect::<Vec<_>>();
-    assert!(!samples
-        .iter()
-        .any(|&n| ts.nodes().flags(n).unwrap().is_sample()));
-    if !samples.is_empty() {
-        generate_counts_and_validate(ts, samples.iter().cloned());
-
-        for x in 2..samples.len() {
-            let subsamples = &samples[..x];
-            generate_counts_and_validate(ts, subsamples.iter().cloned());
-        }
-    }
-}
-
 #[test]
 fn test_0() {
     let ts = make_test_data(make_two_sample_tree, vec![]);
@@ -679,7 +660,6 @@ fn test_0() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -699,7 +679,6 @@ fn test_1() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -725,7 +704,6 @@ fn test_2() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -748,7 +726,6 @@ fn test_3() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
 
     // Multi-sample-set test
     {
@@ -804,7 +781,6 @@ fn test_4() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
     // Multi-sample-set test
     {
         let mcounts = popgen_tskit::multi_sample_allele_counts(
@@ -866,7 +842,6 @@ fn test_5() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
     // Multi-sample-set test
     {
         let mcounts = popgen_tskit::multi_sample_allele_counts(
@@ -927,7 +902,6 @@ fn test_6() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -958,7 +932,6 @@ fn test_7() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -1167,7 +1140,6 @@ fn test_8() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -1188,7 +1160,6 @@ fn test_9() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -1251,7 +1222,6 @@ fn test_11() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -1277,7 +1247,6 @@ fn test_12() {
             .map(|n| n.id()),
     );
     test_subsets_of_sample_nodes(&ts);
-    test_non_sample_nodes_and_subsets(&ts);
 }
 
 #[test]
@@ -1298,7 +1267,6 @@ fn test_13() {
                 .map(|n| n.id()),
         );
         test_subsets_of_sample_nodes(&ts);
-        test_non_sample_nodes_and_subsets(&ts);
     }
 }
 
@@ -1337,7 +1305,6 @@ mod with_ancient_samples {
                 .map(|n| n.id()),
         );
         test_subsets_of_sample_nodes(&ts);
-        test_non_sample_nodes_and_subsets(&ts);
     }
 
     #[test]
@@ -1362,7 +1329,6 @@ mod with_ancient_samples {
                 .map(|n| n.id()),
         );
         test_subsets_of_sample_nodes(&ts);
-        test_non_sample_nodes_and_subsets(&ts);
     }
 
     #[test]
@@ -1387,7 +1353,6 @@ mod with_ancient_samples {
                 .map(|n| n.id()),
         );
         test_subsets_of_sample_nodes(&ts);
-        test_non_sample_nodes_and_subsets(&ts);
     }
 
     #[test]
@@ -1406,7 +1371,6 @@ mod with_ancient_samples {
             )],
         );
         test_subsets_of_sample_nodes(&ts);
-        test_non_sample_nodes_and_subsets(&ts);
     }
 
     #[test]
@@ -1437,7 +1401,6 @@ mod with_ancient_samples {
             ],
         );
         test_subsets_of_sample_nodes(&ts);
-        test_non_sample_nodes_and_subsets(&ts);
     }
 
     #[test]
@@ -1601,4 +1564,61 @@ fn test_reciprocal_fixation() {
     assert_eq!(counts.num_sites(), 1);
     let fstats = popgen::stats::FStatistics::from_sample_sets(&counts, |_| Some(1.)).unwrap();
     assert_eq!(fstats.pi_between(0, 1).unwrap(), 1.);
+}
+
+#[test]
+fn test_non_sample_nodes_is_err() {
+    let ts = make_test_data(
+        make_four_sample_tree_with_one_inline_ancient_sample,
+        vec![SiteData::new(
+            5.,
+            "G",
+            vec![
+                MutationData::new(5, 21.0, "A"),
+                MutationData::new(4, 10.1, "G"),
+                MutationData::new(7, 10.1, "A"),
+                MutationData::new(1, 0.1, "C"),
+            ],
+        )],
+    );
+    let non_sample_nodes = ts
+        .node_iter()
+        .filter_map(|n| (!n.flags().is_sample()).then_some(n.id()))
+        .collect::<Vec<_>>();
+    assert!(!non_sample_nodes.is_empty());
+    let counts =
+        popgen_tskit::single_sample_allele_counts(&ts, non_sample_nodes.iter().cloned(), None);
+    assert!(counts.is_err());
+    assert!(matches!(
+        counts,
+        Err(popgen_tskit::FromTreeSequenceError::NodeIsNotSample { which: _ })
+    ));
+
+    // Case 2 -- mix sample and non-sample nodes
+
+    let mut sample_nodes = ts
+        .node_iter()
+        .filter_map(|n| (n.flags().is_sample()).then_some(n.id()))
+        .collect::<Vec<_>>();
+    sample_nodes.extend(
+        ts.node_iter()
+            .filter_map(|n| (!n.flags().is_sample()).then_some(n.id()))
+            .take(1),
+    );
+    let counts =
+        popgen_tskit::single_sample_allele_counts(&ts, non_sample_nodes.iter().cloned(), None);
+    assert!(counts.is_err());
+    assert!(matches!(
+        counts,
+        Err(popgen_tskit::FromTreeSequenceError::NodeIsNotSample { which: _ })
+    ));
+    match counts {
+        Err(e) => match e {
+            popgen_tskit::FromTreeSequenceError::NodeIsNotSample { which } => {
+                assert_eq!(which, sample_nodes.last().unwrap())
+            }
+            _ => panic!("unexpected error variant"),
+        },
+        Ok(_) => unreachable!("this is not reachable"),
+    }
 }

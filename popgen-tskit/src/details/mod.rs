@@ -107,6 +107,7 @@ impl TreeData {
 }
 
 fn setup_samples_from_node_ids<I>(
+    ts: &tskit::TreeSequence,
     num_nodes: usize,
     iter: I,
     td: &mut TreeData,
@@ -119,6 +120,15 @@ where
         // Should be an Err condition!
         if node_id == tskit::NodeId::NULL {
             return Err(FromTreeSequenceError::NodeIdOutOfRange { which: node_id });
+        }
+        if !ts
+            .tables()
+            .nodes()
+            .flags(node_id)
+            .ok_or_else(|| FromTreeSequenceError::NodeIdOutOfRange { which: node_id })?
+            .is_sample()
+        {
+            return Err(FromTreeSequenceError::NodeIsNotSample { which: node_id });
         }
         // Should be an Err condition!
         assert!(node_id.as_usize() < num_nodes);
@@ -143,7 +153,7 @@ where
 {
     let mut tree_data = TreeData::new(ts);
     let num_nodes = ts.nodes().num_rows().as_usize();
-    let num_sampled_genomes = setup_samples_from_node_ids(num_nodes, samples, &mut tree_data)?;
+    let num_sampled_genomes = setup_samples_from_node_ids(ts, num_nodes, samples, &mut tree_data)?;
     Ok((tree_data, num_sampled_genomes))
 }
 
