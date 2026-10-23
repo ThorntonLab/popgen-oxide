@@ -62,9 +62,6 @@ def test_diversity_all_sites_with_missing_data(anc_seed, mut_seed):
     h = allel.HaplotypeArray(g)
     samples = [i for i in ts.samples()]
     for hap in range(h.n_haplotypes):
-        # TODO: we get odd behavior if we allow up to all
-        # samples to be missing. We need to work out what is
-        # happening.
         nmissing = random.randint(0, ts.num_samples)
         assert nmissing <= ts.num_samples
         mdata = random.sample(samples, nmissing)

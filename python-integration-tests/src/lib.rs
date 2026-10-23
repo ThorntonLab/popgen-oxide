@@ -213,6 +213,12 @@ mod python_integration_tests {
         for site in ac.as_slice() {
             assert_eq!(site.len(), num_samples);
             let mut num_some = 0;
+            // NOTE: if we add an invariant site to our type,
+            // we get an Err.
+            // So we track the number of non-None things
+            // that we see and filter that it is > 1 below.
+            // (If it is == 1, we'd get various errors during stat
+            // calculation.)
             let site_data = site
                 .iter()
                 .cloned()
