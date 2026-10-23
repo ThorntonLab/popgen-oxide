@@ -65,7 +65,7 @@ def test_diversity_all_sites_with_missing_data(anc_seed, mut_seed):
         # TODO: we get odd behavior if we allow up to all
         # samples to be missing. We need to work out what is
         # happening.
-        nmissing = random.randint(0, ts.num_samples // 2)
+        nmissing = random.randint(0, ts.num_samples)
         assert nmissing <= ts.num_samples
         mdata = random.sample(samples, nmissing)
         assert len(h[hap, :]) == ts.num_samples
@@ -77,8 +77,9 @@ def test_diversity_all_sites_with_missing_data(anc_seed, mut_seed):
     counts = python_integration_tests.single_sample_set_counts_from_haplotype_matrix(
         h, ts.num_samples)
     div = python_integration_tests.diversity(counts)
-    allel_div = allel.mean_pairwise_difference(ac).sum()
-    assert np.fabs(allel_div-div) <= 1e-9
+    div_per_variant_site = allel.mean_pairwise_difference(ac)
+    allel_div = div_per_variant_site[np.isfinite(div_per_variant_site)].sum()
+    assert np.fabs(allel_div-div) <= 1e-9, f"{allel_div} != {div}"
 
 
 @given(anc_seed=integers(1, 42000000), mut_seed=integers(1, 42000000), np_seed=integers(0, 42000000))

@@ -212,17 +212,25 @@ mod python_integration_tests {
         );
         for site in ac.as_slice() {
             assert_eq!(site.len(), num_samples);
-            counts
-                .add_site(site.iter().cloned().map(|i| {
+            let mut num_some = 0;
+            let site_data = site
+                .iter()
+                .cloned()
+                .map(|i| {
                     if i >= 0 {
+                        num_some += 1;
                         Some((i as usize).into())
                     } else {
                         // No silliness allowed!
                         assert_eq!(i, -1);
                         None
                     }
-                }))
-                .unwrap()
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(site_data.len(), num_samples);
+            if num_some > 1 {
+                counts.add_site(site_data.into_iter()).unwrap()
+            }
         }
         Ok(SingleSampleCounts { counts })
     }
