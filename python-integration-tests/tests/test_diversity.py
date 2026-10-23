@@ -1,3 +1,4 @@
+import allel
 import demes
 import msprime
 import numpy as np
@@ -5,7 +6,16 @@ import numpy as np
 from hypothesis import given
 from hypothesis.strategies import integers
 
+import random
+
 import python_integration_tests
+
+
+def allel_diversity(matrix):
+    h = allel.HaplotypeArray(matrix)
+    g = h.to_genotypes(ploidy=1)
+    ac = g.count_alleles()
+    return allel.mean_pairwise_difference(ac).sum()
 
 
 @given(anc_seed=integers(1, 42000000), mut_seed=integers(1, 42000000))
@@ -29,6 +39,44 @@ def test_diversity_all_sites(anc_seed, mut_seed):
     counts = python_integration_tests.counts_from_ts_holder(tsholder)
     div = python_integration_tests.diversity(counts)
     assert np.fabs(tsdiv-div) <= 1e-9
+    allel_div = allel_diversity(ts.genotype_matrix())
+    assert np.fabs(allel_div-div) <= 1e-9
+
+
+@given(anc_seed=integers(1, 42000000), mut_seed=integers(1, 42000000))
+def test_diversity_all_sites_with_missing_data(anc_seed, mut_seed):
+    yaml = """
+    time_units: generations
+    demes:
+     - name: the_one_deme
+       epochs:
+        - start_size: 10000
+    """
+    graph = demes.loads(yaml)
+    demog = msprime.Demography.from_demes(graph)
+    ts = msprime.sim_ancestry(100, sequence_length=1000000, demography=demog,
+                              recombination_rate=1.2e-8, random_seed=anc_seed)
+    ts = msprime.sim_mutations(ts, rate=1.2e-8, random_seed=mut_seed)
+    random.seed(anc_seed)
+    g = ts.genotype_matrix()
+    h = allel.HaplotypeArray(g)
+    samples = [i for i in ts.samples()]
+    for hap in range(h.n_haplotypes):
+        nmissing = random.randint(0, ts.num_samples)
+        assert nmissing <= ts.num_samples
+        mdata = random.sample(samples, nmissing)
+        assert len(h[hap, :]) == ts.num_samples
+        h[hap, :][mdata] = -1
+        if nmissing > 0:
+            assert any([i == -1 for i in h[hap, :]])
+    ac = h.to_genotypes(ploidy=1).count_alleles()
+
+    counts = python_integration_tests.single_sample_set_counts_from_haplotype_matrix(
+        h, ts.num_samples)
+    div = python_integration_tests.diversity(counts)
+    div_per_variant_site = allel.mean_pairwise_difference(ac)
+    allel_div = div_per_variant_site[np.isfinite(div_per_variant_site)].sum()
+    assert np.fabs(allel_div-div) <= 1e-9, f"{allel_div} != {div}"
 
 
 @given(anc_seed=integers(1, 42000000), mut_seed=integers(1, 42000000), np_seed=integers(0, 42000000))
