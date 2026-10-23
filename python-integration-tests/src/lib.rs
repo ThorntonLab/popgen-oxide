@@ -184,7 +184,14 @@ mod python_integration_tests {
     /// as having a diversity of 0.0
     fn diversity(counts: &SingleSampleCounts) -> PyResult<f64> {
         let div = match popgen::stats::Diversity::try_from_iter_sites(
-            counts.counts.iter_sample_set(0).unwrap(),
+            counts
+                .counts
+                .iter_sample_set(0)
+                .unwrap()
+                // We skip sites with data like [1, 0] because
+                // they create NaNs in our calcs, raising CalculationError
+                // part-way thru
+                .filter(|ac| ac.counts().iter().sum::<i64>() > 1),
         ) {
             Ok(div) => div.as_raw(),
             Err(popgen::PopgenError::EmptySiteCounts) => {
@@ -212,30 +219,23 @@ mod python_integration_tests {
         );
         for site in ac.as_slice() {
             assert_eq!(site.len(), num_samples);
-            let mut num_some = 0;
-            // NOTE: if we add an invariant site to our type,
-            // we get an Err.
-            // So we track the number of non-None things
-            // that we see and filter that it is > 1 below.
-            // (If it is == 1, we'd get various errors during stat
-            // calculation.)
-            let site_data = site
-                .iter()
-                .cloned()
-                .map(|i| {
+            if site.iter().filter(|&&i| i != -1).count() > 1 {
+                let res = counts.add_site(site.iter().cloned().map(|i| {
                     if i >= 0 {
-                        num_some += 1;
                         Some((i as usize).into())
                     } else {
-                        // No silliness allowed!
                         assert_eq!(i, -1);
                         None
                     }
-                })
-                .collect::<Vec<_>>();
-            assert_eq!(site_data.len(), num_samples);
-            if num_some > 1 {
-                counts.add_site(site_data.into_iter()).unwrap()
+                }));
+                match res {
+                    Ok(()) => Ok(()),
+                    Err(e) => match e {
+                        popgen::PopgenError::EmptySiteCounts => Ok(()),
+                        _ => Err(e),
+                    },
+                }
+                .unwrap();
             }
         }
         Ok(SingleSampleCounts { counts })
