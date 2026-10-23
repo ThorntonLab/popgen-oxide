@@ -201,4 +201,29 @@ mod python_integration_tests {
             popgen::stats::FStatistics::from_sample_sets(&counts.counts, |_| Some(1.)).unwrap();
         Ok(Fstatistics { fstats })
     }
+
+    #[pyfunction]
+    fn single_sample_set_counts_from_haplotype_matrix(
+        ac: Vec<Vec<i64>>,
+        num_samples: usize,
+    ) -> PyResult<SingleSampleCounts> {
+        let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(
+            std::num::NonZeroUsize::new(1).unwrap(),
+        );
+        for site in ac.as_slice() {
+            assert_eq!(site.len(), num_samples);
+            counts
+                .add_site(site.iter().cloned().map(|i| {
+                    if i >= 0 {
+                        Some((i as usize).into())
+                    } else {
+                        // No silliness allowed!
+                        assert_eq!(i, -1);
+                        None
+                    }
+                }))
+                .unwrap()
+        }
+        Ok(SingleSampleCounts { counts })
+    }
 }
