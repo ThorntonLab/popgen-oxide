@@ -62,10 +62,13 @@ def test_diversity_all_sites_with_missing_data(anc_seed, mut_seed):
     h = allel.HaplotypeArray(g)
     samples = [i for i in ts.samples()]
     for hap in range(h.n_haplotypes):
-        nmissing = random.randint(0, ts.num_samples)
+        nmissing = random.randint(0, ts.num_samples // 2)
         assert nmissing <= ts.num_samples
         mdata = random.sample(samples, nmissing)
-        h[:, hap][mdata] = -1
+        assert len(h[hap, :]) == ts.num_samples
+        h[hap, :][mdata] = -1
+        if nmissing > 0:
+            assert any([i == -1 for i in h[hap, :]])
     ac = h.to_genotypes(ploidy=1).count_alleles()
 
     counts = python_integration_tests.single_sample_set_counts_from_haplotype_matrix(
