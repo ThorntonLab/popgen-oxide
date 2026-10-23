@@ -69,3 +69,28 @@ def test_thetaw_missing_data():
     thetaw_raw = 1/sum([1/i for i in range(1, 4)]) + 1 / \
         sum([1/i for i in range(1, 5)])
     assert np.fabs(thetaw-thetaw_raw) <= 1e-9
+
+
+def test_thetaw_multiple_alleles():
+    c = [
+        # allel will treat this site as a value of 1
+        # popgen will give it a value of 2 = >= 2 mutations have occurred
+        [0, 2, 0, 0, 1],
+        # both programs will give the site below a value of 1
+        [0, 1, 0, 0, 1]
+    ]
+    h = allel.HaplotypeArray(c)
+    assert h.n_variants == 2
+    g = h.to_genotypes(ploidy=1)
+    ac = g.count_alleles()
+    counts = python_integration_tests.single_sample_set_counts_from_haplotype_matrix(
+        h, 5)
+    thetaw = python_integration_tests.thetaw(counts)
+    allel_theta = allel.watterson_theta([1, 2], ac)
+    # NOTE: the values from allel (for some reason) are "per site"
+    assert np.fabs(allel_theta.sum()*2 - thetaw) >= 1e-9
+
+    # NOTE: the values from allel (for some reason) are "per site"
+    assert np.fabs(2 * allel_theta - 2/sum([1/i for i in range(1, 5)])) <= 1e-9
+    thetaw_raw = 3/sum([1/i for i in range(1, 5)])
+    assert np.fabs(thetaw-thetaw_raw) <= 1e-9
