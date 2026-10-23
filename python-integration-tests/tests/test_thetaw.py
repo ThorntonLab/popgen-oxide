@@ -1,0 +1,42 @@
+import allel
+import demes
+import msprime
+import numpy as np
+
+from hypothesis import given
+from hypothesis.strategies import integers
+
+import python_integration_tests
+
+
+def get_allel_thetaw(matrix):
+    h = allel.HaplotypeArray(matrix)
+    g = h.to_genotypes(ploidy=1)
+    ac = g.count_alleles()
+    return allel.watterson_theta([i+1 for i in range(h.n_variants)], ac).sum()*(h.n_variants)
+
+
+@given(anc_seed=integers(1, 42000000), mut_seed=integers(1, 42000000))
+def test_thetaw_all_sites(anc_seed, mut_seed):
+    yaml = """
+    time_units: generations
+    demes:
+     - name: the_one_deme
+       epochs:
+        - start_size: 10000
+    """
+    graph = demes.loads(yaml)
+    demog = msprime.Demography.from_demes(graph)
+    ts = msprime.sim_ancestry(100, sequence_length=1000000, demography=demog,
+                              recombination_rate=1.2e-8, random_seed=anc_seed)
+    # NOTE: allele calls a variant site 1 and a monomorphic site 0.
+    # We label a site as number of mutations = number of alleles present - 1
+    # So, to compare correctness, we need to restrict input to biallelic data
+    ts = msprime.sim_mutations(
+        ts, rate=1.2e-8, random_seed=mut_seed, discrete_genome=False)
+
+    tsholder = python_integration_tests.ts_holder_from_tables(ts.tables.copy())
+    counts = python_integration_tests.counts_from_ts_holder(tsholder)
+    thetaw = python_integration_tests.thetaw(counts)
+    allel_thetaw = get_allel_thetaw(ts.genotype_matrix())
+    assert np.fabs(allel_thetaw-thetaw) <= 1e-9

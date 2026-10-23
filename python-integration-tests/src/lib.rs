@@ -203,6 +203,29 @@ mod python_integration_tests {
     }
 
     #[pyfunction]
+    /// For the purposes of testing, we treat empty count objects
+    /// as having a thetaw of 0.0
+    fn thetaw(counts: &SingleSampleCounts) -> PyResult<f64> {
+        let div = match popgen::stats::WattersonsTheta::try_from_iter_sites(
+            counts
+                .counts
+                .iter_sample_set(0)
+                .unwrap()
+                // We skip sites with data like [1, 0] because
+                // they create NaNs in our calcs, raising CalculationError
+                // part-way thru
+                .filter(|ac| ac.counts().iter().sum::<i64>() > 1),
+        ) {
+            Ok(div) => div.as_raw(),
+            Err(popgen::PopgenError::EmptySiteCounts) => {
+                popgen::stats::WattersonsTheta::default().as_raw()
+            }
+            Err(e) => panic!("unexpected error {e:?}"),
+        };
+        Ok(div)
+    }
+
+    #[pyfunction]
     fn fstats(counts: &SingleSampleCounts) -> PyResult<Fstatistics> {
         let fstats =
             popgen::stats::FStatistics::from_sample_sets(&counts.counts, |_| Some(1.)).unwrap();
