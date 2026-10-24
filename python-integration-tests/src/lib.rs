@@ -184,7 +184,14 @@ mod python_integration_tests {
     /// as having a diversity of 0.0
     fn diversity(counts: &SingleSampleCounts) -> PyResult<f64> {
         let div = match popgen::stats::Diversity::try_from_iter_sites(
-            counts.counts.iter_sample_set(0).unwrap(),
+            counts
+                .counts
+                .iter_sample_set(0)
+                .unwrap()
+                // We skip sites with data like [1, 0] because
+                // they create NaNs in our calcs, raising CalculationError
+                // part-way thru
+                .filter(|ac| ac.counts().iter().sum::<i64>() > 1),
         ) {
             Ok(div) => div.as_raw(),
             Err(popgen::PopgenError::EmptySiteCounts) => {
@@ -196,9 +203,64 @@ mod python_integration_tests {
     }
 
     #[pyfunction]
+    /// For the purposes of testing, we treat empty count objects
+    /// as having a thetaw of 0.0
+    fn thetaw(counts: &SingleSampleCounts) -> PyResult<f64> {
+        let div = match popgen::stats::WattersonsTheta::try_from_iter_sites(
+            counts
+                .counts
+                .iter_sample_set(0)
+                .unwrap()
+                // We skip sites with data like [1, 0] because
+                // they create NaNs in our calcs, raising CalculationError
+                // part-way thru
+                .filter(|ac| ac.counts().iter().sum::<i64>() > 1),
+        ) {
+            Ok(div) => div.as_raw(),
+            Err(popgen::PopgenError::EmptySiteCounts) => {
+                popgen::stats::WattersonsTheta::default().as_raw()
+            }
+            Err(e) => panic!("unexpected error {e:?}"),
+        };
+        Ok(div)
+    }
+
+    #[pyfunction]
     fn fstats(counts: &SingleSampleCounts) -> PyResult<Fstatistics> {
         let fstats =
             popgen::stats::FStatistics::from_sample_sets(&counts.counts, |_| Some(1.)).unwrap();
         Ok(Fstatistics { fstats })
+    }
+
+    #[pyfunction]
+    fn single_sample_set_counts_from_haplotype_matrix(
+        ac: Vec<Vec<i64>>,
+        num_samples: usize,
+    ) -> PyResult<SingleSampleCounts> {
+        let mut counts = popgen::SampleAlleleCounts::of_empty_sample_sets(
+            std::num::NonZeroUsize::new(1).unwrap(),
+        );
+        for site in ac.as_slice() {
+            assert_eq!(site.len(), num_samples);
+            if site.iter().filter(|&&i| i != -1).count() > 1 {
+                let res = counts.add_site(site.iter().cloned().map(|i| {
+                    if i >= 0 {
+                        Some((i as usize).into())
+                    } else {
+                        assert_eq!(i, -1);
+                        None
+                    }
+                }));
+                match res {
+                    Ok(()) => Ok(()),
+                    Err(e) => match e {
+                        popgen::PopgenError::EmptySiteCounts => Ok(()),
+                        _ => Err(e),
+                    },
+                }
+                .unwrap();
+            }
+        }
+        Ok(SingleSampleCounts { counts })
     }
 }
