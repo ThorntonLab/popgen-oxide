@@ -33,6 +33,10 @@
 //! makes sense:
 //!
 //! ```ignore
+//! # let counts = popgen::SampleAlleleCounts::default();
+//! # let coverage_info = vec![];
+//! # use popgen::stats::Diversity;
+//! # fn calculate_diversity_and_denominator(_:&popgen::SampleAlleleCounts, _: &[i32]) -> (Diversity, f64) { (popgen::stats::Diversity::default(), 1.)}
 //! // "coverage_info" is some hypothetical type that allows the denominator to be obtained
 //! let values: (Diversity, f64) = calculate_diversity_and_denominator(&counts, &coverage_info);
 //! // Get the per site value of the statistic
