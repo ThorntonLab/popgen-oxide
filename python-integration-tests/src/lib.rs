@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 
 #[pyclass]
 struct TreeSequenceHolder {
-    ts: tskit::TreeSequence,
+    holder: tskit2tskit::SharedTreeSequence,
 }
 
 #[pyclass]
@@ -71,32 +71,24 @@ mod python_integration_tests {
 
     #[pyfunction]
     fn ts_holder_from_tables(py: Python<'_>, pytables: Py<PyAny>) -> PyResult<TreeSequenceHolder> {
-        let shared =
-            unsafe { tskit2tskit::SharedTableCollection::new_from_tables(py, pytables).unwrap() };
-        let ts = unsafe {
-            shared
-                .with_tables(|tables| {
-                    tables
-                        .deepcopy()
-                        .unwrap()
-                        .tree_sequence(tskit::TreeSequenceFlags::default().build_indexes())
-                })
-                .unwrap()
-        };
-        Ok(TreeSequenceHolder { ts })
+        let pyts = pytables.call_method(py, "tree_sequence", (), None)?;
+        let holder = unsafe { tskit2tskit::SharedTreeSequence::new_from_tree_sequence(py, pyts) }?;
+        Ok(TreeSequenceHolder { holder })
     }
 
     #[pyfunction]
     fn counts_from_ts_holder(holder: &TreeSequenceHolder) -> PyResult<SingleSampleCounts> {
-        let counts = popgen_tskit::single_sample_allele_counts(
-            &holder.ts,
-            holder
-                .ts
-                .node_iter()
-                .filter(|n| n.flags().is_sample())
-                .map(|n| n.id()),
-            None,
-        )
+        let counts = unsafe {
+            holder.holder.with_treeseq(|ts| {
+                popgen_tskit::single_sample_allele_counts(
+                    ts,
+                    ts.node_iter()
+                        .filter(|n| n.flags().is_sample())
+                        .map(|n| n.id()),
+                    None,
+                )
+            })
+        }
         .unwrap();
         Ok(SingleSampleCounts { counts })
     }
@@ -106,12 +98,17 @@ mod python_integration_tests {
         holder: &TreeSequenceHolder,
         samples: Vec<i32>,
     ) -> PyResult<SingleSampleCounts> {
-        let counts = popgen_tskit::single_sample_allele_counts(
-            &holder.ts,
-            samples.into_iter().map(|i| i.into()),
-            None,
-        )
+        let counts = unsafe {
+            holder.holder.with_treeseq(|ts| {
+                popgen_tskit::single_sample_allele_counts(
+                    ts,
+                    samples.iter().cloned().map(|i| i.into()),
+                    None,
+                )
+            })
+        }
         .unwrap();
+
         Ok(SingleSampleCounts { counts })
     }
 
@@ -120,13 +117,18 @@ mod python_integration_tests {
         holder: &TreeSequenceHolder,
         sample_sets: Vec<Vec<i32>>,
     ) -> PyResult<SingleSampleCounts> {
-        let counts = popgen_tskit::multi_sample_allele_counts(
-            &holder.ts,
-            sample_sets
-                .into_iter()
-                .map(|i| i.into_iter().map(|j| j.into())),
-            None,
-        )
+        let counts = unsafe {
+            holder.holder.with_treeseq(|ts| {
+                popgen_tskit::multi_sample_allele_counts(
+                    ts,
+                    sample_sets
+                        .iter()
+                        .cloned()
+                        .map(|i| i.into_iter().map(|j| j.into())),
+                    None,
+                )
+            })
+        }
         .unwrap();
         Ok(SingleSampleCounts { counts })
     }
@@ -142,13 +144,24 @@ mod python_integration_tests {
     ) -> PyResult<SingleSampleCountCollection> {
         assert!(!windows.is_empty());
         assert!(windows[0] == 0.0);
-        assert!(windows[windows.len() - 1] == holder.ts.tables().sequence_length());
-        let counts = popgen_tskit::single_sample_allele_counts_from_windows(
-            &holder.ts,
-            samples.iter().map(|i| i.into()),
-            windows.windows(2).map(|w| (w[0], w[1])),
-            None,
-        )
+        assert!(
+            windows[windows.len() - 1]
+                == unsafe {
+                    holder
+                        .holder
+                        .with_treeseq(|ts| ts.tables().sequence_length())
+                }
+        );
+        let counts = unsafe {
+            holder.holder.with_treeseq(|ts| {
+                popgen_tskit::single_sample_allele_counts_from_windows(
+                    ts,
+                    samples.iter().map(|i| i.into()),
+                    windows.windows(2).map(|w| (w[0], w[1])),
+                    None,
+                )
+            })
+        }
         .unwrap();
         let vcounts = counts
             .into_iter()
@@ -165,13 +178,18 @@ mod python_integration_tests {
         windows: Vec<(f64, f64)>,
     ) -> PyResult<SingleSampleCountCollection> {
         assert!(!windows.is_empty());
-        let counts = popgen_tskit::single_sample_allele_counts_from_windows(
-            &holder.ts,
-            samples.iter().map(|i| i.into()),
-            windows.into_iter(),
-            None,
-        )
+        let counts = unsafe {
+            holder.holder.with_treeseq(|ts| {
+                popgen_tskit::single_sample_allele_counts_from_windows(
+                    ts,
+                    samples.iter().map(|i| i.into()),
+                    windows.iter().cloned(),
+                    None,
+                )
+            })
+        }
         .unwrap();
+
         let vcounts = counts
             .into_iter()
             .map(|c| SingleSampleCounts { counts: c })

@@ -1243,9 +1243,9 @@ dependencies = [
 
 [[package]]
 name = "tskit"
-version = "0.16.3"
+version = "0.16.4-alpha.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "106fe4c66b03ff9bb7ce20cdf19f77a7e85b2c63b5d05bb563e36b440432f6d6"
+checksum = "9ab7ac6567979a218a66b1d420c9cac52b7f7eb7752fef07e32bb29bbec896d6"
 dependencies = [
  "bindgen",
  "cc",
@@ -1256,8 +1256,9 @@ dependencies = [
 
 [[package]]
 name = "tskit2tskit"
-version = "0.1.0-alpha.0"
-source = "git+https://github.com/molpopgen/tskit2tskit?branch=main#862749f8539f137b23c702765cb710564dd9333a"
+version = "0.1.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16b65345961ebeef8896a356f2cc6b47f9cb2f092b3f9ed0740d2cf38d0af08c"
 dependencies = [
  "libc",
  "pyo3",
